@@ -1,0 +1,399 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.report-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.stat-label {
+    font-size: 1.1em;
+    opacity: 0.9;
+}
+
+.report-section {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.report-section h2 {
+    color: #495057;
+    margin-bottom: 20px;
+    font-size: 1.4em;
+    font-weight: 600;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.data-table th {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+}
+
+.data-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.progress-bar {
+    background: #e9ecef;
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.chart-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-top: 25px;
+}
+
+.chart-box {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.chart-title {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bar-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.bar-label {
+    min-width: 120px;
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.bar {
+    flex: 1;
+    height: 25px;
+    background: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    color: white;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.export-actions {
+    margin: 25px 0;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-export {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-export:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+.btn-back {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-back:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .chart-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .export-actions {
+        flex-direction: column;
+    }
+    
+    .report-container {
+        padding: 10px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-container">
+    <div class="export-actions">
+        <a href="{% url 'admin:painel_radcheck_changelist' %}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            Voltar à Lista
+        </a>
+        <button onclick="window.print()" class="btn-export">
+            <i class="fas fa-print"></i>
+            Imprimir Relatório
+        </button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_records|floatformat:0 }}</div>
+            <div class="stat-label">Total de Registros</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ total_users|floatformat:0 }}</div>
+            <div class="stat-label">Usuários Únicos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ attr_stats|length }}</div>
+            <div class="stat-label">Tipos de Atributos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{% widthratio total_records total_users 1 %}</div>
+            <div class="stat-label">Média Atrib./Usuário</div>
+        </div>
+    </div>
+
+    <div class="report-section">
+        <h2><i class="fas fa-chart-bar"></i> Distribuição de Atributos</h2>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Atributo</th>
+                        <th>Quantidade</th>
+                        <th>Percentual</th>
+                        <th>Distribuição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in attr_stats|slice:":10" %}
+                    <tr>
+                        <td><strong>{{ stat.attribute }}</strong></td>
+                        <td>{{ stat.count|floatformat:0 }}</td>
+                        <td>{% widthratio stat.count total_records 100 %}%</td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {% widthratio stat.count total_records 100 %}%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-box">
+            <div class="chart-title">Atributos Principais</div>
+            <div class="bar-chart">
+                {% for attr, count in attr_usage.items %}
+                {% if count > 0 %}
+                <div class="bar-item">
+                    <div class="bar-label">{{ attr|truncatechars:15 }}</div>
+                    <div class="bar">
+                        <div class="bar-fill" style="width: {% if attr_usage.values %}{% widthratio count attr_usage.values|first 100 %}%{% else %}0%{% endif %};">
+                            {{ count }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-title">Usuários com Múltiplos Atributos</div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Nº Atributos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users_with_multiple_attrs|slice:":10" %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td><span class="badge">{{ user.attr_count }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-section">
+        <h2><i class="fas fa-info-circle"></i> Informações do Sistema</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div>
+                <h4>Estatísticas Gerais</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
+                        <strong>Total de Registros:</strong> {{ total_records|floatformat:0 }}
+                    </li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
+                        <strong>Usuários Únicos:</strong> {{ total_users|floatformat:0 }}
+                    </li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
+                        <strong>Tipos de Atributos:</strong> {{ attr_stats|length }}
+                    </li>
+                    <li style="padding: 8px 0;">
+                        <strong>Data do Relatório:</strong> {{ "now"|date:"d/m/Y H:i" }}
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h4>Recomendações</h4>
+                <ul style="color: #6c757d;">
+                    <li style="margin-bottom: 10px;">Monitore regularmente usuários com múltiplos atributos</li>
+                    <li style="margin-bottom: 10px;">Verifique senhas em texto claro para segurança</li>
+                    <li style="margin-bottom: 10px;">Configure datas de expiração para contas temporárias</li>
+                    <li>Mantenha backups regulares da configuração RADIUS</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animar barras de progresso
+    const progressBars = document.querySelectorAll('.progress-fill, .bar-fill');
+    progressBars.forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.width = width;
+        }, 100);
+    });
+});
+</script>
+{% endblock %}

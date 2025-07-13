@@ -1,0 +1,401 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Desativar Recarga Automática - {{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.disable-recharge-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.confirmation-card {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-left: 5px solid #dc3545;
+    margin-bottom: 20px;
+}
+
+.warning-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.warning-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.service-line-info {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border: 1px solid #dee2e6;
+}
+
+.service-line-info h3 {
+    margin-top: 0;
+    color: #495057;
+    border-bottom: 2px solid #007cba;
+    padding-bottom: 10px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-item strong {
+    color: #495057;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.warning-message {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.warning-message ul {
+    margin: 10px 0 0 0;
+    padding-left: 20px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 25px;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    border: 2px solid;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    border-color: #c82333;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    border-color: #5a6268;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.2em;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #dc3545;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .disable-recharge-container {
+        padding: 15px;
+    }
+    
+    .confirmation-card {
+        padding: 20px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="disable-recharge-container">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="/admin/">Início</a> /
+        <a href="{% url 'painel:starlink_admin' %}">Starlink Admin</a> /
+        <a href="{% url 'painel:starlink_auto_recharge_management' %}?account_id={{ account_id }}">Recarga Automática</a> /
+        <span>Desativar Recarga</span>
+    </nav>
+
+    <!-- Warning Header -->
+    <div class="warning-header">
+        <h1>
+            <i class="fas fa-exclamation-triangle"></i>
+            Desativar Recarga Automática
+        </h1>
+        <p style="margin: 10px 0 0 0; font-size: 1rem; opacity: 0.9;">
+            Confirmação necessária para prosseguir
+        </p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-info-circle"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Service Line Information -->
+    {% if service_line_info %}
+        <div class="service-line-info">
+            <h3><i class="fas fa-satellite-dish"></i> Informações da Service Line</h3>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="fas fa-barcode"></i>
+                    <strong>Service Line:</strong>
+                    <span>{{ service_line_info.serviceLineNumber }}</span>
+                </div>
+                
+                {% if service_line_info.formattedLocation %}
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <strong>Localização:</strong>
+                        <span>{{ service_line_info.formattedLocation }}</span>
+                    </div>
+                {% elif service_line_info.serviceLocation %}
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <strong>Localização:</strong>
+                        <span>{{ service_line_info.serviceLocation }}</span>
+                    </div>
+                {% endif %}
+                
+                {% if service_line_info.nickname %}
+                    <div class="info-item">
+                        <i class="fas fa-tag"></i>
+                        <strong>Apelido:</strong>
+                        <span>{{ service_line_info.nickname }}</span>
+                    </div>
+                {% endif %}
+                
+                <div class="info-item">
+                    <i class="fas fa-user-circle"></i>
+                    <strong>Conta:</strong>
+                    <span>{{ account_info.name }} ({{ account_id }})</span>
+                </div>
+                
+                <div class="info-item">
+                    <i class="fas fa-sync-alt"></i>
+                    <strong>Recarga Automática:</strong>
+                    {% if service_line_info.auto_recharge_status.active %}
+                        <span class="status-badge active">
+                            <i class="fas fa-check-circle"></i> ATIVA
+                        </span>
+                    {% else %}
+                        <span class="status-badge inactive">
+                            <i class="fas fa-times-circle"></i> INATIVA
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning Message -->
+        {% if service_line_info.auto_recharge_status.active %}
+            <div class="warning-message">
+                <h4><i class="fas fa-exclamation-triangle"></i> Atenção!</h4>
+                <p>Você está prestes a <strong>desativar a recarga automática</strong> para esta Service Line. Isso significa que:</p>
+                <ul>
+                    <li>A recarga automática não funcionará mais nesta linha</li>
+                    <li>Será necessário recarregar manualmente quando necessário</li>
+                    <li>Esta ação pode ser revertida posteriormente (funcionalidade em desenvolvimento)</li>
+                </ul>
+                <p><strong>Deseja realmente continuar?</strong></p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <form method="post" style="display: inline;" onsubmit="showLoading()">
+                    {% csrf_token %}
+                    <input type="hidden" name="account_id" value="{{ account_id }}">
+                    <input type="hidden" name="service_line_number" value="{{ service_line_number }}">
+                    <input type="hidden" name="confirm" value="true">
+                    
+                    <button type="submit" class="btn btn-danger" id="confirm-btn">
+                        <i class="fas fa-stop"></i>
+                        Sim, Desativar Recarga Automática
+                    </button>
+                </form>
+                
+                <a href="{% url 'painel:starlink_auto_recharge_management' %}?account_id={{ account_id }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Cancelar e Voltar
+                </a>
+            </div>
+        {% else %}
+            <div class="warning-message">
+                <h4><i class="fas fa-info-circle"></i> Informação</h4>
+                <p>A recarga automática desta Service Line já está <strong>inativa</strong>.</p>
+            </div>
+
+            <div class="action-buttons">
+                <a href="{% url 'painel:starlink_auto_recharge_management' %}?account_id={{ account_id }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar ao Painel
+                </a>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <div class="warning-message">
+            <h4><i class="fas fa-exclamation-triangle"></i> Erro</h4>
+            <p>Não foi possível obter as informações da Service Line. Verifique se os parâmetros estão corretos.</p>
+        </div>
+
+        <div class="action-buttons">
+            <a href="{% url 'painel:starlink_auto_recharge_management' %}?account_id={{ account_id }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Voltar ao Painel
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay">
+    <div style="text-align: center;">
+        <div class="loading-spinner"></div>
+        <div>Desativando recarga automática...</div>
+        <div style="font-size: 0.9em; margin-top: 10px; opacity: 0.8;">
+            Fazendo chamada para a API da Starlink
+        </div>
+    </div>
+</div>
+
+<script>
+function showLoading() {
+    document.getElementById('loading-overlay').style.display = 'flex';
+    document.getElementById('confirm-btn').disabled = true;
+}
+
+// Auto-hide loading overlay after 30 seconds (fallback)
+setTimeout(function() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay.style.display === 'flex') {
+        overlay.style.display = 'none';
+        document.getElementById('confirm-btn').disabled = false;
+    }
+}, 30000);
+</script>
+{% endblock %}

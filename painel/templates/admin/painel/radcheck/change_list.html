@@ -1,0 +1,294 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <li>
+        <a href="import-csv/" class="addlink import-csv-link">
+            <i class="fas fa-upload"></i> Importar CSV
+        </a>
+    </li>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+/* Reset completo para a área de botões */
+.changelist-tools {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 15px !important;
+}
+
+/* Container dos botões de ação */
+ul.object-tools {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+ul.object-tools li {
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+/* Todos os botões com altura padrão */
+.object-tools a, 
+#changelist-filter-toggle,
+.import-csv-link {
+    height: 36px !important;
+    padding: 8px 16px !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+    font-weight: normal !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    border: none !important;
+    cursor: pointer !important;
+}
+
+/* Botão Adicionar Usuário */
+.object-tools .addlink {
+    background: #417690 !important;
+    color: white !important;
+}
+
+.object-tools .addlink:hover {
+    background: #205067 !important;
+    color: white !important;
+}
+
+/* Botão Importar CSV */
+.import-csv-link {
+    background: #f0ad4e !important;
+    color: white !important;
+}
+
+.import-csv-link:hover {
+    background: #ec971f !important;
+    color: white !important;
+}
+
+/* Botão Filtro */
+#changelist-filter-toggle {
+    background: #6c757d !important;
+    color: white !important;
+}
+
+#changelist-filter-toggle:hover {
+    background: #545b62 !important;
+    color: white !important;
+}
+
+.stats-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.details-section {
+    background: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.detail-list {
+    list-style: none;
+    padding: 0;
+}
+
+.detail-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+}
+
+.detail-list li:last-child {
+    border-bottom: none;
+}
+
+@media (max-width: 768px) {
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para forçar alinhamento dos botões
+    function alignButtons() {
+        const buttons = document.querySelectorAll('.object-tools a, #changelist-filter-toggle');
+        buttons.forEach(button => {
+            button.style.height = '36px';
+            button.style.padding = '8px 16px';
+            button.style.boxSizing = 'border-box';
+            button.style.display = 'inline-flex';
+            button.style.alignItems = 'center';
+            button.style.justifyContent = 'center';
+            button.style.borderRadius = '4px';
+            button.style.fontSize = '13px';
+            button.style.lineHeight = '1';
+            button.style.margin = '0';
+            button.style.border = 'none';
+            button.style.textDecoration = 'none';
+        });
+        
+        // Forçar container flexível
+        const objectTools = document.querySelector('.object-tools');
+        if (objectTools) {
+            objectTools.style.display = 'flex';
+            objectTools.style.alignItems = 'center';
+            objectTools.style.gap = '5px';
+            objectTools.style.margin = '0';
+            objectTools.style.padding = '0';
+        }
+    }
+    
+    // Executar imediatamente e após um pequeno delay
+    alignButtons();
+    setTimeout(alignButtons, 100);
+    setTimeout(alignButtons, 500);
+});
+</script>
+{% endblock %}
+
+{% block content_title %}
+<div class="stats-container">
+    <h1>
+        <i class="fas fa-database"></i>
+        Usuários Radius - Dashboard
+    </h1>
+    <p>Gerencie e monitore as configurações de autenticação RADIUS</p>
+      <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_records }}</div>
+            <div class="stat-label">Total de Registros</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ unique_users }}</div>
+            <div class="stat-label">Usuários Únicos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ attributes_stats|length }}</div>
+            <div class="stat-label">Tipos de Atributos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ operators_stats|length }}</div>
+            <div class="stat-label">Operadores em Uso</div>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="{% url 'admin:painel_radcheck_relatorio' %}" 
+           style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                  color: white; 
+                  padding: 12px 25px; 
+                  border-radius: 8px; 
+                  text-decoration: none; 
+                  font-weight: 600; 
+                  text-transform: uppercase; 
+                  letter-spacing: 0.5px; 
+                  display: inline-flex; 
+                  align-items: center; 
+                  gap: 8px;
+                  transition: all 0.3s ease;">
+            <i class="fas fa-chart-line"></i>
+            Ver Relatório Completo
+        </a>
+    </div>
+</div>
+
+{% if attributes_stats or operators_stats %}
+<div class="details-section">
+    <h3><i class="fas fa-chart-bar"></i> Estatísticas Detalhadas</h3>
+    <div class="details-grid">
+        {% if attributes_stats %}
+        <div>
+            <h4>Atributos Mais Utilizados</h4>
+            <ul class="detail-list">
+                {% for stat in attributes_stats|slice:":5" %}
+                <li>
+                    <span>{{ stat.attribute }}</span>
+                    <span><strong>{{ stat.count }}</strong></span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% if operators_stats %}
+        <div>
+            <h4>Operadores Mais Utilizados</h4>
+            <ul class="detail-list">
+                {% for stat in operators_stats %}
+                <li>
+                    <span>{{ stat.op|default:"(vazio)" }}</span>
+                    <span><strong>{{ stat.count }}</strong></span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block result_list %}
+<div style="background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    {{ block.super }}
+</div>
+{% endblock %}

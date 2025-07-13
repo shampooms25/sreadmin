@@ -1,0 +1,611 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load starlink_extras %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.starlink-admin-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.account-selector {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.account-selector label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.account-selector select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.overview-summary {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.summary-stat {
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.summary-stat-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.summary-stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.accounts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.account-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.account-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.account-card.error {
+    border-left: 4px solid #dc3545;
+}
+
+.account-card.success {
+    border-left: 4px solid #28a745;
+}
+
+.account-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.account-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1e3a8a;
+    margin: 0;
+}
+
+.account-id {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-family: monospace;
+}
+
+.account-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.account-stat {
+    text-align: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.account-stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1e3a8a;
+}
+
+.account-stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+.usage-indicators {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.usage-indicator {
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+}
+
+.usage-70 { background-color: #ffc107; }
+.usage-80 { background-color: #fd7e14; }
+.usage-90 { background-color: #dc3545; }
+.usage-100 { background-color: #6f42c1; }
+
+.admin-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.admin-section {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.admin-section:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.section-icon {
+    font-size: 2.5em;
+    margin-right: 15px;
+    color: #1e3a8a;
+}
+
+.section-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #1f2937;
+    margin: 0;
+}
+
+.section-description {
+    color: #6b7280;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn i {
+    margin-right: 8px;
+    font-size: 1.1em;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-dark {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    color: white;
+}
+
+.btn-dark:hover {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.error-message {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.account-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.refresh-indicator {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-align: center;
+    margin-top: 20px;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .starlink-admin-container {
+        padding: 10px;
+    }
+    
+    .accounts-grid,
+    .admin-sections {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .account-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .section-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="starlink-admin-container">
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a> /
+            {% else %}
+                <span>{{ crumb.name }}</span>
+            {% endif %}
+        {% endfor %}
+    </nav>
+
+    <!-- Seletor de Conta -->
+    <div class="account-selector">
+        <label for="account-select">
+            <i class="fas fa-satellite"></i> Selecionar Conta Starlink:
+        </label>
+        <select id="account-select" onchange="changeAccount()">
+            <option value="">🌍 Visão Geral de Todas as Contas</option>
+            {% for account_id, account_data in available_accounts.items %}
+                <option value="{{ account_id }}" {% if account_id == selected_account %}selected{% endif %}>
+                    {{ account_data.name }} ({{ account_id }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Resumo Geral de Todas as Contas -->
+    {% if not selected_account and all_accounts_data %}
+        <div class="overview-summary">
+            <h2><i class="fas fa-globe"></i> Visão Geral - Todas as Contas Starlink</h2>
+            <p>Resumo consolidado de {{ total_accounts }} contas configuradas</p>
+            
+            <div class="summary-stats">
+                <div class="summary-stat">
+                    <div class="summary-stat-value">{{ total_summary.total_service_lines }}</div>
+                    <div class="summary-stat-label">Total Service Lines</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">R$ {{ total_summary.total_charges|floatformat:2 }}</div>
+                    <div class="summary-stat-label">Total Faturamento</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">{{ total_summary.total_usage_100_plus }}</div>
+                    <div class="summary-stat-label">Linhas > 100%</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">{{ total_summary.total_usage_90_plus }}</div>
+                    <div class="summary-stat-label">Linhas > 90%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid de Contas Individuais -->
+        <div class="accounts-grid">
+            {% for account_id, account_data in all_accounts_data.items %}
+                <div class="account-card {% if account_data.billing_success and account_data.usage_success %}success{% elif account_data.billing_error or account_data.usage_error %}error{% endif %}">
+                    <div class="account-header">
+                        <div>
+                            <h3 class="account-name">{{ account_data.name }}</h3>
+                            <div class="account-id">{{ account_data.account_id }}</div>
+                        </div>
+                    </div>
+                    
+                    <p style="color: #6c757d; margin-bottom: 15px;">{{ account_data.description }}</p>
+                    
+                    {% if account_data.billing_success and account_data.usage_success %}
+                        <div class="account-stats">
+                            <div class="account-stat">
+                                <div class="account-stat-value">{{ account_data.total_service_lines }}</div>
+                                <div class="account-stat-label">Service Lines</div>
+                            </div>
+                            <div class="account-stat">
+                                <div class="account-stat-value">R$ {{ account_data.total_charges|floatformat:0 }}</div>
+                                <div class="account-stat-label">Faturamento</div>
+                            </div>
+                        </div>
+                        
+                        <div class="usage-indicators">
+                            <div class="usage-indicator usage-70">
+                                {{ account_data.usage_statistics.lines_70_plus|default:0 }}
+                                <br>≥70%
+                            </div>
+                            <div class="usage-indicator usage-80">
+                                {{ account_data.usage_statistics.lines_80_plus|default:0 }}
+                                <br>≥80%
+                            </div>
+                            <div class="usage-indicator usage-90">
+                                {{ account_data.usage_statistics.lines_90_plus|default:0 }}
+                                <br>≥90%
+                            </div>
+                            <div class="usage-indicator usage-100">
+                                {{ account_data.usage_statistics.lines_100_plus|default:0 }}
+                                <br>≥100%
+                            </div>
+                        </div>
+                    {% else %}
+                        {% if account_data.billing_error %}
+                            <div class="error-message">
+                                <strong>Erro no Faturamento:</strong> {{ account_data.billing_error }}
+                            </div>
+                        {% endif %}
+                        {% if account_data.usage_error %}
+                            <div class="error-message">
+                                <strong>Erro no Uso:</strong> {{ account_data.usage_error }}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <div class="account-actions">
+                        <a href="{% url 'painel:starlink_admin' %}?account={{ account_id }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye"></i> Ver Detalhes
+                        </a>
+                        <a href="{% url 'painel:starlink_dashboard' %}?account={{ account_id }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="refresh-indicator">
+            <i class="fas fa-sync-alt"></i> Última atualização: {{ last_update }}
+            <br>Os dados são atualizados automaticamente a cada 5 minutos
+        </div>
+    {% endif %}
+
+    <!-- Painel de Administração Starlink -->
+    <div class="admin-sections">
+        <div class="admin-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-chart-area"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">Relatórios e Monitoramento</h3>
+                </div>
+            </div>
+            <p class="section-description">
+                Acesse relatórios detalhados, dashboards e ferramentas de monitoramento em tempo real dos serviços Starlink.
+            </p>
+            <div class="action-buttons">
+                <a href="{% url 'painel:starlink_dashboard' %}{% if selected_account %}?account={{ selected_account }}{% endif %}" class="btn btn-primary">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard Principal
+                </a>
+                <a href="{% url 'painel:starlink_usage_report' %}{% if selected_account %}?account={{ selected_account }}{% endif %}" class="btn btn-info">
+                    <i class="fas fa-chart-pie"></i>
+                    Relatório de Consumo
+                </a>
+                <a href="{% url 'painel:starlink_billing_report' %}{% if selected_account %}?account={{ selected_account }}{% endif %}" class="btn btn-success">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    Faturamento
+                </a>
+                <a href="{% url 'painel:starlink_detailed_report' %}{% if selected_account %}?account={{ selected_account }}{% endif %}" class="btn btn-warning">
+                    <i class="fas fa-chart-line"></i>
+                    Relatório Detalhado
+                </a>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">Gestão de Dados</h3>
+                </div>
+            </div>
+            <p class="section-description">
+                Gerencie Service Lines, monitore o status da API e execute ferramentas de diagnóstico e debug.
+            </p>
+            <div class="action-buttons">
+                <a href="{% url 'painel:starlink_service_lines' %}{% if selected_account %}?account={{ selected_account }}{% endif %}" class="btn btn-secondary">
+                    <i class="fas fa-list"></i>
+                    Service Lines
+                </a>
+                <a href="{% url 'painel:starlink_api_status' %}{% if selected_account %}?account={{ selected_account }}{% endif %}" class="btn btn-danger">
+                    <i class="fas fa-server"></i>
+                    Status da API
+                </a>
+                <a href="{% url 'painel:starlink_debug_api' %}{% if selected_account %}?account={{ selected_account }}{% endif %}" class="btn btn-dark">
+                    <i class="fas fa-bug"></i>
+                    Debug API
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function changeAccount() {
+    const select = document.getElementById('account-select');
+    const selectedValue = select.value;
+    
+    if (selectedValue) {
+        // Redirecionar para a conta específica
+        window.location.href = `/admin/starlink/?account=${selectedValue}`;
+    } else {
+        // Redirecionar para visão geral
+        window.location.href = '/admin/starlink/';
+    }
+}
+
+// Auto-refresh dos dados a cada 5 minutos
+setInterval(() => {
+    const currentUrl = new URL(window.location);
+    const accountId = currentUrl.searchParams.get('account');
+    if (!accountId) {
+        // Só faz refresh automático na visão geral
+        location.reload();
+    }
+}, 300000); // 5 minutos
+</script>
+{% endblock %}

@@ -1,0 +1,291 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | POPPFIRE ADMIN{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<!-- FontAwesome para ícones -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/custom_admin.css' %}?v=2025062422">
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('POPPFIRE ADMIN: Iniciando traduções...');
+    // Força a substituição da logo padrão do AdminLTE
+    var logos = document.querySelectorAll('img[src*="AdminLTELogo.png"]');
+    logos.forEach(function(logo) {
+        logo.src = '{% static "img/logo_app.png" %}';
+        logo.alt = 'POPPFIRE ADMIN Logo';
+    });
+    
+    // Substituir textos padrão do AdminLTE
+    setTimeout(function() {
+        // Título principal
+        var titleElements = document.querySelectorAll('.brand-text, .navbar-brand, h1, .card-title');
+        titleElements.forEach(function(element) {
+            if (element.textContent && element.textContent.includes('AdminLTE')) {
+                element.textContent = element.textContent.replace(/AdminLTE/g, 'POPPFIRE ADMIN');
+            }
+        });
+        
+        // Substituir na sidebar
+        var sidebarElements = document.querySelectorAll('.sidebar .nav-link p, .sidebar .brand-text');
+        sidebarElements.forEach(function(element) {
+            if (element.textContent && element.textContent.includes('AdminLTE')) {
+                element.textContent = element.textContent.replace(/AdminLTE/g, 'POPPFIRE');
+            }
+        });
+        
+        // Alterações específicas no cabeçalho
+        var headerTitle = document.querySelector('.content-header h1');
+        if (headerTitle && headerTitle.textContent.includes('Administração')) {
+            headerTitle.innerHTML = '<i class="fas fa-tachometer-alt"></i> POPPFIRE ADMIN';
+        }
+        
+        // Aplicar tradução nos botões e links
+        applyTranslations();
+        
+    }, 100);
+});
+
+// Função para aplicar traduções customizadas
+function applyTranslations() {
+    var translations = {
+        'Home': 'Início',
+        'Administration': 'Administração',
+        'Add': 'Adicionar',
+        'Change': 'Alterar',
+        'Delete': 'Excluir',
+        'View': 'Visualizar',
+        'Save': 'Salvar',
+        'Save and continue editing': 'Salvar e continuar editando',
+        'Save and add another': 'Salvar e adicionar outro',
+        'Save as new': 'Salvar como novo',
+        'Close': 'Fechar',
+        'Cancel': 'Cancelar',
+        'Yes': 'Sim',
+        'No': 'Não',
+        'All': 'Todos',
+        'Filter': 'Filtrar',
+        'Search': 'Pesquisar',
+        'Actions': 'Ações',
+        'Recent actions': 'Ações recentes',
+        'My actions': 'Minhas ações',
+        'Log out': 'Sair',
+        'Password change': 'Alterar senha',
+        'Change password': 'Alterar senha',
+        'Welcome,': 'Bem-vindo,',
+        'View site': 'Ver site',
+        'Documentation': 'Documentação',
+        'Show all': 'Mostrar todos',
+        'User': 'Usuário',
+        'Users': 'Usuários',
+        'Group': 'Grupo',
+        'Groups': 'Grupos',
+        'Site administration': 'Administração do site',
+        'Database error': 'Erro de banco de dados',
+        'Server error': 'Erro do servidor',
+        'Page not found': 'Página não encontrada',
+        'Permission denied': 'Permissão negada',
+        'Authentication': 'Autenticação',
+        'Authorization': 'Autorização'
+    };
+    
+    // Aplicar traduções em todos os elementos de texto
+    document.querySelectorAll('*').forEach(function(element) {
+        // Só processar nós de texto diretos (não filhos)
+        for (var i = 0; i < element.childNodes.length; i++) {
+            var node = element.childNodes[i];
+            if (node.nodeType === Node.TEXT_NODE) {
+                var originalText = node.textContent.trim();
+                if (translations[originalText]) {
+                    node.textContent = node.textContent.replace(originalText, translations[originalText]);
+                }
+            }
+        }
+        
+        // Processar placeholders e títulos
+        if (element.placeholder && translations[element.placeholder]) {
+            element.placeholder = translations[element.placeholder];
+        }
+        if (element.title && translations[element.title]) {
+            element.title = translations[element.title];
+        }
+        if (element.alt && translations[element.alt]) {
+            element.alt = translations[element.alt];
+        }
+    });
+}
+
+// Observer para aplicar traduções em conteúdo carregado dinamicamente
+var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            setTimeout(applyTranslations, 50);
+        }
+    });
+});
+
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+</script>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <img src="{% static 'img/logo_app.png' %}" alt="POPPFIRE ADMIN" style="height: 32px; margin-right: 10px; vertical-align: middle;">
+        POPPFIRE ADMIN
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block usertools %}
+{{ block.super }}
+{% endblock %}
+
+{% block extrajs %}
+{{ block.super }}
+<!-- Menu customizado para Starlink -->
+<style>
+.starlink-menu {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 15px;
+    min-width: 200px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.starlink-menu h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.1em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.starlink-menu a {
+    display: block;
+    padding: 10px 8px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.starlink-menu a:hover {
+    background: #f0f8ff;
+    color: #007cba;
+    text-decoration: none;
+}
+
+.starlink-menu-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #007cba;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 1001;
+    transition: all 0.3s ease;
+}
+
+.starlink-menu-toggle:hover {
+    background: #005a87;
+    transform: scale(1.1);
+}
+
+.starlink-menu.hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .starlink-menu {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+    
+    .starlink-menu-toggle {
+        top: 15px;
+        right: 15px;
+        width: 45px;
+        height: 45px;
+        font-size: 1.1em;
+    }
+}
+</style>
+
+<!-- Menu HTML -->
+<button class="starlink-menu-toggle" onclick="toggleStarlinkMenu()" title="Menu Starlink">
+    <i class="fas fa-satellite"></i>
+</button>
+
+<div class="starlink-menu hidden" id="starlink-menu">
+    <h4><i class="fas fa-satellite"></i> Starlink API</h4>
+    <a href="{% url 'painel:starlink_dashboard' %}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+    </a>
+    <a href="{% url 'painel:starlink_service_lines' %}">
+        <i class="fas fa-list"></i> Service Lines
+    </a>
+    <a href="{% url 'painel:starlink_billing_report' %}">
+        <i class="fas fa-chart-bar"></i> Relatório
+    </a>
+    <a href="{% url 'painel:starlink_detailed_report' %}">
+        <i class="fas fa-file-pdf"></i> Relatório Detalhado
+    </a>
+    <a href="{% url 'painel:starlink_api_status' %}">
+        <i class="fas fa-heartbeat"></i> Status API
+    </a>
+</div>
+
+<script>
+function toggleStarlinkMenu() {
+    var menu = document.getElementById('starlink-menu');
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
+// Fechar menu ao clicar fora
+document.addEventListener('click', function(event) {
+    var menu = document.getElementById('starlink-menu');
+    var toggle = document.querySelector('.starlink-menu-toggle');
+    
+    if (menu && toggle && !menu.contains(event.target) && !toggle.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+
+// Verificar se o menu foi carregado
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Menu Starlink carregado');
+    var toggle = document.querySelector('.starlink-menu-toggle');
+    var menu = document.getElementById('starlink-menu');
+    if (toggle && menu) {
+        console.log('Menu Starlink encontrado na página');
+    } else {
+        console.log('Menu Starlink NÃO encontrado na página');
+    }
+});
+</script>
+{% endblock %}

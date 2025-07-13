@@ -1,0 +1,295 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.starlink-main-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-section {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.header-section h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 2.2em;
+}
+
+.header-section p {
+    color: #666;
+    font-size: 1.1em;
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.main-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #e0e0e0;
+}
+
+.main-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #007cba 0%, #005a8b 100%);
+    color: white;
+    padding: 25px;
+    text-align: center;
+}
+
+.card-header.dashboard {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.card-header.admin {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.card-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.card-title {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.card-subtitle {
+    font-size: 1em;
+    opacity: 0.9;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+.card-description {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    font-size: 0.95em;
+}
+
+.card-features {
+    margin-bottom: 25px;
+}
+
+.card-features ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.card-features li {
+    padding: 8px 0;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.card-features li:before {
+    content: "✓";
+    color: #28a745;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.card-action {
+    text-align: center;
+}
+
+.btn-card {
+    display: inline-block;
+    padding: 12px 30px;
+    background: #007cba;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 1em;
+}
+
+.btn-card.dashboard {
+    background: #28a745;
+}
+
+.btn-card.admin {
+    background: #17a2b8;
+}
+
+.btn-card:hover {
+    color: white;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-card.dashboard:hover {
+    background: #1e7e34;
+}
+
+.btn-card.admin:hover {
+    background: #138496;
+}
+
+.footer-info {
+    text-align: center;
+    margin-top: 40px;
+    color: #666;
+    font-size: 0.9em;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .starlink-main-container {
+        padding: 10px;
+    }
+    
+    .cards-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .main-card {
+        margin-bottom: 20px;
+    }
+    
+    .card-header {
+        padding: 20px;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    .header-section h1 {
+        font-size: 1.8em;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="starlink-main-container">
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a> /
+            {% else %}
+                <span>{{ crumb.name }}</span>
+            {% endif %}
+        {% endfor %}
+    </nav>
+
+    <div class="header-section">
+        <h1><i class="fas fa-satellite"></i> Starlink Admin</h1>
+        <p>Sistema de gerenciamento e monitoramento das contas Starlink</p>
+    </div>
+
+    <div class="cards-container">
+        <!-- Card Dashboard -->
+        <div class="main-card">
+            <div class="card-header dashboard">
+                <i class="fas fa-chart-line card-icon"></i>
+                <h2 class="card-title">STARLINK - DASHBOARD</h2>
+                <p class="card-subtitle">Painel de controle e monitoramento</p>
+            </div>
+            <div class="card-body">
+                <p class="card-description">
+                    Acesse o dashboard principal para visualizar estatísticas em tempo real, 
+                    gráficos de consumo, relatórios de service lines e análise de performance 
+                    das contas Starlink.
+                </p>
+                <div class="card-features">
+                    <ul>
+                        <li>Estatísticas em tempo real</li>
+                        <li>Gráficos de consumo de dados</li>
+                        <li>Relatórios de service lines</li>
+                        <li>Análise de performance</li>
+                        <li>Alertas de uso de franquia</li>
+                    </ul>
+                </div>
+                <div class="card-action">
+                    <a href="{% url 'painel:starlink_dashboard' %}" class="btn-card dashboard">
+                        <i class="fas fa-tachometer-alt"></i> Acessar Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Administração -->
+        <div class="main-card">
+            <div class="card-header admin">
+                <i class="fas fa-cogs card-icon"></i>
+                <h2 class="card-title">STARLINK - ADMINISTRAÇÃO</h2>
+                <p class="card-subtitle">Gerenciamento de contas e configurações</p>
+            </div>
+            <div class="card-body">
+                <p class="card-description">
+                    Gerencie todas as contas Starlink, visualize dados de faturamento, 
+                    configure parâmetros de monitoramento e acesse ferramentas 
+                    administrativas avançadas.
+                </p>
+                <div class="card-features">
+                    <ul>
+                        <li><i class="fas fa-users-cog"></i> Gerenciamento de contas</li>
+                        <li><i class="fas fa-sliders-h"></i> Configuração de parâmetros</li>
+                    </ul>
+                </div>
+                <div class="card-action">
+                    <a href="{% url 'painel:starlink_admin' %}" class="btn-card admin">
+                        <i class="fas fa-tools"></i> Acessar Administração
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-info">
+        <p>
+            <strong>Starlink Admin</strong> - Sistema integrado de gerenciamento e monitoramento<br>
+            <small>Versão 2.0 - Desenvolvido para POPPFIRE</small>
+        </p>
+    </div>
+</div>
+{% endblock %}

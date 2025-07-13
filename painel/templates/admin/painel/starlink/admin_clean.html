@@ -1,0 +1,663 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load starlink_extras %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.starlink-admin-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.account-selector {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.account-selector label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.account-selector select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: white;
+    color: #495057;
+    font-size: 14px;
+}
+
+.account-selector select:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 186, 0.25);
+}
+
+.overview-summary {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.overview-summary h2 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+}
+
+.overview-summary p {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.summary-stat {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.summary-stat-value {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: #007cba;
+    margin-bottom: 5px;
+}
+
+.summary-stat-label {
+    color: #6c757d;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.account-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.account-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.account-card.success {
+    border-left: 4px solid #28a745;
+}
+
+.account-card.error {
+    border-left: 4px solid #dc3545;
+}
+
+.account-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.account-name {
+    color: #495057;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.account-id {
+    color: #6c757d;
+    font-size: 0.9em;
+    font-family: monospace;
+    margin-bottom: 5px;
+}
+
+.account-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.account-stat {
+    text-align: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.account-stat-value {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #007cba;
+}
+
+.account-stat-label {
+    color: #6c757d;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+.account-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9em;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-primary {
+    background: #007cba;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    color: white;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #1e7e34;
+    color: white;
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+    color: white;
+}
+
+.info-section {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.info-section h4 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.billing-info, .usage-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.billing-stat, .usage-stat {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.billing-stat-value, .usage-stat-value {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #007cba;
+    margin-bottom: 5px;
+}
+
+.billing-stat-label, .usage-stat-label {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+.service-lines, .usage-lines {
+    margin-top: 20px;
+}
+
+.service-lines h5, .usage-lines h5 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1em;
+}
+
+.service-line, .usage-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background: white;
+}
+
+.service-line-info, .usage-line-info {
+    flex: 1;
+}
+
+.service-line-id, .usage-line-id {
+    font-family: monospace;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9em;
+}
+
+.service-line-location, .usage-line-location {
+    color: #6c757d;
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
+.service-line-status {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: 500;
+    margin-top: 5px;
+    display: inline-block;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.service-line-charges, .usage-line-details {
+    text-align: right;
+    padding-left: 15px;
+}
+
+.charge-value, .usage-value {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #007cba;
+}
+
+.charge-label, .usage-label {
+    color: #6c757d;
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
+.usage-percentage {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-top: 5px;
+    display: inline-block;
+}
+
+.usage-percentage.high-usage {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.usage-percentage:not(.high-usage) {
+    background: #d4edda;
+    color: #155724;
+}
+
+.alert {
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid;
+    margin-bottom: 15px;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.section-icon {
+    margin-right: 10px;
+    color: #6b7280;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+@media (max-width: 768px) {
+    .starlink-admin-container {
+        padding: 10px;
+    }
+    
+    .account-selector {
+        padding: 10px;
+    }
+    
+    .overview-summary {
+        padding: 15px;
+    }
+    
+    .summary-stats {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+    }
+    
+    .account-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .account-card {
+        padding: 15px;
+    }
+    
+    .account-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .account-stats {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .section-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="starlink-admin-container">
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a> /
+            {% else %}
+                <span>{{ crumb.name }}</span>
+            {% endif %}
+        {% endfor %}
+    </nav>
+
+    <!-- Seletor de Conta -->
+    <div class="account-selector">
+        <label for="account-select">
+            <i class="fas fa-satellite"></i> Selecionar Conta Starlink:
+        </label>
+        <select id="account-select" onchange="changeAccount()">
+            <option value="">🌍 Visão Geral de Todas as Contas</option>
+            {% for account_id, account_data in available_accounts.items %}
+                <option value="{{ account_id }}" {% if account_id == selected_account %}selected{% endif %}>
+                    {{ account_data.name }} ({{ account_id }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Resumo Geral de Todas as Contas -->
+    {% if total_summary %}
+    <div class="overview-summary">
+        <h2><i class="fas fa-chart-bar"></i> Visão Geral - Todas as Contas</h2>
+        <p>Dados consolidados de {{ total_accounts }} contas Starlink</p>
+        <div class="summary-stats">
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ total_summary.total_service_lines }}</div>
+                <div class="summary-stat-label">Total de Linhas de Serviço</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value">${{ total_summary.total_charges|floatformat:2 }}</div>
+                <div class="summary-stat-label">Total de Cobrança</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ total_summary.total_usage_70_plus }}</div>
+                <div class="summary-stat-label">Uso > 70%</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ total_accounts }}</div>
+                <div class="summary-stat-label">Contas Ativas</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detalhes por Conta -->
+    {% if not selected_account %}
+    <div class="accounts-overview">
+        <h3><i class="fas fa-network-wired"></i> Detalhes por Conta</h3>
+        <div class="account-cards">
+            {% for account_id, account_data in available_accounts.items %}
+            <div class="account-card {% if account_data.billing_success and account_data.usage_success %}success{% else %}error{% endif %}">
+                <div class="account-header">
+                    <div class="account-info">
+                        <h4 class="account-name">{{ account_data.name }}</h4>
+                        <div class="account-id">{{ account_data.account_id }}</div>
+                        {% if account_data.description %}
+                            <div style="font-size: 0.9rem; color: #6c757d; margin-top: 4px;">
+                                {{ account_data.description }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if not account_data.billing_success or not account_data.usage_success %}
+                    <div class="alert alert-danger" style="margin: 10px 0; padding: 8px 12px; font-size: 0.85rem;">
+                        <i class="fas fa-exclamation-triangle"></i> {{ account_data.error }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="account-stats">
+                    <div class="account-stat">
+                        <div class="account-stat-value">{{ account_data.total_service_lines }}</div>
+                        <div class="account-stat-label">Linhas de Serviço</div>
+                    </div>
+                    <div class="account-stat">
+                        <div class="account-stat-value">${{ account_data.total_charges|floatformat:2 }}</div>
+                        <div class="account-stat-label">Cobrança Total</div>
+                    </div>
+                    <div class="account-stat">
+                        <div class="account-stat-value">{{ account_data.total_usage_70_plus }}</div>
+                        <div class="account-stat-label">Uso > 70%</div>
+                    </div>
+                </div>
+                <div class="account-actions">
+                    <a href="?selected_account={{ account_id }}" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> Ver Detalhes
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dados da Conta Selecionada -->
+    {% if selected_account %}
+    <div class="account-details">
+        <h3><i class="fas fa-satellite"></i> Dados da Conta {{ selected_account }}</h3>
+        
+        <!-- Informações de Billing -->
+        <div class="info-section">
+            <h4><i class="fas fa-dollar-sign"></i> Informações de Cobrança</h4>
+            {% if billing_data %}
+                <div class="billing-info">
+                    <div class="billing-stat">
+                        <div class="billing-stat-value">{{ billing_data.total_service_lines }}</div>
+                        <div class="billing-stat-label">Total de Linhas de Serviço</div>
+                    </div>
+                    <div class="billing-stat">
+                        <div class="billing-stat-value">${{ billing_data.total_charges|floatformat:2 }}</div>
+                        <div class="billing-stat-label">Total de Cobrança</div>
+                    </div>
+                    <div class="billing-stat">
+                        <div class="billing-stat-value">{{ billing_data.next_billing_date|date:"d/m/Y" }}</div>
+                        <div class="billing-stat-label">Próxima Cobrança</div>
+                    </div>
+                </div>
+                
+                <div class="service-lines">
+                    <h5>Linhas de Serviço</h5>
+                    {% for line in billing_data.service_lines %}
+                    <div class="service-line">
+                        <div class="service-line-info">
+                            <div class="service-line-id">{{ line.service_line_id }}</div>
+                            <div class="service-line-location">{{ line.location }}</div>
+                            <div class="service-line-status status-{{ line.status|lower }}">{{ line.status }}</div>
+                        </div>
+                        <div class="service-line-charges">
+                            <div class="charge-value">${{ line.charges|floatformat:2 }}</div>
+                            <div class="charge-label">Cobrança</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar dados de cobrança
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Informações de Usage -->
+        <div class="info-section">
+            <h4><i class="fas fa-chart-line"></i> Informações de Uso</h4>
+            {% if usage_data %}
+                <div class="usage-info">
+                    <div class="usage-stat">
+                        <div class="usage-stat-value">{{ usage_data.usage_70_plus }}</div>
+                        <div class="usage-stat-label">Linhas com Uso > 70%</div>
+                    </div>
+                    <div class="usage-stat">
+                        <div class="usage-stat-value">{{ usage_data.total_usage_gb|floatformat:2 }}</div>
+                        <div class="usage-stat-label">Uso Total (GB)</div>
+                    </div>
+                    <div class="usage-stat">
+                        <div class="usage-stat-value">{{ usage_data.avg_usage_per_line|floatformat:2 }}%</div>
+                        <div class="usage-stat-label">Média de Uso por Linha</div>
+                    </div>
+                </div>
+                
+                <div class="usage-lines">
+                    <h5>Uso por Linha de Serviço</h5>
+                    {% for line in usage_data.service_lines %}
+                    <div class="usage-line">
+                        <div class="usage-line-info">
+                            <div class="usage-line-id">{{ line.service_line_id }}</div>
+                            <div class="usage-line-location">{{ line.location }}</div>
+                            <div class="usage-percentage {% if line.usage_percentage > 70 %}high-usage{% endif %}">
+                                {{ line.usage_percentage|floatformat:1 }}%
+                            </div>
+                        </div>
+                        <div class="usage-line-details">
+                            <div class="usage-value">{{ line.usage_gb|floatformat:2 }} GB</div>
+                            <div class="usage-label">Uso do Período</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar dados de uso
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Ações -->
+        <div class="info-section">
+            <h4><i class="fas fa-tools"></i> Ações</h4>
+            <div class="action-buttons">
+                <a href="?selected_account={{ selected_account }}&action=refresh" class="btn btn-secondary">
+                    <i class="fas fa-sync"></i>
+                    Atualizar Dados
+                </a>
+                <a href="?selected_account={{ selected_account }}&action=export" class="btn btn-success">
+                    <i class="fas fa-download"></i>
+                    Exportar Relatório
+                </a>
+                <a href="?selected_account={{ selected_account }}&action=analysis" class="btn btn-info">
+                    <i class="fas fa-calculator"></i>
+                    Análise de Custos
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function changeAccount() {
+    var select = document.getElementById('account-select');
+    var selectedValue = select.value;
+    if (selectedValue) {
+        window.location.href = '?selected_account=' + selectedValue;
+    } else {
+        window.location.href = '?';
+    }
+}
+</script>
+{% endblock %}

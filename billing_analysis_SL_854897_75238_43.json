@@ -1,0 +1,876 @@
+{
+  "content": {
+    "totalCount": 0,
+    "pageIndex": 0,
+    "limit": 10,
+    "isLastPage": true,
+    "results": [
+      {
+        "accountNumber": "ACC-2744134-64041-5",
+        "serviceLineNumber": "SL-854897-75238-43",
+        "startDate": "2025-04-03T00:00:00Z",
+        "endDate": "2025-08-03T00:00:00Z",
+        "billingCycles": [
+          {
+            "startDate": "2025-04-03T00:00:00+00:00",
+            "endDate": "2025-05-03T00:00:00+00:00",
+            "dailyDataUsage": [
+              {
+                "date": "2025-04-03T00:00:00+00:00",
+                "priorityGB": 0.8,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-04T00:00:00+00:00",
+                "priorityGB": 0.65,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-05T00:00:00+00:00",
+                "priorityGB": 0.13,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-06T00:00:00+00:00",
+                "priorityGB": 0.02,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-07T00:00:00+00:00",
+                "priorityGB": 0.48,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-08T00:00:00+00:00",
+                "priorityGB": 0.16,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-09T00:00:00+00:00",
+                "priorityGB": 0.46,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-10T00:00:00+00:00",
+                "priorityGB": 0.14,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-11T00:00:00+00:00",
+                "priorityGB": 0.08,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-12T00:00:00+00:00",
+                "priorityGB": 0.18,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-13T00:00:00+00:00",
+                "priorityGB": 0.07,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-14T00:00:00+00:00",
+                "priorityGB": 0.33,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-15T00:00:00+00:00",
+                "priorityGB": 0.49,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-16T00:00:00+00:00",
+                "priorityGB": 0.48,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-17T00:00:00+00:00",
+                "priorityGB": 0.18,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-18T00:00:00+00:00",
+                "priorityGB": 0.03,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-19T00:00:00+00:00",
+                "priorityGB": 0.04,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-20T00:00:00+00:00",
+                "priorityGB": 0.04,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-21T00:00:00+00:00",
+                "priorityGB": 0.04,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-22T00:00:00+00:00",
+                "priorityGB": 0.57,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-23T00:00:00+00:00",
+                "priorityGB": 0.16,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-24T00:00:00+00:00",
+                "priorityGB": 0.48,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-25T00:00:00+00:00",
+                "priorityGB": 0.76,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-26T00:00:00+00:00",
+                "priorityGB": 0,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-27T00:00:00+00:00",
+                "priorityGB": 0.02,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-28T00:00:00+00:00",
+                "priorityGB": 0.41,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-29T00:00:00+00:00",
+                "priorityGB": 0.49,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-04-30T00:00:00+00:00",
+                "priorityGB": 0.3,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-01T00:00:00+00:00",
+                "priorityGB": 0.04,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-02T00:00:00+00:00",
+                "priorityGB": 0.35,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              }
+            ],
+            "overageLines": [
+              {
+                "restricted": 0,
+                "unrestricted": 0,
+                "pricePerGB": 1.44,
+                "usageLimitGB": 1000,
+                "overageAmountGB": 0,
+                "consumedAmountGB": 8.38,
+                "overagePrice": 0,
+                "productId": "br-enterprise-subscription-data-overage-brl",
+                "dataOverageType": 1
+              }
+            ],
+            "dataPoolUsage": [],
+            "totalPriorityGB": 8.38,
+            "totalStandardGB": 0,
+            "totalOptInPriorityGB": 0,
+            "totalNonBillableGB": 0
+          },
+          {
+            "startDate": "2025-05-03T00:00:00+00:00",
+            "endDate": "2025-06-03T00:00:00+00:00",
+            "dailyDataUsage": [
+              {
+                "date": "2025-05-03T00:00:00+00:00",
+                "priorityGB": 0.03,
+                "optInPriorityGB": 0.03,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-04T00:00:00+00:00",
+                "priorityGB": 0,
+                "optInPriorityGB": 0,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-05T00:00:00+00:00",
+                "priorityGB": 1.21,
+                "optInPriorityGB": 1.21,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-06T00:00:00+00:00",
+                "priorityGB": 0.31,
+                "optInPriorityGB": 0.31,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-07T00:00:00+00:00",
+                "priorityGB": 0.47,
+                "optInPriorityGB": 0.47,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-08T00:00:00+00:00",
+                "priorityGB": 0.67,
+                "optInPriorityGB": 0.67,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-09T00:00:00+00:00",
+                "priorityGB": 0.09,
+                "optInPriorityGB": 0.09,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-10T00:00:00+00:00",
+                "priorityGB": 0.37,
+                "optInPriorityGB": 0.37,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-11T00:00:00+00:00",
+                "priorityGB": 0.02,
+                "optInPriorityGB": 0.02,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-12T00:00:00+00:00",
+                "priorityGB": 0.5,
+                "optInPriorityGB": 0.5,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-13T00:00:00+00:00",
+                "priorityGB": 0.25,
+                "optInPriorityGB": 0.25,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-14T00:00:00+00:00",
+                "priorityGB": 0.46,
+                "optInPriorityGB": 0.46,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-15T00:00:00+00:00",
+                "priorityGB": 0.12,
+                "optInPriorityGB": 0.12,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-16T00:00:00+00:00",
+                "priorityGB": 0.52,
+                "optInPriorityGB": 0.52,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-17T00:00:00+00:00",
+                "priorityGB": 0.2,
+                "optInPriorityGB": 0.2,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-18T00:00:00+00:00",
+                "priorityGB": 0.03,
+                "optInPriorityGB": 0.03,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-19T00:00:00+00:00",
+                "priorityGB": 0.18,
+                "optInPriorityGB": 0.18,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-20T00:00:00+00:00",
+                "priorityGB": 0.44,
+                "optInPriorityGB": 0.44,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-21T00:00:00+00:00",
+                "priorityGB": 0.39,
+                "optInPriorityGB": 0.39,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-22T00:00:00+00:00",
+                "priorityGB": 0.6,
+                "optInPriorityGB": 0.6,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-23T00:00:00+00:00",
+                "priorityGB": 0.18,
+                "optInPriorityGB": 0.18,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-24T00:00:00+00:00",
+                "priorityGB": 0.2,
+                "optInPriorityGB": 0.2,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-25T00:00:00+00:00",
+                "priorityGB": 0.03,
+                "optInPriorityGB": 0.03,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-26T00:00:00+00:00",
+                "priorityGB": 0.23,
+                "optInPriorityGB": 0.23,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-27T00:00:00+00:00",
+                "priorityGB": 0.19,
+                "optInPriorityGB": 0.19,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-28T00:00:00+00:00",
+                "priorityGB": 0.16,
+                "optInPriorityGB": 0.16,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-29T00:00:00+00:00",
+                "priorityGB": 1.02,
+                "optInPriorityGB": 1.02,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-30T00:00:00+00:00",
+                "priorityGB": 0.69,
+                "optInPriorityGB": 0.69,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-05-31T00:00:00+00:00",
+                "priorityGB": 0.05,
+                "optInPriorityGB": 0.05,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-01T00:00:00+00:00",
+                "priorityGB": 0.03,
+                "optInPriorityGB": 0.03,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-02T00:00:00+00:00",
+                "priorityGB": 1.45,
+                "optInPriorityGB": 1.45,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              }
+            ],
+            "overageLines": [
+              {
+                "restricted": 0,
+                "unrestricted": 0,
+                "pricePerGB": 1.44,
+                "usageLimitGB": 1000,
+                "overageAmountGB": 0,
+                "consumedAmountGB": 0,
+                "overagePrice": 0,
+                "productId": "br-enterprise-subscription-data-overage-brl",
+                "dataOverageType": 1
+              }
+            ],
+            "dataPoolUsage": [
+              {
+                "accountNumber": "ACC-2744134-64041-5",
+                "dataBlocks": [
+                  {
+                    "startDateUtc": "2025-05-03T00:00:00+00:00",
+                    "expirationDateUtc": "2025-06-03T00:00:00+00:00",
+                    "totalAmountGB": 1000,
+                    "consumedAmountGB": 11.12,
+                    "perBlockAmountGB": 500,
+                    "dataBlockType": "RecurringPerBillingCycle",
+                    "productId": "br-enterprise-local-priority-500gb-data-block-brl",
+                    "blocksCount": 2,
+                    "perBlockPrice": 525,
+                    "totalPrice": 1050,
+                    "isoCurrencyCode": "BRL"
+                  }
+                ]
+              }
+            ],
+            "totalPriorityGB": 11.09,
+            "totalStandardGB": 0,
+            "totalOptInPriorityGB": 11.09,
+            "totalNonBillableGB": 0
+          },
+          {
+            "startDate": "2025-06-03T00:00:00+00:00",
+            "endDate": "2025-07-03T00:00:00+00:00",
+            "dailyDataUsage": [
+              {
+                "date": "2025-06-03T00:00:00+00:00",
+                "priorityGB": 0.48,
+                "optInPriorityGB": 0.48,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-04T00:00:00+00:00",
+                "priorityGB": 0.89,
+                "optInPriorityGB": 0.89,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-05T00:00:00+00:00",
+                "priorityGB": 0.48,
+                "optInPriorityGB": 0.48,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-06T00:00:00+00:00",
+                "priorityGB": 0.4,
+                "optInPriorityGB": 0.4,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-07T00:00:00+00:00",
+                "priorityGB": 0.03,
+                "optInPriorityGB": 0.03,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-08T00:00:00+00:00",
+                "priorityGB": 0.03,
+                "optInPriorityGB": 0.03,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-09T00:00:00+00:00",
+                "priorityGB": 0.89,
+                "optInPriorityGB": 0.89,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-10T00:00:00+00:00",
+                "priorityGB": 0.57,
+                "optInPriorityGB": 0.57,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-11T00:00:00+00:00",
+                "priorityGB": 0.61,
+                "optInPriorityGB": 0.61,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-12T00:00:00+00:00",
+                "priorityGB": 1.04,
+                "optInPriorityGB": 1.04,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-13T00:00:00+00:00",
+                "priorityGB": 0.58,
+                "optInPriorityGB": 0.58,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-14T00:00:00+00:00",
+                "priorityGB": 0.63,
+                "optInPriorityGB": 0.63,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-15T00:00:00+00:00",
+                "priorityGB": 0.11,
+                "optInPriorityGB": 0.11,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-16T00:00:00+00:00",
+                "priorityGB": 1.21,
+                "optInPriorityGB": 1.21,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-17T00:00:00+00:00",
+                "priorityGB": 0.93,
+                "optInPriorityGB": 0.93,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-18T00:00:00+00:00",
+                "priorityGB": 0.93,
+                "optInPriorityGB": 0.93,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-19T00:00:00+00:00",
+                "priorityGB": 0.85,
+                "optInPriorityGB": 0.85,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-20T00:00:00+00:00",
+                "priorityGB": 1.28,
+                "optInPriorityGB": 1.28,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-21T00:00:00+00:00",
+                "priorityGB": 48.54,
+                "optInPriorityGB": 48.54,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-22T00:00:00+00:00",
+                "priorityGB": 55.49,
+                "optInPriorityGB": 55.49,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-23T00:00:00+00:00",
+                "priorityGB": 59.98,
+                "optInPriorityGB": 59.98,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-24T00:00:00+00:00",
+                "priorityGB": 79.43,
+                "optInPriorityGB": 79.43,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-25T00:00:00+00:00",
+                "priorityGB": 68.99,
+                "optInPriorityGB": 68.99,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-26T00:00:00+00:00",
+                "priorityGB": 66.29,
+                "optInPriorityGB": 66.29,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-27T00:00:00+00:00",
+                "priorityGB": 52.14,
+                "optInPriorityGB": 52.14,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-28T00:00:00+00:00",
+                "priorityGB": 36.42,
+                "optInPriorityGB": 36.42,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-29T00:00:00+00:00",
+                "priorityGB": 23.45,
+                "optInPriorityGB": 23.45,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-06-30T00:00:00+00:00",
+                "priorityGB": 30.49,
+                "optInPriorityGB": 30.49,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-01T00:00:00+00:00",
+                "priorityGB": 12.15,
+                "optInPriorityGB": 12.15,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-02T00:00:00+00:00",
+                "priorityGB": 8.25,
+                "optInPriorityGB": 8.25,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              }
+            ],
+            "overageLines": [],
+            "dataPoolUsage": [
+              {
+                "accountNumber": "ACC-2744134-64041-5",
+                "dataBlocks": [
+                  {
+                    "startDateUtc": "2025-06-03T00:00:00+00:00",
+                    "expirationDateUtc": "2025-07-03T00:00:00+00:00",
+                    "totalAmountGB": 1000,
+                    "consumedAmountGB": 553.56,
+                    "perBlockAmountGB": 500,
+                    "dataBlockType": "RecurringPerBillingCycle",
+                    "productId": "br-enterprise-local-priority-500gb-data-block-brl",
+                    "blocksCount": 2,
+                    "perBlockPrice": 525,
+                    "totalPrice": 1050,
+                    "isoCurrencyCode": "BRL"
+                  }
+                ]
+              }
+            ],
+            "totalPriorityGB": 553.56,
+            "totalStandardGB": 0,
+            "totalOptInPriorityGB": 553.56,
+            "totalNonBillableGB": 0
+          },
+          {
+            "startDate": "2025-07-03T00:00:00+00:00",
+            "endDate": "2025-08-03T00:00:00+00:00",
+            "dailyDataUsage": [
+              {
+                "date": "2025-07-03T00:00:00+00:00",
+                "priorityGB": 6.08,
+                "optInPriorityGB": 6.08,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-04T00:00:00+00:00",
+                "priorityGB": 22.21,
+                "optInPriorityGB": 22.21,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-05T00:00:00+00:00",
+                "priorityGB": 1.97,
+                "optInPriorityGB": 1.97,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-06T00:00:00+00:00",
+                "priorityGB": 19.18,
+                "optInPriorityGB": 19.18,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-07T00:00:00+00:00",
+                "priorityGB": 12.34,
+                "optInPriorityGB": 12.34,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-08T00:00:00+00:00",
+                "priorityGB": 25.66,
+                "optInPriorityGB": 25.66,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              },
+              {
+                "date": "2025-07-09T00:00:00+00:00",
+                "priorityGB": 2.53,
+                "optInPriorityGB": 2.53,
+                "standardGB": 0,
+                "nonBillableGB": 0
+              }
+            ],
+            "overageLines": [],
+            "dataPoolUsage": [
+              {
+                "accountNumber": "ACC-2744134-64041-5",
+                "dataBlocks": [
+                  {
+                    "startDateUtc": "2025-07-03T00:00:00+00:00",
+                    "expirationDateUtc": "2025-08-03T00:00:00+00:00",
+                    "totalAmountGB": 1000,
+                    "consumedAmountGB": 90.07,
+                    "perBlockAmountGB": 500,
+                    "dataBlockType": "RecurringPerBillingCycle",
+                    "productId": "br-enterprise-local-priority-500gb-data-block-brl",
+                    "blocksCount": 2,
+                    "perBlockPrice": 525,
+                    "totalPrice": 1050,
+                    "isoCurrencyCode": "BRL"
+                  }
+                ]
+              }
+            ],
+            "totalPriorityGB": 89.97,
+            "totalStandardGB": 0,
+            "totalOptInPriorityGB": 89.97,
+            "totalNonBillableGB": 0
+          }
+        ],
+        "servicePlan": {
+          "isoCurrencyCode": "BRL",
+          "isMobilePlan": true,
+          "activeFrom": "2025-05-03T00:00:00+00:00",
+          "subscriptionActiveFrom": "2024-11-04T13:52:31.328654+00:00",
+          "subscriptionEndDate": null,
+          "overageName": null,
+          "overageDescription": null,
+          "isOptedIntoOverage": true,
+          "overageLineDeactivatedDate": null,
+          "overageLine": null,
+          "dataPoolUsage": {
+            "accountNumber": "ACC-2744134-64041-5",
+            "lastUpdated": "2025-07-09T01:36:44.7284978+00:00",
+            "dataBlocks": [
+              {
+                "startDateUtc": "2025-07-03T00:00:00+00:00",
+                "expirationDateUtc": "2025-08-03T00:00:00+00:00",
+                "totalAmountGB": 1000,
+                "consumedAmountGB": 90.07,
+                "perBlockAmountGB": 500,
+                "dataBlockType": "RecurringPerBillingCycle",
+                "productId": "br-enterprise-local-priority-500gb-data-block-brl",
+                "blocksCount": 2,
+                "perBlockPrice": 525,
+                "totalPrice": 1050,
+                "isoCurrencyCode": "BRL"
+              }
+            ]
+          },
+          "productId": "br-enterprise-local-priority-terminal-access-fee-brl",
+          "usageLimitGB": 1000,
+          "dataCategoryMapping": {
+            "priorityGB": 2,
+            "standardGB": 1,
+            "nonBillableGB": 5
+          }
+        },
+        "lastUpdated": "2025-07-09T01:33:56.982+00:00"
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "information": [],
+  "isValid": true
+}

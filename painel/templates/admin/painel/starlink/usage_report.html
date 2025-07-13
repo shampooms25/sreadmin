@@ -1,0 +1,567 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load starlink_extras %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.usage-report-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-section {
+    background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.cycle-info {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    border-left: 5px solid #6f42c1;
+}
+
+/* Threshold Statistics Cards */
+.threshold-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.threshold-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+
+.threshold-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.threshold-card.normal {
+    border-left-color: #28a745;
+}
+
+.threshold-card.caution {
+    border-left-color: #ffc107;
+}
+
+.threshold-card.warning {
+    border-left-color: #fd7e14;
+}
+
+.threshold-card.danger {
+    border-left-color: #dc3545;
+}
+
+.threshold-card.critical {
+    border-left-color: #6f42c1;
+}
+
+.threshold-number {
+    font-size: 2.2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.threshold-card.normal .threshold-number {
+    color: #28a745;
+}
+
+.threshold-card.caution .threshold-number {
+    color: #ffc107;
+}
+
+.threshold-card.warning .threshold-number {
+    color: #fd7e14;
+}
+
+.threshold-card.danger .threshold-number {
+    color: #dc3545;
+}
+
+.threshold-card.critical .threshold-number {
+    color: #6f42c1;
+}
+
+.threshold-label {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.threshold-description {
+    color: #888;
+    font-size: 0.8em;
+}
+
+/* Usage Table */
+.usage-table {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    overflow-x: auto; /* Permite scroll horizontal em telas pequenas */
+}
+
+.usage-table table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px; /* Largura mínima para acomodar todas as colunas */
+}
+
+.usage-table th {
+    background: #f8f9fa;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.usage-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Estilos específicos para a coluna de localização */
+.usage-table td:nth-child(2) {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.usage-table th:nth-child(2) {
+    min-width: 150px;
+}
+
+@media (max-width: 1400px) {
+    .usage-table td:nth-child(2) {
+        max-width: 150px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .usage-table td:nth-child(2) {
+        max-width: 120px;
+    }
+}
+
+.usage-table tr:hover {
+    background: #f8f9fa;
+}
+
+.usage-table tr.critical {
+    background: #f8d7da;
+}
+
+.usage-table tr.danger {
+    background: #f5c6cb;
+}
+
+.usage-table tr.warning {
+    background: #fff3cd;
+}
+
+.usage-table tr.caution {
+    background: #d4edda;
+}
+
+.usage-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.usage-badge.normal {
+    background-color: #28a745;
+    color: white;
+}
+
+.usage-badge.caution {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.usage-badge.warning {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.usage-badge.danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.usage-badge.critical {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.progress-bar {
+    background: #e9ecef;
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin-top: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.progress-fill.normal {
+    background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+}
+
+.progress-fill.caution {
+    background: linear-gradient(90deg, #ffc107 0%, #ffca2c 100%);
+}
+
+.progress-fill.warning {
+    background: linear-gradient(90deg, #fd7e14 0%, #ff8c42 100%);
+}
+
+.progress-fill.danger {
+    background: linear-gradient(90deg, #dc3545 0%, #e85a4f 100%);
+}
+
+.progress-fill.critical {
+    background: linear-gradient(90deg, #6f42c1 0%, #9b59b6 100%);
+}
+
+.action-buttons {
+    margin-bottom: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #6f42c1;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Account Selection Form */
+.account-selection-form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    border-left: 5px solid #007cba;
+}
+
+.account-form {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.account-form .form-group {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.account-form label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.account-form .form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    min-width: 300px;
+}
+
+.account-form .form-control:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1);
+}
+
+.account-form .form-control:hover {
+    border-color: #007cba;
+}
+
+@media (max-width: 768px) {
+    .account-form {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .account-form .form-control {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+@media print {
+    .action-buttons,
+    .breadcrumb,
+    .account-selection-form {
+        display: none;
+    }
+    
+    .header-section {
+        background: #333 !important;
+        color: white !important;
+    }
+    
+    .usage-table {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="usage-report-container">
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a> /
+            {% else %}
+                <span>{{ crumb.name }}</span>
+            {% endif %}
+        {% endfor %}
+    </nav>
+
+    <div class="header-section">
+        <h1><i class="fas fa-chart-pie"></i> {{ title }}</h1>
+        <p>Relatório de consumo de franquia por Service Line - Limite: 1TB por linha</p>
+        {% if selected_account %}
+            <p><strong>Conta Selecionada:</strong> {{ account_info.name }} ({{ selected_account }})</p>
+        {% else %}
+            <p><strong>Visualizando:</strong> Todas as Contas</p>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Account Selection Form -->
+    <div class="account-selection-form">
+        <form method="get" action="{% url 'painel:starlink_usage_report' %}" class="account-form">
+            <div class="form-group">
+                <label for="account_id"><i class="fas fa-building"></i> Selecionar Conta:</label>
+                <select name="account_id" id="account_id" class="form-control" onchange="this.form.submit()">
+                    <option value="">Todas as Contas</option>
+                    {% for account_id, account_info in available_accounts.items %}
+                        <option value="{{ account_id }}" {% if account_id == selected_account %}selected{% endif %}>
+                            {{ account_info.name }} ({{ account_id }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{% url 'painel:starlink_usage_report' %}" class="btn btn-primary">
+            <i class="fas fa-sync"></i> Atualizar Relatório
+        </a>
+        <button onclick="window.print()" class="btn btn-secondary">
+            <i class="fas fa-print"></i> Imprimir Relatório
+        </button>
+        <a href="{% url 'admin:painel_starlinkadminproxy_changelist' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar ao Starlink Dashboard
+        </a>
+    </div>
+
+    {% if success %}
+        <div class="cycle-info">
+            <h2><i class="fas fa-calendar-alt"></i> Período do Ciclo de Faturamento</h2>
+            <p><strong>Início:</strong> {{ cycle_start }} | <strong>Fim:</strong> {{ cycle_end }}</p>
+            <p><strong>Duração:</strong> {{ cycle_days }} dias | <strong>Total de Service Lines:</strong> {{ total_lines }}</p>
+            <p><strong>Franquia:</strong> 1TB (1024 GB) por Service Line</p>
+            {% if cycle_days <= 7 %}
+                <p><em><i class="fas fa-info-circle"></i> Ciclo curto: os dados de consumo são proporcionais aos {{ cycle_days }} dias do ciclo atual.</em></p>
+            {% endif %}
+        </div>
+
+        <!-- Threshold Statistics Cards -->
+        <div class="threshold-stats">
+            <div class="threshold-card normal">
+                <div class="threshold-number">{{ statistics.lines_under_70 }}</div>
+                <div class="threshold-label">Abaixo de 70%</div>
+                <div class="threshold-description">Consumo normal</div>
+            </div>
+            <div class="threshold-card caution">
+                <div class="threshold-number">{{ statistics.lines_70_plus }}</div>
+                <div class="threshold-label">70% ou mais</div>
+                <div class="threshold-description">Atenção</div>
+            </div>
+            <div class="threshold-card warning">
+                <div class="threshold-number">{{ statistics.lines_80_plus }}</div>
+                <div class="threshold-label">80% ou mais</div>
+                <div class="threshold-description">Alerta</div>
+            </div>
+            <div class="threshold-card danger">
+                <div class="threshold-number">{{ statistics.lines_90_plus }}</div>
+                <div class="threshold-label">90% ou mais</div>
+                <div class="threshold-description">Crítico</div>
+            </div>
+            <div class="threshold-card critical">
+                <div class="threshold-number">{{ statistics.lines_100_plus }}</div>
+                <div class="threshold-label">100% ou mais</div>
+                <div class="threshold-description">Franquia excedida</div>
+            </div>
+        </div>
+
+        {% if usage_data %}
+            <div class="usage-table">
+                <h3 style="padding: 20px 20px 0 20px;"><i class="fas fa-list"></i> Consumo por Service Line (Ordenado por Maior Consumo)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Service Line</th>
+                            <th>Localização</th>
+                            <th>Priority GB</th>
+                            <th>Standard GB</th>
+                            <th>Total GB</th>
+                            <th>Total TB</th>
+                            <th>% Franquia</th>
+                            <th>Status</th>
+                            <th>Progresso</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line in usage_data %}
+                            <tr class="{{ line.threshold }}">
+                                <td>
+                                    <strong>{{ line.serviceLineNumber }}</strong>
+                                </td>
+                                <td>
+                                    <i class="fas fa-map-marker-alt" style="color: #007cba; margin-right: 5px;"></i>
+                                    <span title="{{ line.location }}">{{ line.location|truncatechars:30 }}</span>
+                                </td>
+                                <td>{{ line.priorityGB|floatformat:2 }} GB</td>
+                                <td>{{ line.standardGB|floatformat:2 }} GB</td>
+                                <td><strong>{{ line.totalGB|floatformat:2 }} GB</strong></td>
+                                <td><strong>{{ line.totalTB }} TB</strong></td>
+                                <td>
+                                    <strong>{{ line.usagePercentage }}%</strong>
+                                </td>
+                                <td>
+                                    <span class="usage-badge {{ line.threshold }}">
+                                        {% if line.threshold == 'normal' %}
+                                            <i class="fas fa-check-circle"></i> Normal
+                                        {% elif line.threshold == 'caution' %}
+                                            <i class="fas fa-exclamation-circle"></i> Atenção
+                                        {% elif line.threshold == 'warning' %}
+                                            <i class="fas fa-exclamation-triangle"></i> Alerta
+                                        {% elif line.threshold == 'danger' %}
+                                            <i class="fas fa-times-circle"></i> Crítico
+                                        {% elif line.threshold == 'critical' %}
+                                            <i class="fas fa-ban"></i> Excedido
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill {{ line.threshold }}" style="width: {% if line.usagePercentage > 100 %}100{% else %}{{ line.usagePercentage }}{% endif %}%"></div>
+                                    </div>
+                                    <small>{{ line.usagePercentage }}% de 1TB</small>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox" style="font-size: 4em; color: #ccc; margin-bottom: 20px;"></i>
+                <h3>Nenhum dado de consumo encontrado</h3>
+                <p>Não foram encontrados dados de consumo para o período atual.</p>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Erro ao gerar relatório:</strong> {{ error }}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

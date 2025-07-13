@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Login | POPPFIRE ADMIN</title>
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+      <!-- Font Awesome -->
+    <link rel="stylesheet" href="{% static 'admin-lte/plugins/fontawesome-free/css/all.min.css' %}">
+    <!-- FontAwesome CDN como fallback -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />>    <!-- AdminLTE -->
+    <link rel="stylesheet" href="{% static 'admin-lte/dist/css/adminlte.min.css' %}">
+    <!-- Custom styles -->
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/custom_admin.css' %}?v=2025062422">
+      <style>
+    /* Garantir que os ícones FontAwesome apareçam */
+    .input-group-text .fas {
+        font-family: "Font Awesome 5 Free" !important;
+        font-weight: 900 !important;
+        font-style: normal !important;
+        font-variant: normal !important;
+        text-transform: none !important;
+        line-height: 1 !important;
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        display: inline-block !important;
+    }
+    .fa-user:before {
+        content: "\f007" !important;
+    }
+    .fa-lock:before {
+        content: "\f023" !important;
+    }
+    /* Melhorar o visual da página de login */
+    .login-logo a {
+        color: #495057;
+        text-decoration: none;
+    }
+    .login-logo a:hover {
+        color: #007bff;
+    }
+    .login-box-msg {
+        margin: 0;
+        padding: 0 20px 20px 20px;
+        text-align: center;
+        font-size: 16px;
+        color: #6c757d;
+    }
+    </style>
+    
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+</head>
+<body class="hold-transition login-page">
+<div class="login-box">
+    <div class="login-logo">
+        <a href="{% url 'admin:index' %}">
+            <img src="{% static 'img/logo_app.png' %}" alt="POPPFIRE ADMIN Logo" style="height: 50px; margin-right: 10px; vertical-align: middle;">
+            <b>POPPFIRE</b> ADMIN
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body login-card-body">
+            <p class="login-box-msg">Faça login para iniciar sua sessão</p>
+
+            {% if form.errors and not form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% if form.errors.items|length == 1 %}
+                Por favor, corrija o erro abaixo.
+                {% else %}
+                Por favor, corrija os erros abaixo.
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ error }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% if user.is_authenticated %}
+            <div class="alert alert-warning">
+                Você está autenticado como {{ user.username }}, mas não está autorizado a acessar esta página. 
+                Gostaria de fazer login com uma conta diferente?
+            </div>
+            {% endif %}            <form action="{% url 'admin:login' %}" method="post" id="login-form">
+                {% csrf_token %}
+                
+                {% if redirect_field_value %}
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                {% endif %}
+                
+                <div class="input-group mb-3">
+                    {{ form.username }}
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-user"></span>
+                        </div>
+                    </div>
+                    {% if form.username.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.username.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="input-group mb-3">
+                    {{ form.password }}
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-lock"></span>
+                        </div>
+                    </div>
+                    {% if form.password.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.password.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}                </div>
+                
+                {% if request.GET.next %}
+                <input type="hidden" name="next" value="{{ request.GET.next }}">
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-8">
+                        {% url 'admin:password_reset' as password_reset_url %}
+                        {% if password_reset_url %}
+                        <p class="mb-1">
+                            <a href="{{ password_reset_url }}">Esqueceu sua senha?</a>
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery -->
+<script src="{% static 'admin-lte/plugins/jquery/jquery.min.js' %}"></script>
+<!-- Bootstrap 4 -->
+<script src="{% static 'admin-lte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<!-- AdminLTE App -->
+<script src="{% static 'admin-lte/dist/js/adminlte.min.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar placeholders em português
+    var usernameField = document.getElementById('id_username');
+    var passwordField = document.getElementById('id_password');
+    
+    if (usernameField) {
+        usernameField.placeholder = 'Nome de usuário';
+        usernameField.className = 'form-control';
+        usernameField.setAttribute('autocomplete', 'username');
+        usernameField.setAttribute('autofocus', 'autofocus');
+    }
+    
+    if (passwordField) {
+        passwordField.placeholder = 'Senha';
+        passwordField.className = 'form-control';
+        passwordField.setAttribute('autocomplete', 'current-password');
+    }
+    
+    console.log('POPPFIRE ADMIN: Página de login configurada em português');
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+# Configuração da API Starlink
+# 
+# Para configurar a integração com a API Starlink, você precisa:
+# 
+# 1. Obter as credenciais da API Starlink:
+#    - Client ID
+#    - Client Secret
+#    - Account ID
+# 
+# 2. Adicionar as variáveis de ambiente no arquivo .env ou configurar no settings.py:
+#    STARLINK_CLIENT_ID = "seu_client_id_aqui"
+#    STARLINK_CLIENT_SECRET = "seu_client_secret_aqui"
+#    STARLINK_ACCOUNT_ID = "seu_account_id_aqui"
+# 
+# 3. Exemplo de configuração no settings.py:
+#    import os
+#    from dotenv import load_dotenv
+#    
+#    load_dotenv()
+#    
+#    # Starlink API Configuration
+#    STARLINK_CLIENT_ID = os.getenv('STARLINK_CLIENT_ID')
+#    STARLINK_CLIENT_SECRET = os.getenv('STARLINK_CLIENT_SECRET')
+#    STARLINK_ACCOUNT_ID = os.getenv('STARLINK_ACCOUNT_ID')
+# 
+# 4. Criar arquivo .env na raiz do projeto:
+#    STARLINK_CLIENT_ID=your_client_id_here
+#    STARLINK_CLIENT_SECRET=your_client_secret_here
+#    STARLINK_ACCOUNT_ID=your_account_id_here
+# 
+# IMPORTANTE: Nunca commitar credenciais reais no repositório!
+# Adicione o arquivo .env ao .gitignore

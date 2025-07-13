@@ -1,0 +1,40 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Sensitive data
+.env
+config.py
+credentials.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+venv/
+env/
+*.egg-info/
+
+# Static files
+/static/
+/media/
+
+# Node modules (if any)
+node_modules/
+
+# Cache
+.cache/
+*.cache
+
+# Test files
+test_*.py

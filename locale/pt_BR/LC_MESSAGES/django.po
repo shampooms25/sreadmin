@@ -1,0 +1,417 @@
+# Traduções personalizadas para POPPFIRE ADMIN
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+# Página de Login
+msgid "Username:"
+msgstr "Nome de usuário:"
+
+msgid "Username"
+msgstr "Nome de usuário"
+
+msgid "Password:"
+msgstr "Senha:"
+
+msgid "Password"
+msgstr "Senha"
+
+msgid "Log in"
+msgstr "Entrar"
+
+msgid "Sign in to start your session"
+msgstr "Faça login para iniciar sua sessão"
+
+msgid "Please enter the correct %(username)s and password for a staff account. Note that both fields may be case-sensitive."
+msgstr "Por favor, insira o %(username)s e senha corretos para uma conta de funcionário. Note que ambos os campos podem ser sensíveis a maiúsculas e minúsculas."
+
+msgid "Please enter a correct username and password. Note that both fields may be case-sensitive."
+msgstr "Por favor, insira um nome de usuário e senha corretos. Note que ambos os campos podem ser sensíveis a maiúsculas e minúsculas."
+
+# Navegação e Menu Principal
+msgid "Administration"
+msgstr "Administração"
+
+msgid "Site administration"
+msgstr "Administração do site"
+
+msgid "Welcome,"
+msgstr "Bem-vindo,"
+
+msgid "View site"
+msgstr "Ver site"
+
+msgid "Documentation"
+msgstr "Documentação"
+
+msgid "Change password"
+msgstr "Alterar senha"
+
+msgid "Log out"
+msgstr "Sair"
+
+msgid "Recent actions"
+msgstr "Ações recentes"
+
+msgid "My actions"
+msgstr "Minhas ações"
+
+msgid "None available"
+msgstr "Nenhuma disponível"
+
+msgid "Unknown content"
+msgstr "Conteúdo desconhecido"
+
+msgid "Home"
+msgstr "Início"
+
+msgid "Models in the %(name)s application"
+msgstr "Modelos na aplicação %(name)s"
+
+# Ações CRUD
+msgid "Add"
+msgstr "Adicionar"
+
+msgid "Change"
+msgstr "Alterar"
+
+msgid "Delete"
+msgstr "Excluir"
+
+msgid "View"
+msgstr "Visualizar"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Save"
+msgstr "Salvar"
+
+msgid "Save and continue editing"
+msgstr "Salvar e continuar editando"
+
+msgid "Save and add another"
+msgstr "Salvar e adicionar outro"
+
+msgid "Save as new"
+msgstr "Salvar como novo"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Delete selected %(verbose_name_plural)s"
+msgstr "Excluir %(verbose_name_plural)s selecionados"
+
+msgid "Add %(name)s"
+msgstr "Adicionar %(name)s"
+
+msgid "Change %(name)s"
+msgstr "Alterar %(name)s"
+
+msgid "Delete %(name)s"
+msgstr "Excluir %(name)s"
+
+# Lista e Filtros
+msgid "Select %(name)s"
+msgstr "Selecionar %(name)s"
+
+msgid "Select %(name)s to change"
+msgstr "Selecionar %(name)s para alterar"
+
+msgid "Select %(name)s to view"
+msgstr "Selecionar %(name)s para visualizar"
+
+msgid "%(name)s object"
+msgstr "objeto %(name)s"
+
+msgid "%(name)s objects"
+msgstr "objetos %(name)s"
+
+msgid "Show all"
+msgstr "Mostrar todos"
+
+msgid "Filter"
+msgstr "Filtro"
+
+msgid "All"
+msgstr "Todos"
+
+msgid "Any date"
+msgstr "Qualquer data"
+
+msgid "Today"
+msgstr "Hoje"
+
+msgid "Past 7 days"
+msgstr "Últimos 7 dias"
+
+msgid "This month"
+msgstr "Este mês"
+
+msgid "This year"
+msgstr "Este ano"
+
+msgid "No date"
+msgstr "Sem data"
+
+msgid "Has date"
+msgstr "Tem data"
+
+msgid "Empty"
+msgstr "Vazio"
+
+msgid "Not empty"
+msgstr "Não vazio"
+
+msgid "Yes"
+msgstr "Sim"
+
+msgid "No"
+msgstr "Não"
+
+msgid "Unknown"
+msgstr "Desconhecido"
+
+# Busca e Paginação
+msgid "Search"
+msgstr "Buscar"
+
+msgid "Go"
+msgstr "Ir"
+
+msgid "Clear all filters"
+msgstr "Limpar todos os filtros"
+
+msgid "%(counter)s result"
+msgid_plural "%(counter)s results"
+msgstr[0] "%(counter)s resultado"
+msgstr[1] "%(counter)s resultados"
+
+msgid "%(full_result_count)s total"
+msgstr "%(full_result_count)s total"
+
+msgid "Show"
+msgstr "Mostrar"
+
+msgid "First"
+msgstr "Primeiro"
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Next"
+msgstr "Próximo"
+
+msgid "Last"
+msgstr "Último"
+
+msgid "Page %(page_num)s of %(num_pages)s"
+msgstr "Página %(page_num)s de %(num_pages)s"
+
+# Formulários
+msgid "This field is required."
+msgstr "Este campo é obrigatório."
+
+msgid "Enter a valid value."
+msgstr "Insira um valor válido."
+
+msgid "Enter a valid email address."
+msgstr "Insira um endereço de email válido."
+
+msgid "Enter a valid URL."
+msgstr "Insira uma URL válida."
+
+msgid "Enter a valid date."
+msgstr "Insira uma data válida."
+
+msgid "Enter a valid time."
+msgstr "Insira um horário válido."
+
+msgid "Enter a valid date/time."
+msgstr "Insira uma data/horário válidos."
+
+msgid "Enter a whole number."
+msgstr "Insira um número inteiro."
+
+msgid "Enter a valid number."
+msgstr "Insira um número válido."
+
+msgid "Ensure this value has at most %(max)d character (it has %(length)d)."
+msgid_plural "Ensure this value has at most %(max)d characters (it has %(length)d)."
+msgstr[0] "Certifique-se de que este valor tenha no máximo %(max)d caractere (ele tem %(length)d)."
+msgstr[1] "Certifique-se de que este valor tenha no máximo %(max)d caracteres (ele tem %(length)d)."
+
+msgid "Ensure this value has at least %(min)d character (it has %(length)d)."
+msgid_plural "Ensure this value has at least %(min)d characters (it has %(length)d)."
+msgstr[0] "Certifique-se de que este valor tenha pelo menos %(min)d caractere (ele tem %(length)d)."
+msgstr[1] "Certifique-se de que este valor tenha pelo menos %(min)d caracteres (ele tem %(length)d)."
+
+# Ações em Lote
+msgid "Action:"
+msgstr "Ação:"
+
+msgid "Select an action"
+msgstr "Selecione uma ação"
+
+msgid "%(action_name)s selected %(objects_name)s."
+msgstr "%(action_name)s %(objects_name)s selecionados."
+
+msgid "Successfully deleted %(count)d %(items)s."
+msgstr "%(count)d %(items)s excluídos com sucesso."
+
+msgid "Are you sure you want to delete the selected %(objects_name)s? All of the following objects and their related items will be deleted:"
+msgstr "Tem certeza de que deseja excluir os %(objects_name)s selecionados? Todos os seguintes objetos e seus itens relacionados serão excluídos:"
+
+msgid "Yes, I'm sure"
+msgstr "Sim, tenho certeza"
+
+msgid "No, take me back"
+msgstr "Não, me leve de volta"
+
+# Mensagens de Sucesso/Erro
+msgid "The %(name)s \"%(obj)s\" was added successfully."
+msgstr "O %(name)s \"%(obj)s\" foi adicionado com sucesso."
+
+msgid "The %(name)s \"%(obj)s\" was changed successfully."
+msgstr "O %(name)s \"%(obj)s\" foi alterado com sucesso."
+
+msgid "The %(name)s \"%(obj)s\" was deleted successfully."
+msgstr "O %(name)s \"%(obj)s\" foi excluído com sucesso."
+
+msgid "You may add another %(name)s below."
+msgstr "Você pode adicionar outro %(name)s abaixo."
+
+msgid "You may edit it again below."
+msgstr "Você pode editá-lo novamente abaixo."
+
+# Erros
+msgid "Server Error <em>(500)</em>"
+msgstr "Erro do Servidor <em>(500)</em>"
+
+msgid "Database error"
+msgstr "Erro de banco de dados"
+
+msgid "Page not found"
+msgstr "Página não encontrada"
+
+msgid "We're sorry, but the requested page could not be found."
+msgstr "Desculpe, mas a página solicitada não pôde ser encontrada."
+
+msgid "Thanks for spending some quality time with the Web site today."
+msgstr "Obrigado por passar um tempo de qualidade no site hoje."
+
+# Usuários e Grupos
+msgid "Users"
+msgstr "Usuários"
+
+msgid "Groups"
+msgstr "Grupos"
+
+msgid "User"
+msgstr "Usuário"
+
+msgid "Group"
+msgstr "Grupo"
+
+msgid "Permissions"
+msgstr "Permissões"
+
+msgid "Personal info"
+msgstr "Informações pessoais"
+
+msgid "Important dates"
+msgstr "Datas importantes"
+
+msgid "First name"
+msgstr "Primeiro nome"
+
+msgid "Last name"
+msgstr "Último nome"
+
+msgid "Email address"
+msgstr "Endereço de email"
+
+msgid "Active"
+msgstr "Ativo"
+
+msgid "Staff status"
+msgstr "Status da equipe"
+
+msgid "Superuser status"
+msgstr "Status de superusuário"
+
+msgid "Last login"
+msgstr "Último login"
+
+msgid "Date joined"
+msgstr "Data de cadastro"
+
+# Campos Relacionados
+msgid "Currently:"
+msgstr "Atualmente:"
+
+msgid "Change:"
+msgstr "Alterar:"
+
+msgid "Clear"
+msgstr "Limpar"
+
+msgid "Remove"
+msgstr "Remover"
+
+msgid "Add another"
+msgstr "Adicionar outro"
+
+msgid "Chosen"
+msgstr "Escolhidos"
+
+msgid "Available"
+msgstr "Disponíveis"
+
+msgid "Choose"
+msgstr "Escolher"
+
+msgid "Choose all"
+msgstr "Escolher todos"
+
+msgid "Remove all"
+msgstr "Remover todos"
+
+# Data e Hora
+msgid "Now"
+msgstr "Agora"
+
+msgid "Midnight"
+msgstr "Meia-noite"
+
+msgid "6 a.m."
+msgstr "6h"
+
+msgid "Noon"
+msgstr "Meio-dia"
+
+msgid "6 p.m."
+msgstr "18h"
+
+msgid "Calendar"
+msgstr "Calendário"
+
+msgid "Clock"
+msgstr "Relógio"
+
+# Ordenação
+msgid "Sort ascending"
+msgstr "Ordenar crescente"
+
+msgid "Sort descending"
+msgstr "Ordenar decrescente"
+
+msgid "Sorting priority: %(priority_number)s"
+msgstr "Prioridade de ordenação: %(priority_number)s"
+
+msgid "Toggle sorting"
+msgstr "Alternar ordenação"

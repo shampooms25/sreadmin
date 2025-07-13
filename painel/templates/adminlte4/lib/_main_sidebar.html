@@ -1,0 +1,129 @@
+{% extends 'adminlte4_theme/templates/admin/lib/_main_sidebar.html' %}
+{% load static %}
+
+{% block nav_links %}
+{{ block.super }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Melhorar aparência dos links dos módulos existentes
+    styleModuleLinks();
+});
+
+function styleModuleLinks() {
+    // Aguardar um pouco para garantir que o menu está carregado
+    setTimeout(function() {
+        // Selecionar todos os links do menu lateral
+        var menuLinks = document.querySelectorAll('.main-sidebar .nav-link, .sidebar .nav-link');
+        
+        menuLinks.forEach(function(link) {
+            // Aplicar estilos melhorados apenas aos links dos módulos principais
+            var linkText = link.textContent.trim();
+            if (linkText.includes('Autenticação') || linkText.includes('Autorização') || 
+                linkText.includes('Painel') || linkText.includes('Groups') || 
+                linkText.includes('Users') || linkText.includes('Grupos') || 
+                linkText.includes('Usuários')) {
+                
+                // Aplicar estilos
+                link.style.cssText += `
+                    transition: all 0.3s ease !important;
+                    border-radius: 0.25rem !important;
+                    margin: 2px 8px !important;
+                    padding: 8px 12px !important;
+                `;
+                
+                // Adicionar ícone se não existir
+                if (!link.querySelector('.nav-icon')) {
+                    var icon = document.createElement('i');
+                    if (linkText.includes('Autenticação') || linkText.includes('Users') || linkText.includes('Usuários')) {
+                        icon.className = 'nav-icon fas fa-user';
+                        icon.style.color = '#007bff';
+                    } else if (linkText.includes('Autorização') || linkText.includes('Groups') || linkText.includes('Grupos')) {
+                        icon.className = 'nav-icon fas fa-users';
+                        icon.style.color = '#28a745';
+                    } else if (linkText.includes('Painel')) {
+                        icon.className = 'nav-icon fas fa-tachometer-alt';
+                        icon.style.color = '#fd7e14';
+                    }
+                    
+                    icon.style.marginRight = '8px';
+                    link.insertBefore(icon, link.firstChild);
+                }
+                
+                // Adicionar efeitos hover
+                link.addEventListener('mouseenter', function() {
+                    this.style.cssText += `
+                        transform: translateX(5px) !important;
+                        background-color: rgba(0, 123, 255, 0.1) !important;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+                    `;
+                });
+                
+                link.addEventListener('mouseleave', function() {
+                    this.style.cssText += `
+                        transform: translateX(0) !important;
+                        background-color: transparent !important;
+                        box-shadow: none !important;
+                    `;
+                });
+            }
+        });
+        
+        console.log('✅ Estilos aplicados aos links dos módulos principais');
+    }, 200);
+}
+</script>
+
+<style>
+/* Estilos globais para melhorar a aparência dos links do menu */
+.main-sidebar .nav-link, .sidebar .nav-link {
+    transition: all 0.3s ease;
+}
+
+.main-sidebar .nav-link:hover, .sidebar .nav-link:hover {
+    transform: translateX(5px);
+    background-color: rgba(0, 123, 255, 0.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.main-sidebar .nav-link.active, .sidebar .nav-link.active {
+    background-color: rgba(0, 123, 255, 0.2);
+    border-left: 3px solid #007bff;
+    font-weight: bold;
+}
+
+/* Estilos específicos para ícones */
+.nav-icon {
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover .nav-icon {
+    transform: scale(1.1);
+}
+</style>
+}
+
+#starlink-menu-link:hover {
+    transform: translateX(5px);
+}
+
+#starlink-menu-link .nav-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+#starlink-menu-link .badge {
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 5px rgba(255, 107, 53, 0.5); }
+    to { box-shadow: 0 0 10px rgba(255, 107, 53, 0.8); }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,653 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | POPPFIRE ADMIN{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<!-- FontAwesome para ícones -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/custom_admin.css' %}?v=2025062422">
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('POPPFIRE ADMIN: Iniciando traduções...');
+    // Força a substituição da logo padrão do AdminLTE
+    var logos = document.querySelectorAll('img[src*="AdminLTELogo.png"]');
+    logos.forEach(function(logo) {
+        logo.src = '{% static "img/logo_app.png" %}';
+        logo.alt = 'POPPFIRE ADMIN Logo';
+    });
+    
+    // Atualiza o título se necessário
+    var titles = document.querySelectorAll('.brand-text');
+    titles.forEach(function(title) {
+        if (title.textContent.includes('AdminLTE')) {
+            title.textContent = 'POPPFIRE ADMIN';
+        }
+    });    // Traduz textos em inglês para português
+    var elementsToTranslate = {
+        'Sign in to start your session': 'Faça login para iniciar sua sessão',
+        'Username': 'Nome de usuário',
+        'Username:': 'Nome de usuário:',
+        'Password': 'Senha',
+        'Password:': 'Senha:',
+        'Sign In': 'Entrar',
+        'Log in': 'Entrar',
+        'Log out': 'Sair',
+        'Welcome': 'Bem-vindo',
+        'Dashboard': 'Painel',
+        'Home': 'Início',
+        'Administration': 'Administração',
+        'Site administration': 'Administração do site',
+        'Change': 'Alterar',
+        'Add': 'Adicionar',
+        'Delete': 'Excluir',
+        'View': 'Visualizar',
+        'Edit': 'Editar',
+        'Save': 'Salvar',
+        'Cancel': 'Cancelar',        'Search': 'Buscar',
+        'Filter': 'Filtro',
+        'Show all': 'Mostrar todos',
+        'Any date': 'Qualquer data',
+        'Today': 'Hoje',
+        'Past 7 days': 'Últimos 7 dias',
+        'This month': 'Este mês',
+        'This year': 'Este ano',
+        'Yes': 'Sim',
+        'No': 'Não',
+        'Unknown': 'Desconhecido',
+        'Go': 'Ir',
+        'Clear all filters': 'Limpar todos os filtros',
+        'First': 'Primeiro',
+        'Previous': 'Anterior',
+        'Next': 'Próximo',
+        'Last': 'Último',
+        'Show': 'Mostrar',
+        'Action:': 'Ação:',
+        'Select an action': 'Selecione uma ação',
+        'Documentation': 'Documentação',
+        'Change password': 'Alterar senha',
+        'View site': 'Ver site',
+        'Recent actions': 'Ações recentes',
+        'My actions': 'Minhas ações',
+        'None available': 'Nenhuma disponível',
+        'Unknown content': 'Conteúdo desconhecido',
+        'Currently:': 'Atualmente:',
+        'Change:': 'Alterar:',
+        'Clear': 'Limpar',
+        'Remove': 'Remover',
+        'Add another': 'Adicionar outro',
+        'Chosen': 'Escolhidos',
+        'Available': 'Disponíveis',
+        'Choose': 'Escolher',
+        'Choose all': 'Escolher todos',
+        'Remove all': 'Remover todos',
+        'Save and continue editing': 'Salvar e continuar editando',
+        'Save and add another': 'Salvar e adicionar outro',
+        'Save as new': 'Salvar como novo',
+        'Calendar': 'Calendário',
+        'Clock': 'Relógio',
+        'Now': 'Agora',
+        'Midnight': 'Meia-noite',
+        'Noon': 'Meio-dia',
+        'Member since': 'Membro desde',
+        'Profile': 'Perfil',
+        'Team': 'Equipe',
+        'Friends': 'Amigos',
+        'Settings': 'Configurações',
+        'Change Password': 'Alterar Senha',
+        'Change password': 'Alterar senha',
+        'Sign Out': 'Sair',
+        'Logout': 'Sair',
+        'Sign out': 'Sair'
+    };    // Função para traduzir textos específicos do perfil
+    function translateProfileMenu() {
+        console.log('POPPFIRE ADMIN: Executando translateProfileMenu...');
+        
+        // Traduzir elementos de dropdown do perfil
+        var dropdownItems = document.querySelectorAll('.dropdown-menu a, .dropdown-item, .navbar-nav a, .nav-link, .dropdown-menu li, .dropdown-menu span');
+        dropdownItems.forEach(function(item) {
+            var text = item.textContent.trim();
+            if (elementsToTranslate[text]) {
+                console.log('Traduzindo dropdown:', text, '->', elementsToTranslate[text]);
+                item.textContent = elementsToTranslate[text];
+            }
+        });
+        
+        // Traduzir textos em spans ou outros elementos do perfil
+        var profileElements = document.querySelectorAll('.user-panel .info, .dropdown-header, .dropdown-footer, .navbar-text, .text-sm, small, .navbar-right a, .navbar-nav li a');
+        profileElements.forEach(function(element) {
+            var text = element.textContent;
+            
+            // Traduzir "Member since" especificamente com regex para capturar a data
+            if (text.includes('Member since')) {
+                console.log('Traduzindo Member since:', text);
+                element.textContent = text.replace(/Member since\s*:?\s*/gi, 'Membro desde ');
+            }
+            
+            // Aplicar outras traduções palavra por palavra
+            Object.keys(elementsToTranslate).forEach(function(englishText) {
+                // Usar regex para substituição mais precisa
+                var regex = new RegExp('\\b' + englishText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+                if (text.match(regex)) {
+                    console.log('Traduzindo elemento perfil:', englishText, '->', elementsToTranslate[englishText]);
+                    element.textContent = text.replace(regex, elementsToTranslate[englishText]);
+                }
+            });
+        });
+        
+        // Traduzir especificamente links e botões do header/navbar
+        var headerLinks = document.querySelectorAll('#header a, .navbar a, .nav-link, .main-header a, .navbar-nav a, .dropdown-menu a');
+        headerLinks.forEach(function(link) {
+            var text = link.textContent.trim();
+            // Verifica se é exatamente o texto que queremos traduzir
+            if (text === 'Change password') {
+                console.log('Traduzindo "Change password" para "Alterar senha"');
+                link.textContent = 'Alterar senha';
+            } else if (text === 'Change Password') {
+                console.log('Traduzindo "Change Password" para "Alterar Senha"');
+                link.textContent = 'Alterar Senha';
+            } else if (text === 'Sign out' || text === 'Sign Out') {
+                console.log('Traduzindo "Sign out/Sign Out" para "Sair"');
+                link.textContent = 'Sair';
+            } else if (text === 'Logout') {
+                console.log('Traduzindo "Logout" para "Sair"');
+                link.textContent = 'Sair';
+            } else if (elementsToTranslate[text]) {
+                console.log('Traduzindo header link:', text, '->', elementsToTranslate[text]);
+                link.textContent = elementsToTranslate[text];
+            }
+        });
+        
+        // Traduzir elementos com classes específicas do AdminLTE
+        var adminElements = document.querySelectorAll('.content-wrapper, .main-header, .navbar, .dropdown-menu, .navbar-right');
+        adminElements.forEach(function(container) {
+            var walker = document.createTreeWalker(
+                container,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            var textNodes = [];
+            var node;
+            while (node = walker.nextNode()) {
+                textNodes.push(node);
+            }
+            
+            textNodes.forEach(function(textNode) {
+                var text = textNode.textContent;
+                if (text.includes('Member since')) {
+                    console.log('Traduzindo textNode Member since:', text);
+                    textNode.textContent = text.replace(/Member since\s*:?\s*/gi, 'Membro desde ');
+                }
+                
+                Object.keys(elementsToTranslate).forEach(function(englishText) {
+                    if (text.trim() === englishText) {
+                        console.log('Traduzindo textNode admin:', englishText, '->', elementsToTranslate[englishText]);
+                        textNode.textContent = elementsToTranslate[englishText];
+                    }
+                });
+            });
+        });
+        
+        // Força tradução específica para elementos do Django Admin que podem aparecer depois
+        setTimeout(function() {
+            var allLinks = document.querySelectorAll('a');
+            allLinks.forEach(function(link) {
+                var text = link.textContent.trim();
+                if (text === 'Change password' || text === 'Change Password') {
+                    link.textContent = 'Alterar senha';
+                    link.title = 'Alterar senha';
+                } else if (text === 'Sign out' || text === 'Sign Out' || text === 'Logout') {
+                    link.textContent = 'Sair';
+                    link.title = 'Sair';
+                }
+            });
+        }, 200);
+    }
+    
+    // Aplica as traduções
+    function translateElement(element) {
+        var translated = false;
+        
+        // Traduz texto do elemento
+        if (element.textContent) {
+            var text = element.textContent.trim();
+            if (elementsToTranslate[text]) {
+                element.textContent = elementsToTranslate[text];
+                element.setAttribute('data-translated', 'true');
+                element.setAttribute('data-original-text', text);
+                translated = true;
+            }
+        }
+        
+        // Traduz placeholder
+        if (element.getAttribute) {
+            var placeholder = element.getAttribute('placeholder');
+            if (placeholder && elementsToTranslate[placeholder]) {
+                element.setAttribute('placeholder', elementsToTranslate[placeholder]);
+                element.setAttribute('data-translated', 'true');
+                translated = true;
+            }
+            
+            // Traduz value para botões
+            var value = element.getAttribute('value');
+            if (value && elementsToTranslate[value]) {
+                element.setAttribute('value', elementsToTranslate[value]);
+                element.setAttribute('data-translated', 'true');
+                translated = true;
+            }
+            
+            // Traduz title
+            var title = element.getAttribute('title');
+            if (title && elementsToTranslate[title]) {
+                element.setAttribute('title', elementsToTranslate[title]);
+                element.setAttribute('data-translated', 'true');
+                translated = true;
+            }
+        }
+        return translated;
+    }
+    
+    // Aplica traduções de forma mais agressiva
+    function translateText() {
+        // Traduz todo o texto da página usando TreeWalker
+        var walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        var textNodes = [];
+        var node;
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+          textNodes.forEach(function(textNode) {
+            var text = textNode.textContent.trim();
+            if (text && elementsToTranslate[text]) {
+                console.log('Traduzindo:', text, '->', elementsToTranslate[text]);
+                textNode.textContent = elementsToTranslate[text];
+            }
+        });
+    }
+    
+    // Aplica traduções iniciais de forma mais robusta
+    function applyInitialTranslations() {
+        // Primeiro, traduz todos os nós de texto
+        translateText();
+        
+        // Depois, traduz elementos específicos
+        var allElements = document.querySelectorAll('*');
+        allElements.forEach(function(element) {
+            translateElement(element);
+        });
+        
+        // Tradução específica para elementos comuns do Django Admin
+        setTimeout(function() {
+            // Força tradução após um pequeno delay para elementos carregados dinamicamente
+            translateText();
+            translateProfileMenu();
+            
+            // Traduz especificamente os elementos de login
+            var loginElements = document.querySelectorAll('.login-box-msg, .card-header, .card-title, p, span, div');
+            loginElements.forEach(function(element) {
+                if (element.children.length === 0) {
+                    translateElement(element);
+                }
+            });
+        }, 100);
+        
+        // Segunda passada após mais tempo
+        setTimeout(function() {
+            translateText();
+            translateProfileMenu();
+            
+            // Tradução específica para elementos do header que podem carregar depois
+            var headerElements = document.querySelectorAll('#header a, .main-header a, .navbar a');
+            headerElements.forEach(function(element) {
+                var text = element.textContent.trim();
+                if (text === 'Change password' || text === 'Change Password') {
+                    element.textContent = 'Alterar senha';
+                } else if (text === 'Sign out' || text === 'Sign Out') {
+                    element.textContent = 'Sair';
+                }
+            });
+        }, 500);
+        
+        // Terceira passada para elementos muito tardios
+        setTimeout(function() {
+            translateProfileMenu();
+        }, 1000);
+    }
+    
+    // Executa as traduções
+    applyInitialTranslations();
+    
+    // Eventos para garantir tradução em interações
+    document.addEventListener('click', function() {
+        setTimeout(translateProfileMenu, 100);
+    });
+    
+    document.addEventListener('mouseover', function(e) {
+        if (e.target.closest('.nav-item.dropdown') || e.target.closest('.user-panel') || e.target.closest('#header')) {
+            setTimeout(translateProfileMenu, 50);
+        }
+    });
+    
+    // Listener para dropdowns do Bootstrap
+    document.addEventListener('shown.bs.dropdown', function() {
+        translateProfileMenu();
+    });
+    
+    // Observer para traduções dinâmicas mais agressivo
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        translateElement(node);
+                        translateProfileMenu();
+                        // Traduz todos os descendentes
+                        var descendants = node.querySelectorAll ? node.querySelectorAll('*') : [];
+                        descendants.forEach(function(desc) {
+                            translateElement(desc);
+                        });
+                    } else if (node.nodeType === 3) { // Text node
+                        var text = node.textContent.trim();
+                        if (text && elementsToTranslate[text]) {
+                            node.textContent = elementsToTranslate[text];
+                        }
+                    }
+                });
+            } else if (mutation.type === 'characterData') {
+                var text = mutation.target.textContent.trim();
+                if (text && elementsToTranslate[text]) {
+                    mutation.target.textContent = elementsToTranslate[text];
+                }
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
+});
+</script>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <img src="{% static 'img/logo_app.png' %}" alt="POPPFIRE ADMIN Logo" style="height: 32px; margin-right: 10px; vertical-align: middle;">
+        POPPFIRE ADMIN
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+<!-- Menu customizado para Starlink -->
+{% block usertools %}
+{{ block.super }}
+<style>
+.starlink-menu {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: #007cba;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.starlink-menu h4 {
+    color: white;
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    text-align: center;
+}
+
+.starlink-menu a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: background 0.3s ease;
+}
+
+.starlink-menu a:hover {
+    background: rgba(255,255,255,0.2);
+    text-decoration: none;
+}
+
+.starlink-menu-toggle {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    background: #007cba;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1001;
+    font-size: 18px;
+}
+
+.starlink-menu-toggle:hover {
+    background: #005a87;
+}
+
+.starlink-menu.hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .starlink-menu {
+        position: fixed;
+        top: 50px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+    }
+    
+    .starlink-menu-toggle {
+        right: 15px;
+        top: 45px;
+    }
+}
+</style>
+
+<button class="starlink-menu-toggle" onclick="toggleStarlinkMenu()" title="Menu Starlink">
+    <i class="fas fa-satellite"></i>
+</button>
+
+<div class="starlink-menu hidden" id="starlink-menu">
+    <h4><i class="fas fa-satellite"></i> Starlink API</h4>
+    <a href="{% url 'painel:starlink_dashboard' %}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+    </a>
+    <a href="{% url 'painel:starlink_service_lines' %}">
+        <i class="fas fa-list"></i> Service Lines
+    </a>
+    <a href="{% url 'painel:starlink_billing_report' %}">
+        <i class="fas fa-chart-bar"></i> Relatório
+    </a>
+    <a href="{% url 'painel:starlink_detailed_report' %}">
+        <i class="fas fa-file-pdf"></i> Relatório Detalhado
+    </a>
+    <a href="{% url 'painel:starlink_api_status' %}">
+        <i class="fas fa-heartbeat"></i> Status API
+    </a>
+</div>
+
+<script>
+function toggleStarlinkMenu() {
+    var menu = document.getElementById('starlink-menu');
+    menu.classList.toggle('hidden');
+}
+
+// Fechar menu ao clicar fora
+document.addEventListener('click', function(event) {
+    var menu = document.getElementById('starlink-menu');
+    var toggle = document.querySelector('.starlink-menu-toggle');
+    
+    if (!menu.contains(event.target) && !toggle.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}
+
+{% block extrajs %}
+{{ block.super }}
+<!-- Menu customizado para Starlink -->
+<style>
+.starlink-menu {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 15px;
+    min-width: 200px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.starlink-menu h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.1em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.starlink-menu a {
+    display: block;
+    padding: 10px 8px;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.starlink-menu a:hover {
+    background: #f0f8ff;
+    color: #007cba;
+    text-decoration: none;
+}
+
+.starlink-menu-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #007cba;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 1001;
+    transition: all 0.3s ease;
+}
+
+.starlink-menu-toggle:hover {
+    background: #005a87;
+    transform: scale(1.1);
+}
+
+.starlink-menu.hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .starlink-menu {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+    
+    .starlink-menu-toggle {
+        top: 15px;
+        right: 15px;
+        width: 45px;
+        height: 45px;
+        font-size: 1.1em;
+    }
+}
+</style>
+
+<!-- Menu HTML -->
+<button class="starlink-menu-toggle" onclick="toggleStarlinkMenu()" title="Menu Starlink">
+    <i class="fas fa-satellite"></i>
+</button>
+
+<div class="starlink-menu hidden" id="starlink-menu">
+    <h4><i class="fas fa-satellite"></i> Starlink API</h4>
+    <a href="{% url 'painel:starlink_dashboard' %}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+    </a>
+    <a href="{% url 'painel:starlink_service_lines' %}">
+        <i class="fas fa-list"></i> Service Lines
+    </a>
+    <a href="{% url 'painel:starlink_billing_report' %}">
+        <i class="fas fa-chart-bar"></i> Relatório
+    </a>
+    <a href="{% url 'painel:starlink_detailed_report' %}">
+        <i class="fas fa-file-pdf"></i> Relatório Detalhado
+    </a>
+    <a href="{% url 'painel:starlink_api_status' %}">
+        <i class="fas fa-heartbeat"></i> Status API
+    </a>
+</div>
+
+<script>
+function toggleStarlinkMenu() {
+    var menu = document.getElementById('starlink-menu');
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
+// Fechar menu ao clicar fora
+document.addEventListener('click', function(event) {
+    var menu = document.getElementById('starlink-menu');
+    var toggle = document.querySelector('.starlink-menu-toggle');
+    
+    if (menu && toggle && !menu.contains(event.target) && !toggle.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+
+// Verificar se o menu foi carregado
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Menu Starlink carregado');
+    var toggle = document.querySelector('.starlink-menu-toggle');
+    var menu = document.getElementById('starlink-menu');
+    if (toggle && menu) {
+        console.log('Menu Starlink encontrado na página');
+    } else {
+        console.log('Menu Starlink NÃO encontrado na página');
+    }
+});
+</script>
+{% endblock %}

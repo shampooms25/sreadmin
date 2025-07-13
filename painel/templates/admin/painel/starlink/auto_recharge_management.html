@@ -1,0 +1,582 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load starlink_extras %}
+
+{% block title %}{{ title }} - ALTERAÇÕES APLICADAS{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.auto-recharge-container {
+    padding: 20px;
+}
+
+.account-selector {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.account-selector label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.account-selector select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.header-info {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.statistics-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.stat-card {
+    background: rgba(255,255,255,0.1);
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-align: center;
+    min-width: 120px;
+    border: 2px solid rgba(255,255,255,0.2);
+}
+
+.stat-card.active {
+    background: rgba(40, 167, 69, 0.3);
+    border-color: #28a745;
+}
+
+.stat-card.inactive {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: #dc3545;
+}
+
+.stat-value {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.service-lines-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.service-line-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid #007cba;
+    transition: all 0.3s ease;
+}
+
+.service-line-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.service-line-card.auto-recharge-active {
+    border-left-color: #28a745;
+    background: linear-gradient(135deg, #f8fff8 0%, #e6ffe6 100%);
+}
+
+.service-line-card.auto-recharge-inactive {
+    border-left-color: #dc3545;
+    background: linear-gradient(135deg, #fff8f8 0%, #ffe6e6 100%);
+}
+
+.service-line-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.service-line-number {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.auto-recharge-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.auto-recharge-badge.active {
+    background: #28a745;
+    color: white;
+}
+
+.auto-recharge-badge.inactive {
+    background: #dc3545;
+    color: white;
+}
+
+.auto-recharge-badge.error {
+    background: #ffc107;
+    color: #333;
+}
+
+.auto-recharge-disabled {
+    display: inline-block;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+    background: #ff9500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.service-line-details {
+    margin-bottom: 15px;
+}
+
+.service-line-details p {
+    margin: 5px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.service-line-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    color: white;
+    text-decoration: none;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.loading-spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007cba;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #6c757d;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.back-button:hover {
+    background: #5a6268;
+    color: white;
+    text-decoration: none;
+}
+
+.service-status {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.service-status.active {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.service-status.offline {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.service-status.no_data {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auto-recharge-container">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="{% url 'admin:index' %}">Início</a> /
+        <a href="{% url 'painel:starlink_admin' %}">Administração Starlink</a> /
+        <span>Gerenciamento de Recarga Automática</span>
+    </div>
+
+    <!-- Botão Voltar -->
+    <a href="{% url 'painel:starlink_admin' %}{% if selected_account %}?account_id={{ selected_account }}{% endif %}" class="back-button">
+        <i class="fas fa-arrow-left"></i> Voltar à Administração
+    </a>
+
+    <!-- Seletor de Conta -->
+    <div class="account-selector">
+        <label for="account-select">
+            <i class="fas fa-satellite"></i> Conta Starlink Selecionada:
+        </label>
+        <select id="account-select" onchange="changeAccount()">
+            {% for account_id, account_data in available_accounts.items %}
+                <option value="{{ account_id }}" {% if account_id == selected_account %}selected{% endif %}>
+                    {{ account_data.name }} ({{ account_id }})
+                </option>
+            {% endfor %}
+        </select>
+        {% if account_info %}
+            <div style="margin-top: 8px; font-size: 0.9rem; color: #6c757d;">
+                <i class="fas fa-info-circle"></i> {{ account_info.description }}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Cabeçalho com Estatísticas -->
+    <div class="header-info">
+        <h1><i class="fas fa-sync-alt"></i> {{ title }}</h1>
+        <p>Gerenciamento de recarga automática de franquia para Service Lines</p>
+        <p><strong>Conta:</strong> {{ account_info.name }} ({{ selected_account }})</p>
+        
+        <div class="statistics-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_count }}</div>
+                <div class="stat-label">Total Service Lines</div>
+            </div>
+            <div class="stat-card active">
+                <div class="stat-value" style="color: #ffffff; font-weight: bold;">{{ active_count }}</div>
+                <div class="stat-label">Recarga Ativa</div>
+            </div>
+            <div class="stat-card inactive">
+                <div class="stat-value" style="color: #dc3545;">{{ inactive_count }}</div>
+                <div class="stat-label">Recarga Inativa</div>
+            </div>
+            {% if service_lines_data.performance_stats %}
+            <div class="stat-card">
+                <div class="stat-value">{{ service_lines_data.performance_stats.total_time|floatformat:2 }}s</div>
+                <div class="stat-label">Tempo de Carregamento</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ service_lines_data.performance_stats.cache_hits }}</div>
+                <div class="stat-label">Cache Hits</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ service_lines_data.performance_stats.api_calls }}</div>
+                <div class="stat-label">API Calls</div>
+            </div>
+            {% if service_lines_data.performance_stats.parallel_workers %}
+            <div class="stat-card">
+                <div class="stat-value">{{ service_lines_data.performance_stats.parallel_workers }}</div>
+                <div class="stat-label">Workers Paralelos</div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Mensagens -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Service Lines Grid -->
+    {% if service_lines %}
+        <div class="service-lines-grid">
+            {% for service_line in service_lines %}
+                <div class="service-line-card {% if service_line.auto_recharge_status.active %}auto-recharge-active{% else %}auto-recharge-inactive{% endif %}">
+                    <div class="service-line-header">
+                        <div class="service-line-number">
+                            {{ service_line.serviceLineNumber }}
+                        </div>
+                        <div class="auto-recharge-badge {% if service_line.auto_recharge_status.active %}active{% elif service_line.auto_recharge_status.error %}error{% else %}inactive{% endif %}">
+                            {% if service_line.auto_recharge_status.active %}
+                                <i class="fas fa-check-circle"></i> Ativa
+                            {% elif service_line.auto_recharge_status.error %}
+                                <i class="fas fa-exclamation-triangle"></i> Erro
+                            {% else %}
+                                <i class="fas fa-times-circle"></i> Inativa
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="service-line-details">
+                        {% if service_line.formattedLocation %}
+                            <p><strong><i class="fas fa-map-marker-alt"></i> Localização:</strong> {{ service_line.formattedLocation }}</p>
+                        {% elif service_line.serviceLocation %}
+                            <p><strong><i class="fas fa-map-marker-alt"></i> Localização:</strong> {{ service_line.serviceLocation }}</p>
+                        {% endif %}
+                        {% if service_line.nickname %}
+                            <p><strong><i class="fas fa-tag"></i> Apelido:</strong> {{ service_line.nickname }}</p>
+                        {% endif %}
+                        {% if service_line.status %}
+                            <p><strong><i class="fas fa-info-circle"></i> Status:</strong> 
+                                <span class="service-status {{ service_line.statusClass }}">{{ service_line.status }}</span>
+                            </p>
+                        {% endif %}
+                        {% if service_line.auto_recharge_status.active %}
+                            {% if service_line.auto_recharge_status.data.content.activatedDate %}
+                                <p style="color: #28a745;"><strong><i class="fas fa-check-circle"></i> Recarga Automática:</strong> Ativa desde {{ service_line.auto_recharge_status.data.content.activatedDate|slice:":10" }}</p>
+                            {% else %}
+                                <p style="color: #28a745;"><strong><i class="fas fa-check-circle"></i> Recarga Automática:</strong> Ativa</p>
+                            {% endif %}
+                        {% elif service_line.auto_recharge_status.error %}
+                            <p style="color: #dc3545;"><strong><i class="fas fa-exclamation-triangle"></i> Erro:</strong> {{ service_line.auto_recharge_status.error }}</p>
+                        {% else %}
+                            <div class="auto-recharge-disabled">
+                                <i class="fas fa-times-circle"></i> Recarga Automática Desativada
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="service-line-actions">
+                        {% if service_line.auto_recharge_status.active %}
+                            <a href="{% url 'painel:starlink_disable_auto_recharge' %}?account_id={{ selected_account }}&service_line={{ service_line.serviceLineNumber }}" class="btn btn-danger">
+                                <i class="fas fa-stop"></i> Desativar Recarga
+                            </a>
+                        {% else %}
+                            <button class="btn btn-warning" disabled title="Funcionalidade de ativação será implementada em breve">
+                                <i class="fas fa-play"></i> Ativar Recarga Automática
+                            </button>
+                        {% endif %}
+                        <div class="loading-spinner" id="spinner-{{ service_line.serviceLineNumber }}"></div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            Nenhuma Service Line encontrada para esta conta.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function changeAccount() {
+    const select = document.getElementById('account-select');
+    const accountId = select.value;
+    
+    if (accountId) {
+        // Mostrar indicador de carregamento
+        showLoadingIndicator();
+        
+        // Redirecionar para a nova conta
+        window.location.href = `{% url 'painel:starlink_auto_recharge_management' %}?account_id=${accountId}`;
+    }
+}
+
+function showLoadingIndicator() {
+    // Criar overlay de carregamento
+    const overlay = document.createElement('div');
+    overlay.id = 'loading-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        font-size: 1.2em;
+    `;
+    
+    overlay.innerHTML = `
+        <div style="text-align: center;">
+            <div style="border: 4px solid #f3f3f3; border-top: 4px solid #007cba; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <div>Carregando dados da conta...</div>
+            <div style="font-size: 0.9em; margin-top: 10px; opacity: 0.8;">Isso pode levar alguns segundos</div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+function toggleAutoRecharge(serviceLineNumber, action) {
+    const spinner = document.getElementById(`spinner-${serviceLineNumber}`);
+    const button = event.target;
+    
+    // Mostrar spinner e desabilitar botão
+    spinner.style.display = 'inline-block';
+    button.disabled = true;
+    
+    // Dados para enviar
+    const formData = new FormData();
+    formData.append('account_id', '{{ selected_account }}');
+    formData.append('service_line_number', serviceLineNumber);
+    formData.append('action', action);
+    formData.append('csrfmiddletoken', '{{ csrf_token }}');
+    
+    fetch('{% url "painel:starlink_toggle_auto_recharge" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Sucesso - recarregar a página para atualizar o status
+            location.reload();
+        } else {
+            // Erro
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao processar a solicitação');
+    })
+    .finally(() => {
+        // Esconder spinner e reabilitar botão
+        spinner.style.display = 'none';
+        button.disabled = false;
+    });
+}
+
+// Adicionar CSS para animação de loading
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
