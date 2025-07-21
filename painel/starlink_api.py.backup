@@ -75,8 +75,8 @@ def get_account_info(account_id):
         "description": "Conta não encontrada"
     })
 
-CLIENT_ID = "498ca080-3eb2-4a4d-a5d9-3828dbef0194"
-CLIENT_SECRET = "fibernetworks_api@2025"
+CLIENT_ID = "SEU_CLIENT_ID_AQUI"
+CLIENT_SECRET = "SEU_CLIENT_SECRET_AQUI"
 
 token_data = {
     "access_token": None,
