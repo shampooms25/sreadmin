@@ -6,6 +6,7 @@ import requests
 import time
 import json
 from datetime import datetime, timedelta
+import dateutil.parser
 
 # Configurações para API
 AUTH_URL = "https://api.starlink.com/auth/connect/token"
@@ -234,6 +235,15 @@ def get_billing_summary(account_id=None):
                         billing_date = cycle.get("billingDate")
                         if billing_date and (not billing_info["last_billing_date"] or billing_date > billing_info["last_billing_date"]):
                             billing_info["last_billing_date"] = billing_date
+                        
+                        # Verificar se há dataBlocks no ciclo de faturamento
+                        if "dataBlocks" in cycle:
+                            print("=" * 80)
+                            print(f"📊 DATABLOCKS ENCONTRADOS no billing para Service Line: {service_line_number}")
+                            print(f"Account: {account_id}")
+                            print("=" * 80)
+                            print(json.dumps(cycle["dataBlocks"], indent=2, ensure_ascii=False))
+                            print("=" * 80)
                     
                     service_lines.append(billing_info)
 
@@ -757,7 +767,6 @@ def get_service_lines_with_location(account_id=None):
                     status_class = "offline"
                 else:
                     # Verificar se há dados recentes (últimos 30 dias)
-                    from datetime import datetime, timedelta
                     import dateutil.parser
                     
                     try:
@@ -835,1209 +844,604 @@ def get_service_lines_with_location(account_id=None):
         return {"error": f"Erro inesperado: {e}"}
 
 
-def debug_api_response(account_id=None):
+def get_usage_report_data(account_id=None, cycle_start=None, cycle_end=None):
     """
-    Função para debug - mostra no console o resultado completo da API
+    Obtém dados de consumo de franquia para relatório usando dados reais da API
     """
     if account_id is None:
         account_id = DEFAULT_ACCOUNT
         
-    payload = {
-        "serviceLinesFilter": [],
-        "previousBillingCycles": 12,
-        "pageIndex": 0,
-        "pageLimit": 5  # Limitar para debug
-    }
-
     try:
+        from datetime import datetime, date
+        print(f"🚀 Obtendo dados de uso REAIS para conta: {account_id}")
+        if cycle_start and cycle_end:
+            print(f"📅 Ciclo: {cycle_start} até {cycle_end}")
+        start_time = time.time()
+        
+        # Primeiro, obter todos os service lines com localização
+        service_lines_result = get_service_lines_with_location(account_id)
+        
+        if "error" in service_lines_result:
+            return service_lines_result
+        
+        service_lines = service_lines_result.get("service_lines", [])
+        total_count = len(service_lines)
+        
+        print(f"📋 {total_count} Service Lines encontrados")
+        
+        # Obter dados reais de billing para cada service line
+        usage_data = []
+        statistics = {
+            "total_lines": total_count,
+            "lines_under_70": 0,
+            "lines_70_plus": 0,
+            "lines_80_plus": 0,
+            "lines_90_plus": 0,
+            "lines_100_plus": 0,
+            "total_priority_gb": 0,
+            "total_standard_gb": 0,
+            "total_consumption_gb": 0
+        }
+        
+        # Consultar dados de billing reais
         token = get_valid_token()
         if not token:
-            print("❌ Não foi possível obter token de acesso")
-            return
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        print(f"🔍 Fazendo requisição à API Starlink - Conta: {account_id}...")
-        api_url = get_api_url(account_id)
-        response = requests.post(api_url, json=payload, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        print("\n" + "="*80)
-        print("📋 RESULTADO COMPLETO DA API STARLINK")
-        print("="*80)
-        
-        # Mostrar estrutura geral
-        print(f"📊 Estrutura principal: {list(data.keys())}")
-        
-        if "content" in data:
-            print(f"📦 Conteúdo disponível: {list(data['content'].keys())}")
-            
-            if "results" in data["content"]:
-                results = data["content"]["results"]
-                print(f"📈 Total de resultados: {len(results)}")
-                
-                # Mostrar detalhes de cada resultado
-                for i, result in enumerate(results[:3]):  # Mostrar apenas os 3 primeiros
-                    print(f"\n🔸 RESULTADO {i+1}:")
-                    print(f"   📋 Campos disponíveis: {list(result.keys())}")
-                    
-                    # Mostrar campos específicos
-                    for key, value in result.items():
-                        if isinstance(value, dict):
-                            print(f"   📁 {key}: {list(value.keys())} (dict)")
-                        elif isinstance(value, list):
-                            print(f"   📝 {key}: {len(value)} itens (list)")
-                        else:
-                            print(f"   ✏️  {key}: {str(value)[:100]}...")
-                    
-                    # Procurar campos que podem conter localização
-                    location_fields = [
-                        'serviceLocation', 'location', 'address', 'site', 
-                        'serviceAddress', 'installationAddress', 'billingAddress',
-                        'coordinates', 'geoLocation', 'region', 'country', 
-                        'city', 'state', 'zipCode', 'postalCode'
-                    ]
-                    
-                    print(f"\n   🗺️  CAMPOS DE LOCALIZAÇÃO ENCONTRADOS:")
-                    for field in location_fields:
-                        if field in result:
-                            print(f"   ✅ {field}: {result[field]}")
-                    
-                    print("-" * 60)
-        
-        print("\n" + "="*80)
-        print("📋 DADOS BRUTOS COMPLETOS (JSON)")
-        print("="*80)
-        import json
-        print(json.dumps(data, indent=2, ensure_ascii=False))
-        
-    except Exception as e:
-        print(f"❌ Erro no debug: {e}")
-
-
-def debug_addresses_endpoint(account_id=None):
-    """
-    Testa o endpoint específico de addresses fornecido pelo usuário
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    addresses_url = f"https://web-api.starlink.com/enterprise/v1/account/{account_id}/addresses"
-    
-    try:
-        token = get_valid_token()
-        if not token:
-            return {"error": "Não foi possível obter token de acesso"}
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        print(f"\n🔍 TESTANDO ENDPOINT ADDRESSES:")
-        print(f"URL: {addresses_url}")
-        print(f"Headers: {headers}")
-        print("-" * 80)
-
-        response = requests.get(addresses_url, headers=headers)
-        
-        print(f"Status Code: {response.status_code}")
-        print(f"Response Headers: {dict(response.headers)}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            print(f"\n✅ SUCESSO! Dados retornados:")
-            print(f"Tipo de resposta: {type(data)}")
-            print(f"Conteúdo completo:")
-            print(json.dumps(data, indent=2, ensure_ascii=False))
-            return {"success": True, "data": data}
-        else:
-            print(f"\n❌ ERRO HTTP {response.status_code}")
-            print(f"Resposta: {response.text}")
-            return {"error": f"HTTP {response.status_code}: {response.text}"}
-
-    except requests.exceptions.RequestException as e:
-        print(f"\n❌ ERRO DE REQUISIÇÃO: {e}")
-        return {"error": f"Erro na requisição à API: {e}"}
-    except Exception as e:
-        print(f"\n❌ ERRO INESPERADO: {e}")
-        return {"error": f"Erro inesperado: {e}"}
-
-
-def debug_multiple_endpoints(account_id=None):
-    """
-    Testa múltiplos endpoints baseados no padrão da API
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    base_url = f"https://web-api.starlink.com/enterprise/v1/accounts/{account_id}"
-    
-    endpoints_to_test = [
-        "addresses",
-        "service-lines",
-        "terminals",
-        "locations",
-        "sites",
-        "subscriptions"
-    ]
-    
-    results = {}
-    
-    for endpoint in endpoints_to_test:
-        url = f"{base_url}/{endpoint}"
-        print(f"\n{'='*60}")
-        print(f"🔍 Testando endpoint: {endpoint}")
-        print(f"📍 URL: {url}")
-        print(f"{'='*60}")
-        
-        try:
-            token = get_valid_token()
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            
-            response = requests.get(url, headers=headers)
-            print(f"📊 Status: {response.status_code}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                print(f"✅ Sucesso!")
-                print(f"📄 Tipo: {type(data)}")
-                
-                if isinstance(data, dict):
-                    print(f"📋 Chaves: {list(data.keys())}")
-                elif isinstance(data, list):
-                    print(f"📋 Lista com {len(data)} items")
-                
-                results[endpoint] = {"success": True, "data": data}
-                print(f"📄 DADOS:")
-                print(data)
-                
-            else:
-                print(f"❌ Erro {response.status_code}: {response.text}")
-                results[endpoint] = {"success": False, "error": f"HTTP {response.status_code}"}
-                
-        except Exception as e:
-            print(f"❌ Erro: {e}")
-            results[endpoint] = {"success": False, "error": str(e)}
-    
-    return results
-
-
-def get_starlink_addresses(account_id=None):
-    """
-    Obtém todos os endereços cadastrados na conta Starlink
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    addresses_url = f"{get_account_base_url(account_id)}/addresses"
-    
-    try:
-        token = get_valid_token()
-        if not token:
-            return {"error": "Não foi possível obter token de acesso"}
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        response = requests.get(addresses_url, headers=headers)
-        response.raise_for_status()
-        
-        if response.status_code == 200:
-            data = response.json()
-            addresses = data.get("content", {}).get("results", [])
-            
-            # Processar endereços para facilitar o uso
-            processed_addresses = {}
-            for addr in addresses:
-                addr_id = addr.get("addressReferenceId")
-                if addr_id:
-                    processed_addresses[addr_id] = {
-                        "id": addr_id,
-                        "locality": addr.get("locality", ""),
-                        "state": addr.get("administrativeAreaCode", ""),
-                        "country": addr.get("regionCode", ""),
-                        "formatted": addr.get("formattedAddress", ""),
-                        "coordinates": f"{addr.get('latitude', '')}, {addr.get('longitude', '')}" if addr.get('latitude') and addr.get('longitude') else "",
-                        "postal_code": addr.get("postalCode", "")
-                    }
-            
+            print("❌ Token não disponível, retornando erro")
             return {
-                "success": True,
-                "addresses": processed_addresses,
-                "total": len(processed_addresses)
+                "error": "Token de autenticação não disponível",
+                "usage_data": [],
+                "statistics": {},
+                "total_lines": 0,
+                "account_id": account_id,
+                "last_update": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             }
-        else:
-            return {"error": f"HTTP {response.status_code}: {response.text}"}
-
-    except requests.exceptions.RequestException as e:
-        return {"error": f"Erro na requisição à API: {e}"}
-    except Exception as e:
-        return {"error": f"Erro inesperado: {e}"}
-
-
-def get_service_lines_with_location(account_id=None):
-    """
-    Obtém Service Lines com localização correta usando o endpoint /service-lines
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
         
-    try:
-        token = get_valid_token()
-        if not token:
-            return {"error": "Não foi possível obter token de acesso"}
-
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
-
-        # Primeiro, obter dados dos endereços
-        addresses_result = get_starlink_addresses(account_id)
-        addresses_dict = {}
-        if addresses_result.get("success"):
-            addresses_dict = addresses_result.get("addresses", {})
-
-        # Usar o endpoint correto para Service Lines com limit maior
-        service_lines_url = f"{get_account_base_url(account_id)}/service-lines?limit=100"
         
-        response = requests.get(service_lines_url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        service_lines = []
-        correlations_found = 0
+        # Preparar lista de service lines para consulta
+        service_line_numbers = [sl.get("serviceLineNumber") for sl in service_lines if sl.get("serviceLineNumber")]
         
-        if "content" in data and "results" in data["content"]:
-            for i, result in enumerate(data["content"]["results"], 1):
-                service_line_number = result.get("serviceLineNumber", f"SL-UNKNOWN-{i}")
-                
-                # Sempre processar todos os Service Lines, mesmo sem serviceLineNumber
-                # Extrair informações de localização
-                location_info = "Localização não informada"
-                address_ref_id = result.get("addressReferenceId")
-                
-                # Tentar correlacionar com endereços
-                if address_ref_id and address_ref_id in addresses_dict:
-                    addr = addresses_dict[address_ref_id]
-                    location_parts = []
-                    if addr["locality"]:
-                        location_parts.append(addr["locality"])
-                    if addr["state"]:
-                        location_parts.append(addr["state"])
-                    if addr["country"]:
-                        location_parts.append(addr["country"])
-                    
-                    if location_parts:
-                        location_info = ", ".join(location_parts)
-                        correlations_found += 1
-                    elif addr["formatted"]:
-                        # Usar endereço formatado como fallback
-                        location_info = addr["formatted"][:50] + "..." if len(addr["formatted"]) > 50 else addr["formatted"]
-                        correlations_found += 1
-                
-                # Fallback: tentar extrair de outros campos se não encontrou nos endereços
-                if location_info == "Localização não informada":
-                    if "nickname" in result and result["nickname"]:
-                        location_info = result["nickname"]
-                
-                # Determinar status detalhado
-                detailed_status = "Ativo"
-                status_class = "active"
-                
-                if not result.get("active", True):
-                    detailed_status = "Offline"
-                    status_class = "offline"
-                else:
-                    # Verificar se há dados recentes (últimos 30 dias)
-                    from datetime import datetime, timedelta
-                    import dateutil.parser
-                    
-                    try:
-                        end_date = result.get("endDate")
-                        if end_date:
-                            end_datetime = dateutil.parser.parse(end_date)
-                            thirty_days_ago = datetime.now(end_datetime.tzinfo) - timedelta(days=30)
-                            
-                            if end_datetime < thirty_days_ago:
-                                detailed_status = "Sem Dados"
-                                status_class = "no_data"
-                    except:
-                        pass  # Se não conseguir processar a data, mantém como ativo
-                
-                service_lines.append({
-                    "index": i,
-                    "serviceLineNumber": service_line_number,
-                    "nickname": result.get("nickname", ""),
-                    "status": detailed_status,
-                    "statusClass": status_class,
-                    "serviceLocation": location_info,
-                    "lastUpdate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                    "addressReferenceId": address_ref_id,
-                    "startDate": result.get("startDate", ""),
-                    "endDate": result.get("endDate", ""),
-                    "publicIp": result.get("publicIp", ""),
-                    "hasAddress": bool(address_ref_id and address_ref_id in addresses_dict),
-                    "rawData": result  # Para debug
-                })
-
-        # Calcular estatísticas detalhadas
-        total_service_lines = len(service_lines)
-        with_address = len([sl for sl in service_lines if sl["hasAddress"]])
-        without_address = total_service_lines - with_address
-        with_nickname = len([sl for sl in service_lines if sl["nickname"]])
-        
-        # Contar por status detalhado - incluindo TODOS os status possíveis
-        active_lines = len([sl for sl in service_lines if sl["status"] == "Ativo"])
-        offline_lines = len([sl for sl in service_lines if sl["status"] == "Offline"])
-        no_data_lines = len([sl for sl in service_lines if sl["status"] == "Sem Dados"])
-        pending_lines = len([sl for sl in service_lines if sl["status"] == "Pendente"])
-        suspended_lines = len([sl for sl in service_lines if sl["status"] == "Suspenso"])
-        indeterminate_lines = len([sl for sl in service_lines if sl["status"] == "Indeterminado"])
-        
-        # Verificar se há discrepância na contagem
-        total_counted = active_lines + offline_lines + no_data_lines + pending_lines + suspended_lines + indeterminate_lines
-        discrepancy = total_service_lines - total_counted
-        
-        return {
-            "success": True,
-            "service_lines": service_lines,
-            "total": total_service_lines,
-            "addresses_loaded": len(addresses_dict),
-            "correlations_found": correlations_found,
-            "statistics": {
-                "total_service_lines": total_service_lines,
-                "with_address": with_address,
-                "without_address": without_address,
-                "with_nickname": with_nickname,
-                "active_lines": active_lines,
-                "offline_lines": offline_lines,
-                "no_data_lines": no_data_lines,
-                "pending_lines": pending_lines,
-                "suspended_lines": suspended_lines,
-                "indeterminate_lines": indeterminate_lines,
-                "total_counted": total_counted
-            },
-            "account_id": account_id,
-            "last_update": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        }
-
-    except requests.exceptions.RequestException as e:
-        return {"error": f"Erro na requisição à API: {e}"}
-    except Exception as e:
-        return {"error": f"Erro inesperado: {e}"}
-
-
-def debug_api_response(account_id=None):
-    """
-    Função para debug - mostra no console o resultado completo da API
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    payload = {
-        "serviceLinesFilter": [],
-        "previousBillingCycles": 12,
-        "pageIndex": 0,
-        "pageLimit": 5  # Limitar para debug
-    }
-
-    try:
-        token = get_valid_token()
-        if not token:
-            print("❌ Não foi possível obter token de acesso")
-            return
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        print(f"🔍 Fazendo requisição à API Starlink - Conta: {account_id}...")
-        api_url = get_api_url(account_id)
-        response = requests.post(api_url, json=payload, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        print("\n" + "="*80)
-        print("📋 RESULTADO COMPLETO DA API STARLINK")
-        print("="*80)
-        
-        # Mostrar estrutura geral
-        print(f"📊 Estrutura principal: {list(data.keys())}")
-        
-        if "content" in data:
-            print(f"📦 Conteúdo disponível: {list(data['content'].keys())}")
-            
-            if "results" in data["content"]:
-                results = data["content"]["results"]
-                print(f"📈 Total de resultados: {len(results)}")
-                
-                # Mostrar detalhes de cada resultado
-                for i, result in enumerate(results[:3]):  # Mostrar apenas os 3 primeiros
-                    print(f"\n🔸 RESULTADO {i+1}:")
-                    print(f"   📋 Campos disponíveis: {list(result.keys())}")
-                    
-                    # Mostrar campos específicos
-                    for key, value in result.items():
-                        if isinstance(value, dict):
-                            print(f"   📁 {key}: {list(value.keys())} (dict)")
-                        elif isinstance(value, list):
-                            print(f"   📝 {key}: {len(value)} itens (list)")
-                        else:
-                            print(f"   ✏️  {key}: {str(value)[:100]}...")
-                    
-                    # Procurar campos que podem conter localização
-                    location_fields = [
-                        'serviceLocation', 'location', 'address', 'site', 
-                        'serviceAddress', 'installationAddress', 'billingAddress',
-                        'coordinates', 'geoLocation', 'region', 'country', 
-                        'city', 'state', 'zipCode', 'postalCode'
-                    ]
-                    
-                    print(f"\n   🗺️  CAMPOS DE LOCALIZAÇÃO ENCONTRADOS:")
-                    for field in location_fields:
-                        if field in result:
-                            print(f"   ✅ {field}: {result[field]}")
-                    
-                    print("-" * 60)
-        
-        print("\n" + "="*80)
-        print("📋 DADOS BRUTOS COMPLETOS (JSON)")
-        print("="*80)
-        import json
-        print(json.dumps(data, indent=2, ensure_ascii=False))
-        
-    except Exception as e:
-        print(f"❌ Erro no debug: {e}")
-
-
-def debug_addresses_endpoint(account_id=None):
-    """
-    Testa o endpoint específico de addresses fornecido pelo usuário
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    addresses_url = f"https://web-api.starlink.com/enterprise/v1/account/{account_id}/addresses"
-    
-    try:
-        token = get_valid_token()
-        if not token:
-            return {"error": "Não foi possível obter token de acesso"}
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        print(f"\n🔍 TESTANDO ENDPOINT ADDRESSES:")
-        print(f"URL: {addresses_url}")
-        print(f"Headers: {headers}")
-        print("-" * 80)
-
-        response = requests.get(addresses_url, headers=headers)
-        
-        print(f"Status Code: {response.status_code}")
-        print(f"Response Headers: {dict(response.headers)}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            print(f"\n✅ SUCESSO! Dados retornados:")
-            print(f"Tipo de resposta: {type(data)}")
-            print(f"Conteúdo completo:")
-            print(json.dumps(data, indent=2, ensure_ascii=False))
-            return {"success": True, "data": data}
-        else:
-            print(f"\n❌ ERRO HTTP {response.status_code}")
-            print(f"Resposta: {response.text}")
-            return {"error": f"HTTP {response.status_code}: {response.text}"}
-
-    except requests.exceptions.RequestException as e:
-        print(f"\n❌ ERRO DE REQUISIÇÃO: {e}")
-        return {"error": f"Erro na requisição à API: {e}"}
-    except Exception as e:
-        print(f"\n❌ ERRO INESPERADO: {e}")
-        return {"error": f"Erro inesperado: {e}"}
-
-
-def debug_multiple_endpoints(account_id=None):
-    """
-    Testa múltiplos endpoints baseados no padrão da API
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    base_url = f"https://web-api.starlink.com/enterprise/v1/accounts/{account_id}"
-    
-    endpoints_to_test = [
-        "addresses",
-        "service-lines",
-        "terminals",
-        "locations",
-        "sites",
-        "subscriptions"
-    ]
-    
-    results = {}
-    
-    for endpoint in endpoints_to_test:
-        url = f"{base_url}/{endpoint}"
-        print(f"\n{'='*60}")
-        print(f"🔍 Testando endpoint: {endpoint}")
-        print(f"📍 URL: {url}")
-        print(f"{'='*60}")
-        
-        try:
-            token = get_valid_token()
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            
-            response = requests.get(url, headers=headers)
-            print(f"📊 Status: {response.status_code}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                print(f"✅ Sucesso!")
-                print(f"📄 Tipo: {type(data)}")
-                
-                if isinstance(data, dict):
-                    print(f"📋 Chaves: {list(data.keys())}")
-                elif isinstance(data, list):
-                    print(f"📋 Lista com {len(data)} items")
-                
-                results[endpoint] = {"success": True, "data": data}
-                print(f"📄 DADOS:")
-                print(data)
-                
-            else:
-                print(f"❌ Erro {response.status_code}: {response.text}")
-                results[endpoint] = {"success": False, "error": f"HTTP {response.status_code}"}
-                
-        except Exception as e:
-            print(f"❌ Erro: {e}")
-            results[endpoint] = {"success": False, "error": str(e)}
-    
-    return results
-
-
-def get_starlink_addresses(account_id=None):
-    """
-    Obtém todos os endereços cadastrados na conta Starlink
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    addresses_url = f"{get_account_base_url(account_id)}/addresses"
-    
-    try:
-        token = get_valid_token()
-        if not token:
-            return {"error": "Não foi possível obter token de acesso"}
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        response = requests.get(addresses_url, headers=headers)
-        response.raise_for_status()
-        
-        if response.status_code == 200:
-            data = response.json()
-            addresses = data.get("content", {}).get("results", [])
-            
-            # Processar endereços para facilitar o uso
-            processed_addresses = {}
-            for addr in addresses:
-                addr_id = addr.get("addressReferenceId")
-                if addr_id:
-                    processed_addresses[addr_id] = {
-                        "id": addr_id,
-                        "locality": addr.get("locality", ""),
-                        "state": addr.get("administrativeAreaCode", ""),
-                        "country": addr.get("regionCode", ""),
-                        "formatted": addr.get("formattedAddress", ""),
-                        "coordinates": f"{addr.get('latitude', '')}, {addr.get('longitude', '')}" if addr.get('latitude') and addr.get('longitude') else "",
-                        "postal_code": addr.get("postalCode", "")
-                    }
-            
+        if not service_line_numbers:
+            print("❌ Nenhuma service line encontrada")
             return {
-                "success": True,
-                "addresses": processed_addresses,
-                "total": len(processed_addresses)
+                "error": "Nenhuma service line encontrada",
+                "usage_data": [],
+                "statistics": {},
+                "total_lines": 0
             }
-        else:
-            return {"error": f"HTTP {response.status_code}: {response.text}"}
-
-    except requests.exceptions.RequestException as e:
-        return {"error": f"Erro na requisição à API: {e}"}
-    except Exception as e:
-        return {"error": f"Erro inesperado: {e}"}
-
-
-def get_service_lines_with_location(account_id=None):
-    """
-    Obtém Service Lines com localização correta usando o endpoint /service-lines
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
         
-    try:
-        token = get_valid_token()
-        if not token:
-            return {"error": "Não foi possível obter token de acesso"}
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        # Primeiro, obter dados dos endereços
-        addresses_result = get_starlink_addresses(account_id)
-        addresses_dict = {}
-        if addresses_result.get("success"):
-            addresses_dict = addresses_result.get("addresses", {})
-
-        # Usar o endpoint correto para Service Lines com limit maior
-        service_lines_url = f"{get_account_base_url(account_id)}/service-lines?limit=100"
-        
-        response = requests.get(service_lines_url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        service_lines = []
-        correlations_found = 0
-        
-        if "content" in data and "results" in data["content"]:
-            for i, result in enumerate(data["content"]["results"], 1):
-                service_line_number = result.get("serviceLineNumber", f"SL-UNKNOWN-{i}")
-                
-                # Sempre processar todos os Service Lines, mesmo sem serviceLineNumber
-                # Extrair informações de localização
-                location_info = "Localização não informada"
-                address_ref_id = result.get("addressReferenceId")
-                
-                # Tentar correlacionar com endereços
-                if address_ref_id and address_ref_id in addresses_dict:
-                    addr = addresses_dict[address_ref_id]
-                    location_parts = []
-                    if addr["locality"]:
-                        location_parts.append(addr["locality"])
-                    if addr["state"]:
-                        location_parts.append(addr["state"])
-                    if addr["country"]:
-                        location_parts.append(addr["country"])
-                    
-                    if location_parts:
-                        location_info = ", ".join(location_parts)
-                        correlations_found += 1
-                    elif addr["formatted"]:
-                        # Usar endereço formatado como fallback
-                        location_info = addr["formatted"][:50] + "..." if len(addr["formatted"]) > 50 else addr["formatted"]
-                        correlations_found += 1
-                
-                # Fallback: tentar extrair de outros campos se não encontrou nos endereços
-                if location_info == "Localização não informada":
-                    if "nickname" in result and result["nickname"]:
-                        location_info = result["nickname"]
-                
-                # Determinar status detalhado
-                detailed_status = "Ativo"
-                status_class = "active"
-                
-                if not result.get("active", True):
-                    detailed_status = "Offline"
-                    status_class = "offline"
-                else:
-                    # Verificar se há dados recentes (últimos 30 dias)
-                    from datetime import datetime, timedelta
-                    import dateutil.parser
-                    
-                    try:
-                        end_date = result.get("endDate")
-                        if end_date:
-                            end_datetime = dateutil.parser.parse(end_date)
-                            thirty_days_ago = datetime.now(end_datetime.tzinfo) - timedelta(days=30)
-                            
-                            if end_datetime < thirty_days_ago:
-                                detailed_status = "Sem Dados"
-                                status_class = "no_data"
-                    except:
-                        pass  # Se não conseguir processar a data, mantém como ativo
-                
-                service_lines.append({
-                    "index": i,
-                    "serviceLineNumber": service_line_number,
-                    "nickname": result.get("nickname", ""),
-                    "status": detailed_status,
-                    "statusClass": status_class,
-                    "serviceLocation": location_info,
-                    "lastUpdate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                    "addressReferenceId": address_ref_id,
-                    "startDate": result.get("startDate", ""),
-                    "endDate": result.get("endDate", ""),
-                    "publicIp": result.get("publicIp", ""),
-                    "hasAddress": bool(address_ref_id and address_ref_id in addresses_dict),
-                    "rawData": result  # Para debug
-                })
-
-        # Calcular estatísticas detalhadas
-        total_service_lines = len(service_lines)
-        with_address = len([sl for sl in service_lines if sl["hasAddress"]])
-        without_address = total_service_lines - with_address
-        with_nickname = len([sl for sl in service_lines if sl["nickname"]])
-        
-        # Contar por status detalhado - incluindo TODOS os status possíveis
-        active_lines = len([sl for sl in service_lines if sl["status"] == "Ativo"])
-        offline_lines = len([sl for sl in service_lines if sl["status"] == "Offline"])
-        no_data_lines = len([sl for sl in service_lines if sl["status"] == "Sem Dados"])
-        pending_lines = len([sl for sl in service_lines if sl["status"] == "Pendente"])
-        suspended_lines = len([sl for sl in service_lines if sl["status"] == "Suspenso"])
-        indeterminate_lines = len([sl for sl in service_lines if sl["status"] == "Indeterminado"])
-        
-        # Verificar se há discrepância na contagem
-        total_counted = active_lines + offline_lines + no_data_lines + pending_lines + suspended_lines + indeterminate_lines
-        discrepancy = total_service_lines - total_counted
-        
-        return {
-            "success": True,
-            "service_lines": service_lines,
-            "total": total_service_lines,
-            "addresses_loaded": len(addresses_dict),
-            "correlations_found": correlations_found,
-            "statistics": {
-                "total_service_lines": total_service_lines,
-                "with_address": with_address,
-                "without_address": without_address,
-                "with_nickname": with_nickname,
-                "active_lines": active_lines,
-                "offline_lines": offline_lines,
-                "no_data_lines": no_data_lines,
-                "pending_lines": pending_lines,
-                "suspended_lines": suspended_lines,
-                "indeterminate_lines": indeterminate_lines,
-                "total_counted": total_counted
-            },
-            "account_id": account_id,
-            "last_update": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        }
-
-    except requests.exceptions.RequestException as e:
-        return {"error": f"Erro na requisição à API: {e}"}
-    except Exception as e:
-        return {"error": f"Erro inesperado: {e}"}
-
-
-def debug_service_line_status(account_id=None):
-    """
-    Debug específico para analisar todos os status possíveis das Service Lines
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    try:
-        token = get_valid_token()
-        if not token:
-            return {"error": "Não foi possível obter token de acesso"}
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        # Usar o endpoint correto para Service Lines
-        service_lines_url = f"{get_account_base_url(account_id)}/service-lines?limit=200"
-        
-        response = requests.get(service_lines_url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        print(f"\n🔍 DEBUG - ANÁLISE DE STATUS DAS SERVICE LINES - Conta: {account_id}")
-        print("=" * 80)
-        
-        status_analysis = {}
-        field_analysis = {}
-        total_lines = 0
-        
-        if "content" in data and "results" in data["content"]:
-            results = data["content"]["results"]
-            total_lines = len(results)
-            print(f"📊 Total de Service Lines encontradas: {total_lines}")
-            
-            for i, result in enumerate(results, 1):
-                service_line_number = result.get("serviceLineNumber", f"SL-UNKNOWN-{i}")
-                
-                # Analisar todos os campos relacionados a status
-                fields_of_interest = [
-                    'active', 'status', 'state', 'enabled', 'disabled', 'suspended',
-                    'startDate', 'endDate', 'activationDate', 'suspensionDate',
-                    'billingStatus', 'serviceStatus', 'lineStatus', 'accountStatus',
-                    'subscriptionStatus', 'connectionStatus', 'operationalStatus'
-                ]
-                
-                print(f"\n📋 Service Line {i}: {service_line_number}")
-                
-                # Coletar todos os campos disponíveis
-                for field in fields_of_interest:
-                    if field in result:
-                        value = result[field]
-                        print(f"   ✅ {field}: {value}")
-                        
-                        # Contar ocorrências de cada campo
-                        if field not in field_analysis:
-                            field_analysis[field] = {}
-                        
-                        value_str = str(value)
-                        if value_str not in field_analysis[field]:
-                            field_analysis[field][value_str] = 0
-                        field_analysis[field][value_str] += 1
-                
-                # Determinar status usando lógica melhorada
-                determined_status = determine_enhanced_status(result)
-                print(f"   🎯 Status Determinado: {determined_status}")
-                
-                # Contar status
-                if determined_status not in status_analysis:
-                    status_analysis[determined_status] = 0
-                status_analysis[determined_status] += 1
-                
-                # Mostrar apenas os primeiros 10 para não poluir muito
-                if i >= 10:
-                    print(f"\n... (mostrando apenas os primeiros 10 de {total_lines})")
-                    break
-        
-        print(f"\n📊 RESUMO DE STATUS:")
-        print("-" * 40)
-        total_counted = 0
-        for status, count in status_analysis.items():
-            print(f"   {status}: {count}")
-            total_counted += count
-        
-        print(f"\n📊 Total contabilizado: {total_counted} de {total_lines}")
-        if total_counted != total_lines:
-            print(f"⚠️  DISCREPÂNCIA: {total_lines - total_counted} Service Lines não contabilizadas!")
-        
-        print(f"\n📋 ANÁLISE DE CAMPOS:")
-        print("-" * 40)
-        for field, values in field_analysis.items():
-            print(f"   {field}:")
-            for value, count in values.items():
-                print(f"      {value}: {count}")
-        
-        return {
-            "success": True,
-            "total_lines": total_lines,
-            "status_analysis": status_analysis,
-            "field_analysis": field_analysis,
-            "total_counted": total_counted,
-            "discrepancy": total_lines - total_counted
-        }
-
-    except Exception as e:
-        print(f"❌ Erro no debug de status: {e}")
-        return {"error": str(e)}
-
-
-def determine_enhanced_status(service_line_data):
-    """
-    Determina o status de uma Service Line usando lógica melhorada
-    """
-    from datetime import datetime, timedelta
-    import dateutil.parser
-    
-    # Verificar campo 'active' primeiro
-    active_field = service_line_data.get("active")
-    if active_field is False:
-        return "Offline"
-    
-    # Verificar campos de status diretos
-    status_fields = ['status', 'state', 'serviceStatus', 'lineStatus', 'operationalStatus']
-    for field in status_fields:
-        if field in service_line_data:
-            value = str(service_line_data[field]).lower()
-            if value in ['inactive', 'disabled', 'suspended', 'offline', 'down']:
-                return "Offline"
-            elif value in ['pending', 'provisioning', 'installing', 'activating']:
-                return "Pendente"
-            elif value in ['active', 'enabled', 'online', 'up', 'operational']:
-                return "Ativo"
-    
-    # Verificar datas para determinar se está ativo
-    try:
-        start_date = service_line_data.get("startDate")
-        end_date = service_line_data.get("endDate")
-        
-        if start_date:
-            start_datetime = dateutil.parser.parse(start_date)
-            now = datetime.now(start_datetime.tzinfo) if start_datetime.tzinfo else datetime.now()
-            
-            # Se ainda não começou
-            if start_datetime > now:
-                return "Pendente"
-        
-        if end_date:
-            end_datetime = dateutil.parser.parse(end_date)
-            now = datetime.now(end_datetime.tzinfo) if end_datetime.tzinfo else datetime.now()
-            
-            # Se já terminou há mais de 30 dias
-            thirty_days_ago = now - timedelta(days=30)
-            if end_datetime < thirty_days_ago:
-                return "Sem Dados"
-            # Se terminou recentemente
-            elif end_datetime < now:
-                return "Offline"
-    except:
-        pass  # Se houver erro no parsing de datas, continua
-    
-    # Verificar outros campos que podem indicar status
-    suspension_date = service_line_data.get("suspensionDate")
-    if suspension_date:
-        try:
-            susp_datetime = dateutil.parser.parse(suspension_date)
-            now = datetime.now(susp_datetime.tzinfo) if susp_datetime.tzinfo else datetime.now()
-            if susp_datetime <= now:
-                return "Suspenso"
-        except:
-            pass
-    
-    # Se chegou até aqui e active não é False, assumir ativo
-    if active_field is not False:
-        return "Ativo"
-    
-    # Caso padrão
-    return "Indeterminado"
-
-
-def get_billing_usage_data(account_id=None):
-    """
-    Obtém dados de consumo de franquia do ciclo atual com localização
-    """
-    if account_id is None:
-        account_id = DEFAULT_ACCOUNT
-        
-    try:
-        token = get_valid_token()
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        # Calcular o período do ciclo atual (do dia 3 até hoje)
-        today = datetime.now()
-        if today.day >= 3:
-            cycle_start = today.replace(day=3)
-        else:
-            # Se estamos antes do dia 3, o ciclo começou no mês anterior
-            last_month = today.replace(day=1) - timedelta(days=1)
-            cycle_start = last_month.replace(day=3)
-
-        # Primeiro, obter dados dos endereços para correlacionar localização
-        addresses_result = get_starlink_addresses(account_id)
-        addresses_dict = {}
-        if addresses_result.get("success"):
-            addresses_dict = addresses_result.get("addresses", {})
-
-        # Obter dados dos Service Lines com localização
-        service_lines_url = f"{get_account_base_url(account_id)}/service-lines?limit=100"
-        service_lines_response = requests.get(service_lines_url, headers=headers)
-        service_lines_response.raise_for_status()
-        service_lines_data = service_lines_response.json()
-
-        # Criar dicionário de localização por Service Line
-        location_dict = {}
-        nickname_dict = {}
-        
-        if "content" in service_lines_data and "results" in service_lines_data["content"]:
-            for result in service_lines_data["content"]["results"]:
-                service_line_number = result.get("serviceLineNumber")
-                if service_line_number:
-                    # Obter localização
-                    location_info = "Localização não informada"
-                    address_ref_id = result.get("addressReferenceId")
-                    
-                    if address_ref_id and address_ref_id in addresses_dict:
-                        addr = addresses_dict[address_ref_id]
-                        location_parts = []
-                        if addr["locality"]:
-                            location_parts.append(addr["locality"])
-                        if addr["state"]:
-                            location_parts.append(addr["state"])
-                        if addr["country"]:
-                            location_parts.append(addr["country"])
-                        
-                        if location_parts:
-                            location_info = ", ".join(location_parts)
-                        elif addr["formatted"]:
-                            location_info = addr["formatted"]
-                    
-                    # Usar nickname como fallback se não tiver localização
-                    nickname = result.get("nickname", "")
-                    if nickname and location_info == "Localização não informada":
-                        location_info = nickname
-                    
-                    location_dict[service_line_number] = location_info
-                    nickname_dict[service_line_number] = nickname
-
-        # Configurar payload para buscar dados do ciclo atual
+        # Consultar billing cycles
+        url = f"https://web-api.starlink.com/enterprise/v1/accounts/{account_id}/billing-cycles/query"
         payload = {
-            "serviceLinesFilter": [],
-            "previousBillingCycles": 1,  # Apenas o ciclo atual
+            "serviceLinesFilter": service_line_numbers,
+            "previousBillingCycles": 2,  # Últimos 2 ciclos para garantir que temos o atual
             "pageIndex": 0,
             "pageLimit": 100
         }
-
-        api_url = get_api_url(account_id)
-        response = requests.post(api_url, json=payload, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        # Processar dados de consumo
-        usage_data = []
-        if "content" in data and "results" in data["content"]:
-            for result in data["content"]["results"]:
-                service_line_number = result.get("serviceLineNumber")
-                total_priority_gb = 0
-                total_standard_gb = 0
+        
+        print(f"🔍 Consultando billing cycles para {len(service_line_numbers)} service lines...")
+        
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code != 200:
+            print(f"❌ Erro na consulta de billing: {response.status_code}")
+            return {
+                "error": f"Erro na consulta de billing: {response.status_code}",
+                "usage_data": [],
+                "statistics": {},
+                "total_lines": 0
+            }
+        
+        billing_data = response.json()
+        
+        # Processar dados de cada service line
+        for service_line in service_lines:
+            service_line_number = service_line.get("serviceLineNumber", "")
+            location = service_line.get("serviceLocation", "N/A")
+            
+            if not service_line_number:
+                continue
+            
+            # Encontrar dados de billing para esta service line
+            billing_result = None
+            if "content" in billing_data and "results" in billing_data["content"]:
+                for result in billing_data["content"]["results"]:
+                    if result.get("serviceLineNumber") == service_line_number:
+                        billing_result = result
+                        break
+            
+            if not billing_result:
+                print(f"⚠️  Dados de billing não encontrados para {service_line_number}")
+                continue
+            
+            # Encontrar o ciclo atual nos dados de billing
+            current_cycle_data = None
+            billing_cycles = billing_result.get("billingCycles", [])
+            
+            # Procurar pelo ciclo atual (julho 2025 ou o mais recente)
+            for cycle in billing_cycles:
+                start_date = cycle.get("startDate", "")
+                end_date = cycle.get("endDate", "")
                 
-                if "billingCycles" in result:
-                    for cycle in result["billingCycles"]:
-                        if "dailyDataUsage" in cycle:
-                            for usage in cycle["dailyDataUsage"]:
-                                usage_date = datetime.strptime(usage.get("date", "")[:10], "%Y-%m-%d")
-                                # Apenas dados do ciclo atual
-                                if usage_date >= cycle_start:
-                                    total_priority_gb += usage.get("priorityGB", 0) or 0
-                                    total_standard_gb += usage.get("standardGB", 0) or 0
-
-                # Calcular dados consolidados
-                total_gb = total_priority_gb + total_standard_gb
-                total_tb = total_gb / 1024  # Converter para TB
-                quota_1tb = 1024  # 1TB em GB
-                usage_percentage = (total_gb / quota_1tb) * 100
-
-                # Determinar threshold
+                # Priorizar ciclo de julho 2025, ou pegar o mais recente
+                if "2025-07-03" in start_date or "2025-08-03" in end_date:
+                    current_cycle_data = cycle
+                    break
+            
+            # Se não encontrou ciclo de julho, pegar o primeiro disponível
+            if not current_cycle_data and billing_cycles:
+                current_cycle_data = billing_cycles[0]
+            
+            if not current_cycle_data:
+                print(f"⚠️  Ciclo atual não encontrado para {service_line_number}")
+                continue
+            
+            # Calcular consumo real baseado em dailyDataUsage
+            daily_usage = current_cycle_data.get("dailyDataUsage", [])
+            
+            priority_gb = 0
+            standard_gb = 0
+            
+            for day in daily_usage:
+                priority_gb += day.get("priorityGB", 0)
+                standard_gb += day.get("standardGB", 0)
+            
+            total_gb = priority_gb + standard_gb
+            total_tb = round(total_gb / 1024, 2)
+            
+            # Assumir franquia de 1TB como padrão
+            quota_gb = 1024
+            usage_percentage = round((total_gb / quota_gb) * 100, 1) if quota_gb > 0 else 0
+            
+            # Determinar threshold baseado na porcentagem
+            if usage_percentage < 70:
                 threshold = "normal"
-                if usage_percentage >= 100:
-                    threshold = "critical"
-                elif usage_percentage >= 90:
-                    threshold = "danger"
-                elif usage_percentage >= 80:
-                    threshold = "warning"
-                elif usage_percentage >= 70:
-                    threshold = "caution"
-
-                # Obter localização
-                location = location_dict.get(service_line_number, "Localização não informada")
-                nickname = nickname_dict.get(service_line_number, "")
-
-                usage_data.append({
-                    "serviceLineNumber": service_line_number,
-                    "location": location,
-                    "nickname": nickname,
-                    "priorityGB": total_priority_gb,
-                    "standardGB": total_standard_gb,
-                    "totalGB": total_gb,
-                    "totalTB": round(total_tb, 3),
-                    "usagePercentage": round(usage_percentage, 2),
-                    "threshold": threshold,
-                    "cycleStart": cycle_start.strftime("%Y-%m-%d"),
-                    "cycleEnd": today.strftime("%Y-%m-%d")
-                })
-
+                statistics["lines_under_70"] += 1
+            elif usage_percentage < 80:
+                threshold = "caution"
+            elif usage_percentage < 90:
+                threshold = "warning"
+            elif usage_percentage < 100:
+                threshold = "danger"
+            else:
+                threshold = "critical"
+            
+            # Atualizar estatísticas cumulativas
+            if usage_percentage >= 70:
+                statistics["lines_70_plus"] += 1
+            if usage_percentage >= 80:
+                statistics["lines_80_plus"] += 1
+            if usage_percentage >= 90:
+                statistics["lines_90_plus"] += 1
+            if usage_percentage >= 100:
+                statistics["lines_100_plus"] += 1
+            
+            # Atualizar estatísticas totais
+            statistics["total_priority_gb"] += priority_gb
+            statistics["total_standard_gb"] += standard_gb
+            statistics["total_consumption_gb"] += total_gb
+            
+            usage_data.append({
+                "serviceLineNumber": service_line_number,
+                "location": location,
+                "priorityGB": round(priority_gb, 2),
+                "standardGB": round(standard_gb, 2),
+                "totalGB": round(total_gb, 2),
+                "totalTB": total_tb,
+                "usagePercentage": usage_percentage,
+                "threshold": threshold,
+                "quotaGB": quota_gb,
+                "nickname": service_line.get("nickname", ""),
+                "status": service_line.get("status", "Ativo"),
+                "days_analyzed": len(daily_usage),
+                "data_source": "real_api"
+            })
+            
+            print(f"✅ {service_line_number}: {total_gb:.2f} GB ({len(daily_usage)} dias)")
+        
         # Ordenar por maior consumo
         usage_data.sort(key=lambda x: x["totalGB"], reverse=True)
-
-        # Estatísticas gerais
-        total_lines = len(usage_data)
-        lines_70_plus = len([x for x in usage_data if x["usagePercentage"] >= 70])
-        lines_80_plus = len([x for x in usage_data if x["usagePercentage"] >= 80])
-        lines_90_plus = len([x for x in usage_data if x["usagePercentage"] >= 90])
-        lines_100_plus = len([x for x in usage_data if x["usagePercentage"] >= 100])
-
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        print(f"✅ Relatório de uso gerado com dados REAIS em {total_time:.2f} segundos")
+        
         return {
             "success": True,
             "usage_data": usage_data,
-            "cycle_start": cycle_start.strftime("%d/%m/%Y"),
-            "cycle_end": today.strftime("%d/%m/%Y"),
-            "total_lines": total_lines,
-            "statistics": {
-                "lines_70_plus": lines_70_plus,
-                "lines_80_plus": lines_80_plus,
-                "lines_90_plus": lines_90_plus,
-                "lines_100_plus": lines_100_plus,
-                "lines_under_70": total_lines - lines_70_plus
-            }
+            "statistics": statistics,
+            "total_lines": len(usage_data),
+            "account_id": account_id,
+            "cycle_start": cycle_start,
+            "cycle_end": cycle_end,
+            "data_source": "real_api",
+            "performance_stats": {
+                "total_time": total_time,
+                "lines_processed": len(usage_data)
+            },
+            "last_update": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        }
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar relatório de uso: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "error": f"Erro ao consultar dados de uso: {str(e)}",
+            "usage_data": [],
+            "statistics": {},
+            "total_lines": 0,
+            "account_id": account_id,
+            "last_update": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         }
 
+
+
+
+def check_auto_recharge_status_fast(account_id, service_line_number):
+    """
+    Versão otimizada para verificar status de recarga automática
+    Com timeout reduzido e menos logs verbosos
+    """
+    try:
+        token = get_valid_token()
+        if not token:
+            return {
+                "active": False,
+                "error": "Token inválido",
+                "data": None
+            }
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+        # URL para verificar o status de opt-in (recarga automática)
+        url = f"https://web-api.starlink.com/enterprise/v1/account/{account_id}/service-lines/{service_line_number}/opt-in"
+        
+        # Requisição com timeout reduzido - usando POST como na função original
+        response = requests.post(url, headers=headers, json={}, timeout=10)  # Timeout de 10s em vez do padrão
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Se retornou 200, significa que a recarga automática está ativa
+            return {
+                "active": True,
+                "error": None,
+                "data": data
+            }
+        elif response.status_code == 404:
+            # Se retornou 404, significa que a recarga automática não está ativa
+            return {
+                "active": False,
+                "error": None,
+                "data": None
+            }
+        else:
+            return {
+                "active": False,
+                "error": f"Status HTTP {response.status_code}",
+                "data": None
+            }
+
+    except requests.exceptions.Timeout:
+        return {
+            "active": False,
+            "error": "Timeout na verificação",
+            "data": None
+        }
+    except requests.exceptions.RequestException as e:
+        return {
+            "active": False,
+            "error": f"Erro de requisição: {str(e)[:30]}...",
+            "data": None
+        }
     except Exception as e:
         return {
-            "success": False,
-            "error": str(e),
-            "usage_data": [],
-            "statistics": {}
+            "active": False,
+            "error": f"Erro inesperado: {str(e)[:30]}...",
+            "data": None
         }
 
 
-def get_all_accounts_summary():
+# Cache simples para resultados de recarga automática
+_auto_recharge_cache = {}
+_cache_expiry = {}
+
+def clear_auto_recharge_cache(account_id=None):
     """
-    Obtém resumo de todas as contas Starlink
+    Limpa o cache de recarga automática
+    Se account_id for fornecido, limpa apenas para essa conta
     """
-    all_accounts_data = {}
-    total_summary = {
-        "total_service_lines": 0,
-        "total_charges": 0,
-        "total_usage_70_plus": 0,
-        "total_usage_80_plus": 0,
-        "total_usage_90_plus": 0,
-        "total_usage_100_plus": 0,
-        "accounts_with_errors": 0,
-        "active_lines": 0,
-        "offline_lines": 0,
-        "no_data_lines": 0,
-        "pending_lines": 0,
-        "suspended_lines": 0,
-        "unknown_lines": 0,
-        "total_counted": 0,
-        "count_discrepancy": 0
-    }
-    
-    for account_id in STARLINK_ACCOUNTS.keys():
-        try:
-            print(f"Obtendo dados para conta: {account_id}")
+    if account_id:
+        keys_to_remove = [key for key in _auto_recharge_cache.keys() if key.startswith(f"{account_id}_")]
+        for key in keys_to_remove:
+            if key in _auto_recharge_cache:
+                del _auto_recharge_cache[key]
+            if key in _cache_expiry:
+                del _cache_expiry[key]
+        print(f"🗑️ Cache limpo para conta {account_id}")
+    else:
+        _auto_recharge_cache.clear()
+        _cache_expiry.clear()
+        print("🗑️ Cache completo limpo")
+
+
+def get_service_lines_with_auto_recharge_status(account_id=None):
+    """
+    Obtém Service Lines com localização e status de recarga automática
+    Versão otimizada com cache para melhor performance
+    """
+    if account_id is None:
+        account_id = DEFAULT_ACCOUNT
+        
+    try:
+        print(f"🚀 Iniciando consulta otimizada para conta: {account_id}")
+        start_time = time.time()
+        
+        # Primeiro, obter todos os service lines com localização
+        service_lines_result = get_service_lines_with_location(account_id)
+        
+        if "error" in service_lines_result:
+            return service_lines_result
+        
+        service_lines = service_lines_result.get("service_lines", [])
+        total_count = len(service_lines)
+        
+        print(f"📋 {total_count} Service Lines encontrados")
+        
+        # Adicionar status de recarga automática a cada service line
+        processed_lines = []
+        cache_hits = 0
+        api_calls = 0
+        
+        for i, service_line in enumerate(service_lines, 1):
+            service_line_number = service_line.get("serviceLineNumber", "")
             
-            # Obter dados de faturamento
-            billing_data = get_billing_summary(account_id)
+            if not service_line_number:
+                # Se não tem número, não pode verificar recarga automática
+                service_line["auto_recharge_status"] = {
+                    "active": False,
+                    "error": "Número da Service Line não disponível",
+                    "last_check": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                }
+                processed_lines.append(service_line)
+                continue
             
-            # Obter dados de usage
-            usage_data = get_billing_usage_data(account_id)
+            print(f"🔍 [{i}/{total_count}] Verificando recarga automática para {service_line_number}")
             
-            # Obter dados de service lines com status
-            service_lines_data = get_service_lines_with_location(account_id)
+            # Usar cache para verificar status
+            cache_key = f"{account_id}_{service_line_number}"
+            current_time = time.time()
             
-            account_info = get_account_info(account_id)
+            if (cache_key in _auto_recharge_cache and 
+                cache_key in _cache_expiry and 
+                current_time < _cache_expiry[cache_key]):
+                
+                # Cache hit
+                auto_recharge_status = _auto_recharge_cache[cache_key]
+                cache_hits += 1
+                print(f"📦 Cache hit para {service_line_number}")
+            else:
+                # Cache miss - fazer chamada à API
+                auto_recharge_status = check_auto_recharge_status_fast(account_id, service_line_number)
+                api_calls += 1
+                
+                # Armazenar no cache por 5 minutos
+                _auto_recharge_cache[cache_key] = auto_recharge_status
+                _cache_expiry[cache_key] = current_time + 300  # 5 minutos
+                
+                print(f"🔍 API call para {service_line_number}")
+                
+                # Pausa mínima entre chamadas para não sobrecarregar a API
+                time.sleep(0.05)  # 50ms entre chamadas
             
-            account_summary = {
-                "name": account_info["name"],
-                "description": account_info["description"],
-                "account_id": account_id,
-                "total_service_lines": billing_data.get("total_service_lines", 0),
-                "total_charges": billing_data.get("total_charges", 0),
-                "billing_success": billing_data.get("success", False),
-                "billing_error": billing_data.get("error"),
-                "usage_success": usage_data.get("success", False),
-                "usage_error": usage_data.get("error"),
-                "usage_statistics": usage_data.get("statistics", {}),
-                "service_lines_statistics": service_lines_data
+            # Adicionar status ao service line
+            service_line["auto_recharge_status"] = auto_recharge_status
+            processed_lines.append(service_line)
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        print(f"✅ Consulta finalizada em {total_time:.2f} segundos")
+        print(f"📊 Cache hits: {cache_hits}, API calls: {api_calls}")
+        
+        return {
+            "success": True,
+            "service_lines": processed_lines,
+            "total_count": total_count,
+            "account_id": account_id,
+            "performance_stats": {
+                "total_time": total_time,
+                "cache_hits": cache_hits,
+                "api_calls": api_calls,
+                "lines_processed": len(processed_lines)
+            },
+            "last_update": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        }
+        
+    except Exception as e:
+        print(f"❌ Erro na consulta: {str(e)}")
+        return {
+            "error": f"Erro ao consultar service lines: {str(e)}",
+            "service_lines": [],
+            "total_count": 0
+        }
+
+
+def get_service_lines_with_auto_recharge_status_parallel(account_id=None, max_workers=5):
+    """
+    Versão paralela da função de consulta de recarga automática
+    Usa ThreadPoolExecutor para fazer múltiplas consultas simultaneamente
+    """
+    if account_id is None:
+        account_id = DEFAULT_ACCOUNT
+        
+    try:
+        import concurrent.futures
+        
+        print(f"🚀 Iniciando consulta paralela para conta: {account_id}")
+        start_time = time.time()
+        
+        # Primeiro, obter todos os service lines com localização
+        service_lines_result = get_service_lines_with_location(account_id)
+        
+        if "error" in service_lines_result:
+            return service_lines_result
+        
+        service_lines = service_lines_result.get("service_lines", [])
+        total_count = len(service_lines)
+        
+        print(f"📋 {total_count} Service Lines encontrados")
+        
+        # Separar linhas que precisam de verificação de recarga
+        lines_to_check = []
+        lines_ready = []
+        
+        for service_line in service_lines:
+            service_line_number = service_line.get("serviceLineNumber", "")
+            
+            if not service_line_number:
+                # Se não tem número, não pode verificar recarga automática
+                service_line["auto_recharge_status"] = {
+                    "active": False,
+                    "error": "Número da Service Line não disponível",
+                    "last_check": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                }
+                lines_ready.append(service_line)
+            else:
+                # Verificar cache primeiro
+                cache_key = f"{account_id}_{service_line_number}"
+                current_time = time.time()
+                
+                if (cache_key in _auto_recharge_cache and 
+                    cache_key in _cache_expiry and 
+                    current_time < _cache_expiry[cache_key]):
+                    
+                    # Cache hit
+                    service_line["auto_recharge_status"] = _auto_recharge_cache[cache_key]
+                    lines_ready.append(service_line)
+                    print(f"📦 Cache hit para {service_line_number}")
+                else:
+                    # Precisa fazer chamada à API
+                    lines_to_check.append(service_line)
+        
+        print(f"📊 Cache hits: {len(lines_ready)}, API calls necessárias: {len(lines_to_check)}")
+        
+        # Função para processar uma linha
+        def process_line(service_line):
+            service_line_number = service_line.get("serviceLineNumber", "")
+            print(f"🔍 Processando {service_line_number}")
+            
+            auto_recharge_status = check_auto_recharge_status_fast(account_id, service_line_number)
+            
+            # Armazenar no cache
+            cache_key = f"{account_id}_{service_line_number}"
+            _auto_recharge_cache[cache_key] = auto_recharge_status
+            _cache_expiry[cache_key] = time.time() + 300  # 5 minutos
+            
+            service_line["auto_recharge_status"] = auto_recharge_status
+            return service_line
+        
+        # Processar em paralelo apenas as linhas que precisam de verificação
+        if lines_to_check:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submeter todas as tarefas
+                future_to_line = {executor.submit(process_line, line): line for line in lines_to_check}
+                
+                # Coletar resultados
+                for future in concurrent.futures.as_completed(future_to_line):
+                    try:
+                        result = future.result()
+                        lines_ready.append(result)
+                    except Exception as exc:
+                        line = future_to_line[future]
+                        service_line_number = line.get("serviceLineNumber", "UNKNOWN")
+                        print(f"❌ Erro ao processar {service_line_number}: {exc}")
+                        
+                        # Adicionar linha com erro
+                        line["auto_recharge_status"] = {
+                            "active": False,
+                            "error": str(exc),
+                            "last_check": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                        }
+                        lines_ready.append(line)
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        print(f"✅ Consulta paralela finalizada em {total_time:.2f} segundos")
+        print(f"📊 Total processado: {len(lines_ready)}")
+        
+        return {
+            "success": True,
+            "service_lines": lines_ready,
+            "total_count": len(lines_ready),
+            "account_id": account_id,
+            "performance_stats": {
+                "total_time": total_time,
+                "cache_hits": len(lines_ready) - len(lines_to_check),
+                "api_calls": len(lines_to_check),
+                "lines_processed": len(lines_ready),
+                "parallel_workers": max_workers
+            },
+            "last_update": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        }
+        
+    except Exception as e:
+        print(f"❌ Erro na consulta paralela: {str(e)}")
+        return {
+            "error": f"Erro ao consultar service lines: {str(e)}",
+            "service_lines": [],
+            "total_count": 0
+        }
+
+
+def disable_auto_recharge(account_id, service_line_number):
+    """
+    Desativa a recarga automática para uma service line específica
+    usando o endpoint /opt-out
+    """
+    try:
+        token = get_valid_token()
+        if not token:
+            return {"error": "Falha na autenticação"}
+        
+        # Endpoint para desativar recarga automática
+        url = f"https://web-api.starlink.com/enterprise/v1/account/{account_id}/service-lines/{service_line_number}/opt-out"
+        
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        
+        print(f"🔄 Desativando recarga automática para Service Line: {service_line_number}")
+        print(f"🌐 URL: {url}")
+        
+        response = requests.delete(url, headers=headers)
+        
+        print(f"📊 Status da resposta: {response.status_code}")
+        
+        if response.status_code == 200 or response.status_code == 204:
+            print(f"✅ Recarga automática DESATIVADA para {service_line_number}")
+            return {
+                "success": True,
+                "message": f"Recarga automática desativada para {service_line_number}",
+                "service_line": service_line_number
+            }
+        else:
+            print(f"⚠️  Erro ao desativar {service_line_number}: {response.status_code}")
+            print(f"📄 Resposta: {response.text}")
+            return {
+                "error": f"Erro {response.status_code}: {response.text}",
+                "service_line": service_line_number
+            }
+            
+    except Exception as e:
+        print(f"❌ Erro ao desativar recarga automática para {service_line_number}: {e}")
+        return {"error": str(e), "service_line": service_line_number}
