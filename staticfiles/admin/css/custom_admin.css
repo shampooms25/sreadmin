@@ -28,88 +28,104 @@
     font-weight: bold !important;
 }
 
-/* Traduções automáticas para elementos comuns */
-input[value="Log in"],
-button[type="submit"]:contains("Log in"),
-input[type="submit"][value="Log in"] {
+/* ============================================================================
+   SISTEMA DE CORES E FORMATAÇÃO PADRONIZADO - POPPFIRE ADMIN
+   ============================================================================ */
+
+/* Sidebar principal - gradiente azul profissional */
+.main-sidebar {
+    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%) !important;
+    border-right: 2px solid rgba(52, 152, 219, 0.2);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+/* Brand area com destaque */
+.brand-link {
+    background: rgba(44, 62, 80, 0.9) !important;
+    border-bottom: 1px solid rgba(52, 152, 219, 0.3);
+    padding: 15px !important;
+}
+
+.brand-text {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 18px;
+    letter-spacing: 0.8px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* ============================================================================
+   LINKS DO MENU - ESTILO PADRÃO UNIFICADO
+   ============================================================================ */
+.nav-sidebar .nav-link {
+    color: #ecf0f1 !important;
+    background: transparent !important;
+    border-radius: 10px;
+    margin: 4px 15px;
+    padding: 16px 20px;
+    transition: all 0.4s ease;
+    font-weight: 500;
+    font-size: 14px;
+    border: 1px solid transparent;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Efeito hover unificado */
+.nav-sidebar .nav-link:hover {
+    background: linear-gradient(135deg, #34495e 0%, #3498db 100%) !important;
+    color: #ffffff !important;
+    transform: translateX(8px) scale(1.02);
+    border-color: rgba(52, 152, 219, 0.6);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+}
+
+/* Estado ativo */
+.nav-sidebar .nav-link.active {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+    color: #ffffff !important;
+    border-color: #2980b9;
+    font-weight: 700;
+    box-shadow: 0 6px 25px rgba(52, 152, 219, 0.5);
+    transform: scale(1.03);
+}
+
+/* ============================================================================
+   ÍCONES PADRONIZADOS
+   ============================================================================ */
+.nav-sidebar .nav-icon {
+    color: #bdc3c7 !important;
+    width: 22px;
+    height: 22px;
+    text-align: center;
+    margin-right: 15px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.nav-sidebar .nav-link:hover .nav-icon {
+    color: #ffffff !important;
+    transform: scale(1.2) rotate(5deg);
+}
+
+.nav-sidebar .nav-link.active .nav-icon {
+    color: #ffffff !important;
+    transform: scale(1.2);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+/* Texto dos menus */
+.nav-sidebar .nav-link p {
+    color: inherit !important;
+    margin: 0;
     font-size: 14px;
 }
 
-/* Estilos para botões traduzidos */
-.btn:lang(pt-br),
-input[type="submit"]:lang(pt-br),
-button:lang(pt-br) {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* Estilização para campos de formulário em português */
-label:lang(pt-br),
-.field-box label:lang(pt-br) {
-    font-weight: 500;
-    color: #333;
-}
-
-/* Estilos para mensagens de sucesso/erro em português */
-.messagelist .success:lang(pt-br),
-.messagelist .info:lang(pt-br),
-.messagelist .warning:lang(pt-br),
-.messagelist .error:lang(pt-br) {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* Customização para filtros */
-#changelist-filter h3:lang(pt-br) {
-    font-size: 13px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 5px;
-}
-
-/* Paginação em português */
-.paginator:lang(pt-br) {
-    font-size: 12px;
-    color: #666;
-}
-
-/* Breadcrumbs em português */
-.breadcrumbs:lang(pt-br) {
-    font-size: 11px;
-    color: #999;
-}
-
-/* Tabelas com cabeçalhos em português */
-#changelist table thead th:lang(pt-br) {
-    font-weight: 600;
-    color: #333;
-    font-size: 12px;
-}
-
-/* Ações em lote */
-.actions select:lang(pt-br),
-.actions button:lang(pt-br) {
-    font-size: 12px;
-}
-
-/* Links de ação em português */
-.object-tools a:lang(pt-br) {
-    font-weight: 500;
-    text-decoration: none;
-}
-
-/* Ajustes para o Django AdminLTE4 em português */
-.main-sidebar .nav-link:lang(pt-br) {
-    font-size: 14px;
-}
-
-.content-wrapper .content-header h1:lang(pt-br) {
-    font-size: 24px;
-    font-weight: 400;
-}
-
-/* Customização específica para português brasileiro */
-:lang(pt-br) {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
+/* ============================================================================
+   FORMULÁRIOS E PÁGINAS DE LOGIN
+   ============================================================================ */
 
 /* Estilos para a página de login */
 .login-box {
@@ -188,490 +204,83 @@ label:lang(pt-br),
     }
 }
 
-/* Customização específica para português brasileiro */
-:lang(pt-br) {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-
 /* Personalização dos inputs de login */
 .form-control {
     border-radius: 0.25rem;
     border: 1px solid #ced4da;
 }
 
-.input-group-text {
-    background-color: #e9ecef;
-    border: 1px solid #ced4da;
+/* Customização específica para português brasileiro */
+:lang(pt-br) {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Botão de login */
-.btn-primary {
-    background-color: #007bff;
-    border-color: #007bff;
-    border-radius: 0.25rem;
+/* ============================================================================
+   ESTILO BÁSICO DO MENU SIDEBAR
+   ============================================================================ */
+
+/* Sidebar principal */
+.main-sidebar {
+    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%) !important;
 }
 
-.btn-primary:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
+/* Links do menu */
+.nav-sidebar .nav-link {
+    color: #ecf0f1 !important;
+    background: transparent !important;
+    border-radius: 6px;
+    margin: 2px 10px;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
 }
 
-/* Alertas de erro */
-.alert-danger {
-    border-radius: 0.25rem;
-    margin-bottom: 15px;
+.nav-sidebar .nav-link:hover {
+    background: linear-gradient(135deg, #34495e 0%, #3498db 100%) !important;
+    color: #ffffff !important;
 }
 
-/* Tradução de textos fixos */
-body[class*="login"] .login-box-msg::before {
-    content: "";
+.nav-sidebar .nav-link.active {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+    color: #ffffff !important;
 }
 
-/* Remove textos em inglês e substitui por português */
-.login-box-msg {
-    text-indent: -9999px;
-    line-height: 0;
-}
-
-.login-box-msg::after {
-    content: "Faça login para iniciar sua sessão";
-    text-indent: 0;
-    display: block;
-    line-height: initial;
-    color: #6c757d;
-}
-
-/* Estilos para a página de administração do Radcheck */
-.model-radcheck .form-row {
-    padding: 15px 0;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.model-radcheck .form-row:last-child {
-    border-bottom: none;
-}
-
-/* Melhorar aparência dos fieldsets */
-.model-radcheck fieldset {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 5px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.model-radcheck fieldset h2 {
-    background: #007bff;
-    color: white;
+/* Headers */
+.nav-header {
+    color: #95a5a6 !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
     padding: 10px 15px;
-    margin: -20px -20px 15px -20px;
-    border-radius: 4px 4px 0 0;
-    font-size: 16px;
+    margin-top: 15px;
+    margin-bottom: 10px;
 }
 
-/* Estilizar campos de seleção */
-.model-radcheck select {
-    min-width: 200px;
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    background-color: white;
-}
-
-.model-radcheck input[type="text"] {
-    min-width: 300px;
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-}
-
-/* Melhorar aparência da lista */
-.model-radcheck .results {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.model-radcheck .results th {
-    background: #007bff;
-    color: white;
-    padding: 12px 8px;
-    font-weight: 600;
-}
-
-.model-radcheck .results td {
-    padding: 10px 8px;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.model-radcheck .results tr:nth-child(even) {
-    background-color: #f8f9fa;
-}
-
-.model-radcheck .results tr:hover {
-    background-color: #e3f2fd;
-}
-
-/* Botões de ação */
-.model-radcheck .button {
-    background: #007bff;
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    text-decoration: none;
-    display: inline-block;
+/* Ícones */
+.nav-sidebar .nav-icon {
+    color: #bdc3c7 !important;
     margin-right: 10px;
 }
 
-.model-radcheck .button:hover {
-    background: #0056b3;
-    color: white;
+.nav-sidebar .nav-link:hover .nav-icon,
+.nav-sidebar .nav-link.active .nav-icon {
+    color: #ffffff !important;
 }
 
-.model-radcheck .deletelink {
-    background: #dc3545;
+/* Texto dos links */
+.nav-sidebar .nav-link p {
+    color: inherit !important;
+    margin: 0;
 }
 
-.model-radcheck .deletelink:hover {
-    background: #c82333;
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-    .model-radcheck input[type="text"] {
-        min-width: 250px;
-    }
-    
-    .model-radcheck select {
-        min-width: 150px;
-    }
-}
-
-/* ==============================================
-   ESTILOS AVANÇADOS PARA TABELA RADCHECK
-   ============================================== */
-
-/* Melhorar aparência da tabela de resultados */
-.results table {
-    border-radius: 8px !important;
-    overflow: hidden !important;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-    border: none !important;
-}
-
-.results th {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
-    color: white !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    font-size: 0.85em !important;
-    letter-spacing: 0.5px !important;
-    border: none !important;
-}
-
-.results td {
-    border-bottom: 1px solid #e9ecef !important;
-    padding: 12px 8px !important;
-    vertical-align: middle !important;
-}
-
-.results tbody tr:hover {
-    background-color: #f8f9fa !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
-    transition: all 0.2s ease !important;
-}
-
-/* Cores para diferentes tipos de atributos */
-.results tbody tr:has(.field-attribute:contains("Password")) {
-    border-left: 4px solid #28a745 !important;
-}
-
-.results tbody tr:has(.field-attribute:contains("Expiration")) {
-    border-left: 4px solid #ffc107 !important;
-}
-
-.results tbody tr:has(.field-attribute:contains("Session")) {
-    border-left: 4px solid #17a2b8 !important;
-}
-
-/* Indicadores visuais para operadores */
-.field-op {
-    font-family: 'Courier New', monospace !important;
-    font-weight: bold !important;
-    text-align: center !important;
-    padding: 4px 8px !important;
-    border-radius: 4px !important;
-    color: white !important;
-    min-width: 40px !important;
-    display: inline-block !important;
-}
-
-/* Cores específicas para operadores */
-.field-op[title*=":="] {
-    background-color: #007bff !important;
-}
-
-.field-op[title*="=="] {
-    background-color: #28a745 !important;
-}
-
-.field-op[title*="!="] {
-    background-color: #dc3545 !important;
-}
-
-.field-op[title*="+="] {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
-}
-
-/* Truncar valores longos com preview */
-.field-value_preview {
-    max-width: 200px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    position: relative !important;
-}
-
-.field-value_preview:hover {
-    overflow: visible !important;
-    white-space: normal !important;
-    background-color: #495057 !important;
-    color: white !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    z-index: 1000 !important;
-    position: absolute !important;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
-}
-
-/* Melhorias nas ações em lote */
-.actions {
-    background: white !important;
-    border-radius: 8px !important;
-    padding: 15px !important;
-    margin-bottom: 20px !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 15px !important;
-}
-
-.actions select {
-    border: 2px solid #e9ecef !important;
-    border-radius: 6px !important;
-    padding: 8px 12px !important;
-    background: white !important;
-    min-width: 200px !important;
-}
-
-.actions button {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
-    border: none !important;
-    border-radius: 6px !important;
-    padding: 10px 20px !important;
-    color: white !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    font-size: 0.85em !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 1.2 !important;
-    text-align: center !important;
-}
-
-/* Contador de registros selecionados */
-.action-counter {
-    background: #17a2b8 !important;
-    color: white !important;
-    padding: 6px 12px !important;
-    border-radius: 15px !important;
-    font-size: 0.85em !important;
+/* Brand/Logo */
+.brand-text {
+    color: #ffffff !important;
     font-weight: 600 !important;
 }
 
-/* Melhorias na busca */
-#changelist-search {
-    background: white !important;
-    border-radius: 8px !important;
-    padding: 20px !important;
-    margin-bottom: 20px !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-}
-
-#searchbar {
-    border: 2px solid #e9ecef !important;
-    border-radius: 25px !important;
-    padding: 12px 20px 12px 45px !important;
-    width: 100% !important;
-    max-width: 400px !important;
-    transition: all 0.3s ease !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23999' viewBox='0 0 16 16'%3e%3cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3e%3c/svg%3e") !important;
-    background-repeat: no-repeat !important;
-    background-position: 15px center !important;
-    background-size: 16px !important;
-}
-
-#searchbar:focus {
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-    outline: none !important;
-    max-width: 500px !important;
-}
-
-/* Destaque para registros recém-criados/editados */
-.results tbody tr.fresh {
-    background: linear-gradient(90deg, rgba(40, 167, 69, 0.1) 0%, transparent 100%) !important;
-    border-left: 4px solid #28a745 !important;
-}
-
-/* Melhorias na paginação */
-.paginator {
-    background: white !important;
-    border-radius: 8px !important;
-    padding: 20px !important;
-    text-align: center !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    margin-top: 20px !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-}
-
-.paginator .pagination {
-    display: flex !important;
-    gap: 5px !important;
-    margin: 0 !important;
-}
-
-.paginator a, .paginator span {
-    display: inline-block !important;
-    padding: 10px 15px !important;
-    border-radius: 6px !important;
-    text-decoration: none !important;
-    transition: all 0.2s ease !important;
-    font-weight: 500 !important;
-}
-
-.paginator a {
-    color: #667eea !important;
-    border: 2px solid #e9ecef !important;
-    background: white !important;
-}
-
-.paginator a:hover {
-    background-color: #667eea !important;
-    color: white !important;
-    transform: translateY(-1px) !important;
-}
-
-.paginator .current {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    color: white !important;
-    font-weight: 600 !important;
-    border: 2px solid transparent !important;
-}
-
-/* Informações de contagem */
-.paginator .info {
-    color: #6c757d !important;
-    font-size: 0.9em !important;
-    font-weight: 500 !important;
-}
-
-/* Animações suaves */
-@keyframes slideInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.messagelist {
-    animation: slideInDown 0.3s ease-out !important;
-}
-
-/* Responsividade para tabela radcheck */
-@media (max-width: 1200px) {
-    .results table {
-        font-size: 0.9em !important;
-    }
-    
-    .field-value_preview {
-        max-width: 150px !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .actions {
-        flex-direction: column !important;
-        align-items: stretch !important;
-    }
-    
-    .actions select,
-    .actions button {
-        width: 100% !important;
-    }
-    
-    .paginator {
-        flex-direction: column !important;
-        gap: 15px !important;
-    }
-    
-    .results table {
-        font-size: 0.8em !important;
-    }
-    
-    .field-value_preview {
-        max-width: 100px !important;
-    }
-}
-
-/* Tooltips personalizados */
-[title] {
-    position: relative !important;
-}
-
-[title]:hover::after {
-    content: attr(title) !important;
-    position: absolute !important;
-    bottom: 100% !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    background: #495057 !important;
-    color: white !important;
-    padding: 8px 12px !important;
-    border-radius: 4px !important;
-    white-space: nowrap !important;
-    z-index: 1000 !important;
-    font-size: 0.85em !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-}
-
-[title]:hover::before {
-    content: '' !important;
-    position: absolute !important;
-    bottom: 95% !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    border: 5px solid transparent !important;
-    border-top-color: #495057 !important;
-    z-index: 1000 !important;
-}
-
-/* ==============================================
+/* ============================================================================
    CORREÇÃO DE ÍCONES FONTAWESOME
-   ============================================== */
+   ============================================================================ */
 
 /* Garantir que os ícones FontAwesome apareçam corretamente */
 .fas, .far, .fab, .fa {
@@ -695,312 +304,6 @@ body[class*="login"] .login-box-msg::before {
     font-family: "Font Awesome 6 Brands", "Font Awesome 5 Brands", "FontAwesome" !important;
 }
 
-/* Ícones específicos */
-.fa-database:before { content: "\f1c0" !important; }
-.fa-chart-bar:before { content: "\f080" !important; }
-.fa-chart-line:before { content: "\f201" !important; }
-.fa-info-circle:before { content: "\f05a" !important; }
-.fa-user:before { content: "\f007" !important; }
-.fa-lock:before { content: "\f023" !important; }
-.fa-print:before { content: "\f02f" !important; }
-.fa-arrow-left:before { content: "\f060" !important; }
-.fa-eye:before { content: "\f06e" !important; }
-.fa-edit:before { content: "\f044" !important; }
-.fa-trash:before { content: "\f2ed" !important; }
-.fa-plus:before { content: "\f067" !important; }
-.fa-download:before { content: "\f019" !important; }
-.fa-upload:before { content: "\f093" !important; }
-.fa-search:before { content: "\f002" !important; }
-.fa-filter:before { content: "\f0b0" !important; }
-.fa-cog:before { content: "\f013" !important; }
-.fa-home:before { content: "\f015" !important; }
-.fa-sign-out-alt:before { content: "\f2f5" !important; }
-
-/* Correção para ícones nos inputs */
-.input-group-text .fas,
-.input-group-text .far,
-.input-group-text .fab {
-    width: 1em !important;
-    text-align: center !important;
-}
-
-/* Garantir visibilidade em todos os contextos */
-i[class*="fa-"]:before {
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* Fallback para ícones que não carregam */
-.fas:not(:before),
-.far:not(:before),
-.fab:not(:before) {
-    background-color: transparent !important;
-    color: currentColor !important;
-    font-size: inherit !important;
-}
-
-/* Ícones específicos do admin Django */
-.icon-yes:before { content: "\f00c" !important; }
-.icon-no:before { content: "\f00d" !important; }
-.icon-unknown:before { content: "\f128" !important; }
-.icon-changelink:before { content: "\f044" !important; }
-.icon-addlink:before { content: "\f067" !important; }
-.icon-deletelink:before { content: "\f2ed" !important; }
-/* ===============================
-   CORREÇÕES PARA MENU DE PERFIL
-   =============================== */
-
-/* Garantir que os ícones do FontAwesome apareçam corretamente */
-.fa, .fas, .far, .fal, .fab {
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands" !important;
-    font-weight: 900 !important;
-    display: inline-block !important;
-}
-
-/* Estilo específico para dropdown do usuário */
-.navbar-nav .nav-item.dropdown .dropdown-menu {
-    background: white !important;
-    border: 1px solid #e9ecef !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
-    padding: 10px 0 !important;
-}
-
-.navbar-nav .nav-item.dropdown .dropdown-item {
-    color: #495057 !important;
-    padding: 8px 20px !important;
-    font-size: 0.9em !important;
-    transition: all 0.2s ease !important;
-}
-
-.navbar-nav .nav-item.dropdown .dropdown-item:hover {
-    background-color: #f8f9fa !important;
-    color: #667eea !important;
-}
-
-.navbar-nav .nav-item.dropdown .dropdown-header {
-    color: #6c757d !important;
-    font-weight: 600 !important;
-    font-size: 0.85em !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    padding: 5px 20px !important;
-    border-bottom: 1px solid #e9ecef !important;
-    margin-bottom: 5px !important;
-}
-
-.navbar-nav .nav-item.dropdown .dropdown-divider {
-    border-color: #e9ecef !important;
-    margin: 5px 0 !important;
-}
-
-/* Estilo para o painel de usuário */
-.user-panel {
-    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
-    padding: 15px !important;
-}
-
-.user-panel .info {
-    color: rgba(255,255,255,0.9) !important;
-    font-size: 0.9em !important;
-}
-
-.user-panel .info a {
-    color: white !important;
-    font-weight: 600 !important;
-}
-
-/* Garantir visibilidade dos ícones nos filtros e ações */
-.actions select, .actions button {
-    font-family: inherit !important;
-}
-
-.actions button[type="submit"]::before {
-    content: '\f00c' !important;
-    font-family: "Font Awesome 6 Free" !important;
-    font-weight: 900 !important;
-    margin-right: 5px !important;
-}
-
-/* Corrigir ícones nos botões de ação */
-.btn[class*="fa-"]::before,
-button[class*="fa-"]::before,
-a[class*="fa-"]::before {
-    font-family: "Font Awesome 6 Free" !important;
-    font-weight: 900 !important;
-    margin-right: 5px !important;
-}
-
-/* Corrigir ícones quebrados em formulários */
-.form-row .field-box label::before {
-    font-family: "Font Awesome 6 Free" !important;
-    font-weight: 900 !important;
-    margin-right: 5px !important;
-}
-
-/* Força carregamento correto de ícones */
-i[class*="fa-"]::before {
-    font-family: "Font Awesome 6 Free" !important;
-    font-weight: 900 !important;
-}
-
-/* ===============================
-   TRADUÇÕES ESPECÍFICAS DO HEADER
-   =============================== */
-
-/* Força tradução via CSS quando JavaScript não consegue */
-a[href*="password_change"]:not([data-translated])::after {
-    content: " (Alterar senha)";
-    font-size: 0.8em;
-    color: #6c757d;
-    font-style: italic;
-}
-
-a[href*="logout"]:not([data-translated])::after {
-    content: " (Sair)";
-    font-size: 0.8em;
-    color: #6c757d;
-    font-style: italic;
-}
-
-/* Estilo para elementos que foram traduzidos */
-[data-translated="true"] {
-    transition: all 0.3s ease !important;
-}
-
-/* Garantir que textos em português tenham preferência */
-.navbar-nav .nav-link[data-translated="true"] {
-    font-weight: 500 !important;
-}
-
-/* Especificamente para o menu de usuário */
-.navbar-nav .dropdown-menu .dropdown-item {
-    position: relative !important;
-}
-
-/* Forçar exibição correta de textos traduzidos */
-.user-panel .info,
-.dropdown-header,
-.navbar-text {
-    white-space: nowrap !important;
-    overflow: visible !important;
-}
-
-/* ===============================
-   MELHORIAS DE ACESSIBILIDADE
-   =============================== */
-
-/* Adicionar tooltips para elementos traduzidos */
-[data-original-text]:hover::before {
-    content: "Texto original: " attr(data-original-text);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #495057;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    white-space: nowrap;
-    z-index: 9999;
-    opacity: 0.9;
-    pointer-events: none;
-}
-
-/* Melhorar contraste para textos importantes */
-.navbar-nav .nav-link {
-    font-weight: 500 !important;
-    letter-spacing: 0.3px !important;
-}
-
-/* ===============================
-   DEBUG E DESENVOLVIMENTO
-   =============================== */
-
-/* Destacar elementos não traduzidos em modo debug */
-body.debug [lang="en"]:not([data-translated]) {
-    background-color: rgba(255, 193, 7, 0.2) !important;
-    border: 1px dashed #ffc107 !important;
-}
-
-/* Destacar elementos traduzidos com sucesso */
-body.debug [data-translated="true"] {
-    background-color: rgba(40, 167, 69, 0.1) !important;
-    border: 1px solid #28a745 !important;
-}
-
-/* ===============================
-   MELHORIAS VISUAIS EXTRAS
-   =============================== */
-
-/* Animação suave para dropdowns */
-.dropdown-menu {
-    animation: fadeInDown 0.3s ease-out !important;
-}
-
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Melhorar aparência dos botões de filtro */
-#changelist-filter h3 {
-    position: relative !important;
-}
-
-#changelist-filter h3::before {
-    content: '\f0b0' !important;
-    font-family: "Font Awesome 6 Free" !important;
-    font-weight: 900 !important;
-    margin-right: 8px !important;
-    color: #667eea !important;
-}
-
-/* Estilos para elementos traduzidos do menu de perfil */
-.navbar-nav .nav-link,
-.dropdown-menu a,
-.dropdown-item {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    color: inherit !important;
-    text-decoration: none !important;
-}
-
-.dropdown-menu a:hover,
-.dropdown-item:hover {
-    background-color: #f8f9fa !important;
-    color: #495057 !important;
-}
-
-/* Garante que os links traduzidos mantenham a formatação correta */
-.navbar-right .dropdown-menu a,
-.main-header .navbar-nav .dropdown-menu a {
-    color: #333 !important;
-    padding: 8px 15px !important;
-    display: block !important;
-    transition: background-color 0.15s ease-in-out !important;
-}
-
-/* Estilo específico para texto "Membro desde" */
-.user-panel .info,
-.dropdown-header,
-.text-sm {
-    font-size: 0.875rem !important;
-    color: #6c757d !important;
-}
-
-/* Garante visibilidade dos ícones FontAwesome */
-.fa, .fas, .far, .fab {
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands" !important;
-    font-weight: 900 !important;
-}
-
 /* Força o carregamento correto dos ícones */
 i.fa::before,
 i.fas::before,
@@ -1014,57 +317,116 @@ i.fab::before {
     -webkit-font-smoothing: antialiased !important;
 }
 
-/* Estilo para botões traduzidos */
-.btn[data-translated="true"],
-input[type="submit"][data-translated="true"],
-button[data-translated="true"] {
-    background: linear-gradient(45deg, #007bff, #0056b3) !important;
-    border: none !important;
-    color: white !important;
-    border-radius: 4px !important;
-    padding: 8px 16px !important;
-    font-weight: 500 !important;
+/* Ícones específicos mais comuns */
+.fa-database:before { content: "\f1c0" !important; }
+.fa-chart-bar:before { content: "\f080" !important; }
+.fa-chart-line:before { content: "\f201" !important; }
+.fa-info-circle:before { content: "\f05a" !important; }
+.fa-user:before { content: "\f007" !important; }
+.fa-users:before { content: "\f0c0" !important; }
+.fa-lock:before { content: "\f023" !important; }
+.fa-cog:before { content: "\f013" !important; }
+.fa-home:before { content: "\f015" !important; }
+.fa-edit:before { content: "\f044" !important; }
+.fa-plus:before { content: "\f067" !important; }
+.fa-trash:before { content: "\f2ed" !important; }
+.fa-eye:before { content: "\f06e" !important; }
+.fa-download:before { content: "\f019" !important; }
+.fa-upload:before { content: "\f093" !important; }
+.fa-search:before { content: "\f002" !important; }
+.fa-filter:before { content: "\f0b0" !important; }
+.fa-arrow-left:before { content: "\f060" !important; }
+.fa-sign-out-alt:before { content: "\f2f5" !important; }
+.fa-video:before { content: "\f03d" !important; }
+.fa-wifi:before { content: "\f1eb" !important; }
+.fa-globe:before { content: "\f0ac" !important; }
+.fa-shield-alt:before { content: "\f3ed" !important; }
+
+/* Garantir visibilidade em todos os contextos */
+i[class*="fa-"]:before {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* ============================================================================
+   EVITAR QUE O MENU RECOLHA AO CLICAR NOS LINKS
+   ============================================================================ */
+
+/* Forçar que o sidebar permaneça aberto */
+.main-sidebar.sidebar-collapse {
+    width: 250px !important;
+}
+
+/* Anular comportamento de colapso automático */
+body.sidebar-collapse .main-sidebar {
+    width: 250px !important;
+    margin-left: 0 !important;
+}
+
+/* Evitar que o conteúdo principal se mova quando o menu não colapsa */
+body.sidebar-collapse .content-wrapper,
+body.sidebar-collapse .main-footer {
+    margin-left: 250px !important;
+}
+
+/* Força exibição completa dos links mesmo em telas menores */
+@media (max-width: 991.98px) {
+    .main-sidebar {
+        width: 250px !important;
+        transform: translateX(0) !important;
+    }
+    
+    .main-sidebar.sidebar-collapse {
+        width: 250px !important;
+        transform: translateX(0) !important;
+    }
+}
+
+/* Desabilitar animações de colapso que podem interferir */
+.main-sidebar .nav-sidebar .nav-item > .nav-link {
     transition: all 0.3s ease !important;
 }
 
-.btn[data-translated="true"]:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 8px rgba(0,123,255,0.3) !important;
+/* Garantir que todos os links sejam visíveis */
+.nav-sidebar .nav-item,
+.nav-sidebar .nav-link {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-/* Animação sutil para elementos traduzidos */
-[data-translated="true"] {
-    animation: translateFadeIn 0.3s ease-in-out;
-}
+/* ============================================================================
+   CORREÇÕES ADICIONAIS PARA DISPOSITIVOS MÓVEIS
+   ============================================================================ */
 
-@keyframes translateFadeIn {
-    from {
-        opacity: 0.7;
-        transform: translateY(2px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+/* Força sidebar visível em todas as resoluções */
+@media (min-width: 768px) {
+    body:not(.sidebar-mini-md):not(.sidebar-mini-xs):not(.layout-fixed) .content-wrapper {
+        margin-left: 250px !important;
     }
 }
 
-/* Correção para dropdowns do AdminLTE */
-.navbar-nav .dropdown-menu {
-    border: 1px solid #dee2e6 !important;
-    border-radius: 0.375rem !important;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-    padding: 0.5rem 0 !important;
+/* Prevenir colapso automático em mobile */
+@media (max-width: 767.98px) {
+    .main-sidebar {
+        position: fixed !important;
+        z-index: 1050 !important;
+        width: 250px !important;
+        transform: translateX(0) !important;
+    }
+    
+    body.sidebar-open .main-sidebar {
+        transform: translateX(0) !important;
+    }
 }
 
-/* Garante que os links do perfil sejam visíveis */
-.navbar-nav .dropdown-menu a {
-    color: #495057 !important;
-    font-size: 0.875rem !important;
-    line-height: 1.5 !important;
+/* Força classes para manter sidebar aberto */
+body.control-sidebar-slide-open .control-sidebar,
+body.sidebar-open .main-sidebar {
+    transform: translateX(0) !important;
 }
 
-.navbar-nav .dropdown-menu a:focus,
-.navbar-nav .dropdown-menu a:hover {
-    background-color: #e9ecef !important;
-    color: #16181b !important;
+/* Desabilitar overlay que pode esconder o menu */
+.sidebar-overlay {
+    display: none !important;
 }

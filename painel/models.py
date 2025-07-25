@@ -409,3 +409,186 @@ class StarlinkAdminProxy(models.Model):
         verbose_name_plural = "Starlink Admin"
         managed = False  # Não cria tabela no banco
         app_label = 'painel'
+
+
+class EldUploadVideo(models.Model):
+    """
+    Model para uploads de vídeos do sistema ELD
+    """
+    id = models.AutoField(primary_key=True)
+    video = models.FileField(
+        upload_to='videos/eld/',
+        max_length=255,
+        help_text='Arquivo de vídeo (máximo 5MB)'
+    )
+    data = models.DateField(
+        auto_now_add=True,
+        help_text='Data do upload'
+    )
+    tamanho = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text='Tamanho do arquivo em MB'
+    )
+    
+    class Meta:
+        db_table = 'eld_upload_videos'
+        verbose_name = 'Upload de Vídeo ELD'
+        verbose_name_plural = 'Uploads de Vídeos ELD'
+        ordering = ['-data', '-id']
+    
+    def __str__(self):
+        return f"Vídeo {self.id} - {self.video.name} ({self.tamanho}MB)"
+    
+    def save(self, *args, **kwargs):
+        # Calcular tamanho do arquivo em MB
+        if self.video:
+            self.tamanho = round(self.video.size / (1024 * 1024), 2)
+        super().save(*args, **kwargs)
+
+
+class EldGerenciarPortal(models.Model):
+    """
+    Modelo para gerenciar a configuração do portal captive
+    Controla qual vídeo será exibido e o arquivo ZIP do portal
+    """
+    
+    # Campo para ativar/desativar a exibição de vídeo
+    ativar_video = models.BooleanField(
+        default=False,
+        verbose_name="Ativar Vídeo",
+        help_text="Ativar para permitir que o OpenSense baixe e exiba vídeos no portal captive"
+    )
+    
+    # Campo para selecionar qual vídeo será exibido
+    nome_video = models.ForeignKey(
+        'EldUploadVideo',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Vídeo Selecionado",
+        help_text="Selecione o vídeo que será exibido no portal captive",
+        related_name='portal_configurations'
+    )
+    
+    # Campo para armazenar o arquivo ZIP do portal captive
+    captive_portal_zip = models.FileField(
+        upload_to='captive_portal_zips/',
+        null=True,
+        blank=True,
+        verbose_name="Arquivo ZIP do Portal",
+        help_text="Upload do arquivo .zip contendo os arquivos do portal captive"
+    )
+    
+    # Campos de controle
+    data_criacao = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Data de Criação"
+    )
+    
+    data_atualizacao = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Última Atualização"
+    )
+    
+    ativo = models.BooleanField(
+        default=True,
+        verbose_name="Configuração Ativa",
+        help_text="Apenas uma configuração pode estar ativa por vez"
+    )
+
+    class Meta:
+        db_table = 'eld_gerenciar_portal'
+        verbose_name = "Configuração do Portal Captive"
+        verbose_name_plural = "Configurações do Portal Captive"
+        ordering = ['-data_atualizacao']
+
+    def __str__(self):
+        status_video = "✅ Ativo" if self.ativar_video else "❌ Inativo"
+        if self.nome_video:
+            video_nome = self.nome_video.video.name if self.nome_video.video else f"Vídeo {self.nome_video.id}"
+        else:
+            video_nome = "Nenhum vídeo selecionado"
+        return f"Portal Captive - Vídeo: {status_video} | {video_nome}"
+
+    def clean(self):
+        """
+        Validações personalizadas do modelo
+        """
+        from django.core.exceptions import ValidationError
+        super().clean()
+        
+        # Se ativar_video for True, nome_video deve ser obrigatório
+        if self.ativar_video and not self.nome_video:
+            raise ValidationError({
+                'nome_video': 'Quando o vídeo estiver ativado, você deve selecionar um vídeo.'
+            })
+        
+        # Garantir que apenas uma configuração esteja ativa
+        if self.ativo:
+            # Verificar se já existe outra configuração ativa
+            existing_active = EldGerenciarPortal.objects.filter(ativo=True)
+            if self.pk:
+                existing_active = existing_active.exclude(pk=self.pk)
+            
+            if existing_active.exists():
+                raise ValidationError({
+                    'ativo': 'Apenas uma configuração pode estar ativa por vez. '
+                           'Desative a configuração atual primeiro.'
+                })
+
+    def save(self, *args, **kwargs):
+        """
+        Override do save para aplicar validações
+        """
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def get_video_url(self):
+        """
+        Retorna a URL do vídeo selecionado para o OpenSense
+        """
+        if self.ativar_video and self.nome_video:
+            return self.nome_video.video.url
+        return None
+
+    def get_portal_zip_url(self):
+        """
+        Retorna a URL do arquivo ZIP do portal
+        """
+        if self.captive_portal_zip:
+            return self.captive_portal_zip.url
+        return None
+
+    @property
+    def status_configuracao(self):
+        """
+        Retorna o status da configuração em formato legível
+        """
+        if not self.ativo:
+            return "Inativa"
+        
+        if self.ativar_video and self.nome_video:
+            video_name = self.nome_video.video.name if self.nome_video.video else f"Vídeo {self.nome_video.id}"
+            return f"Ativa - Vídeo: {video_name}"
+        elif self.ativar_video:
+            return "Ativa - Aguardando seleção de vídeo"
+        else:
+            return "Ativa - Vídeo desativado"
+
+    @classmethod
+    def get_configuracao_ativa(cls):
+        """
+        Retorna a configuração ativa atual
+        """
+        try:
+            return cls.objects.get(ativo=True)
+        except cls.DoesNotExist:
+            return None
+        except cls.MultipleObjectsReturned:
+            # Se houver múltiplas configurações ativas (não deveria acontecer),
+            # retorna a mais recente e desativa as outras
+            configs = cls.objects.filter(ativo=True).order_by('-data_atualizacao')
+            config_ativa = configs.first()
+            configs.exclude(pk=config_ativa.pk).update(ativo=False)
+            return config_ativa

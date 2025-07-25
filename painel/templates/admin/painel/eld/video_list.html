@@ -1,0 +1,308 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.video-list-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-section {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-info h1 {
+    margin: 0 0 5px 0;
+}
+
+.header-stats {
+    text-align: right;
+    font-size: 0.9em;
+}
+
+.upload-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+.upload-btn:hover {
+    background: rgba(255,255,255,0.3);
+    text-decoration: none;
+    color: white;
+}
+
+.videos-table {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+.table thead {
+    background: #f8f9fa;
+}
+
+.table th,
+.table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.table th {
+    font-weight: bold;
+    color: #495057;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.video-name {
+    font-weight: bold;
+    color: #333;
+    max-width: 300px;
+    word-break: break-word;
+}
+
+.video-size {
+    background: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    display: inline-block;
+}
+
+.video-date {
+    color: #666;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8em;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    color: white;
+    text-decoration: none;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 4em;
+    color: #dee2e6;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+.empty-state .btn {
+    margin-top: 20px;
+    background: #28a745;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.empty-state .btn:hover {
+    background: #1e7e34;
+    text-decoration: none;
+    color: white;
+}
+
+.stats-summary {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    color: #28a745;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="video-list-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a>
+            {% else %}
+                <strong>{{ crumb.name }}</strong>
+            {% endif %}
+            {% if not forloop.last %} &gt; {% endif %}
+        {% endfor %}
+    </nav>
+
+    <!-- Header -->
+    <div class="header-section">
+        <div class="header-info">
+            <h1><i class="fas fa-video"></i> {{ title }}</h1>
+            <div class="header-stats">
+                📊 {{ total_videos }} vídeos • 💾 {{ total_size }} MB utilizados
+            </div>
+        </div>
+        <a href="{% url 'painel:eld_video_upload' %}" class="upload-btn">
+            <i class="fas fa-plus"></i> Novo Upload
+        </a>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="stats-summary">
+        <div class="stat-item">
+            <div class="stat-number">{{ total_videos }}</div>
+            <div class="stat-label">Total de Vídeos</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ total_size }}</div>
+            <div class="stat-label">MB Utilizados</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{% widthratio total_size 1024 1 %}</div>
+            <div class="stat-label">GB Utilizados</div>
+        </div>
+    </div>
+
+    <!-- Lista de Vídeos -->
+    {% if videos %}
+        <div class="videos-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome do Arquivo</th>
+                        <th>Data</th>
+                        <th>Tamanho</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for video in videos %}
+                    <tr>
+                        <td><strong>#{{ video.id }}</strong></td>
+                        <td>
+                            <div class="video-name" title="{{ video.video.name }}">
+                                <i class="fas fa-video"></i> {{ video.video.name|truncatechars:50 }}
+                            </div>
+                        </td>
+                        <td class="video-date">
+                            📅 {{ video.data|date:"d/m/Y" }}
+                        </td>
+                        <td>
+                            <span class="video-size">{{ video.tamanho }} MB</span>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="{% url 'painel:eld_video_delete' video.id %}" 
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Tem certeza que deseja deletar este vídeo?')">
+                                    <i class="fas fa-trash"></i> Deletar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="videos-table">
+            <div class="empty-state">
+                <i class="fas fa-video"></i>
+                <h3>Nenhum vídeo encontrado</h3>
+                <p>Ainda não há vídeos enviados para o sistema.</p>
+                <a href="{% url 'painel:eld_video_upload' %}" class="btn">
+                    <i class="fas fa-plus"></i> Fazer primeiro upload
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

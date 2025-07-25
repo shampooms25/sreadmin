@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.shortcuts import render, redirect
-from .models import Radcheck, EldRegistroViewVideos, Unidades
+from .models import Radcheck, EldRegistroViewVideos, Unidades, EldUploadVideo, EldGerenciarPortal
 from django.db.models.functions import TruncDay
 from django.db.models import Count, Max
 from django.utils.html import format_html
@@ -357,7 +357,20 @@ class RadcheckAdmin(admin.ModelAdmin):
         # Caso contrário, estamos na tela de EDITAR, então usamos os fieldsets completos
         return super().get_fieldsets(request, obj)
 
-@admin.register(EldRegistroViewVideos)
+# Removemos o registro automático do EldRegistroViewVideos para reregistrar dentro do grupo Captive Portal
+# @admin.register(EldRegistroViewVideos) - REMOVIDO
+
+# Modelo proxy para Logs de Vídeos dentro do grupo Captive Portal
+class LogsVideosProxy(EldRegistroViewVideos):
+    """
+    Proxy model para criar o submenu Logs de Vídeos Assistidos
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Logs de Vídeos Assistidos"
+        verbose_name_plural = "Logs de Vídeos Assistidos"
+        app_label = 'captive_portal'
+
 class EldRegistroViewVideosAdmin(admin.ModelAdmin):
     list_display = ('username', 'video', 'formatted_date_view')
     search_fields = ('username', 'video')
@@ -374,20 +387,40 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('grouped/', self.admin_site.admin_view(self.grouped_view), name='eldregistroviewvideos_grouped'),
+            path('grouped/', self.admin_site.admin_view(self.grouped_view), name='captive_portal_logsvideosproxy_grouped'),
         ]
         return custom_urls + urls
 
     def changelist_view(self, request, extra_context=None):
         # Redireciona para a view agrupada por padrão
         from django.http import HttpResponseRedirect
-        return HttpResponseRedirect(reverse('admin:eldregistroviewvideos_grouped'))
+        return HttpResponseRedirect(reverse('admin:captive_portal_logsvideosproxy_grouped'))
 
     def grouped_view(self, request):
         # Lógica para agrupar os dados
         queryset = EldRegistroViewVideos.objects.all()
         
-        # Agrupamento
+        # Filtros opcionais por período
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        
+        if date_from:
+            try:
+                from datetime import datetime
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_view__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                from datetime import datetime
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_view__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        # Agrupamento por usuário, vídeo e dia
         grouped_data = (
             queryset.annotate(day=TruncDay('date_view'))
             .values('username', 'video', 'day')
@@ -395,15 +428,29 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
                 view_count=Count('id'),
                 last_view=Max('date_view')
             )
-            .order_by('-day', 'username')
+            .order_by('-day', 'username', 'video')
         )
-
+        
+        # Estatísticas gerais
+        total_views = queryset.count()
+        unique_users = queryset.values('username').distinct().count()
+        unique_videos = queryset.values('video').distinct().count()
+        
+        # Calcular total de visualizações nos dados agrupados
+        total_grouped_views = sum(item['view_count'] for item in grouped_data)
+        
         context = dict(
            self.admin_site.each_context(request),
            title="Logs de Vídeos Agrupados por Dia",
            grouped_data=grouped_data,
+           total_views=total_views,
+           unique_users=unique_users,
+           unique_videos=unique_videos,
+           total_grouped_views=total_grouped_views,
+           date_from=date_from,
+           date_to=date_to,
            opts=self.model._meta,
-           original_changelist_url=reverse('admin:painel_eldregistroviewvideos_changelist')
+           original_changelist_url=reverse('admin:captive_portal_logsvideosproxy_changelist')
         )
         return TemplateResponse(request, "admin/painel/eldregistroviewvideos/grouped_list.html", context)
 
@@ -499,3 +546,344 @@ class UnidadesAdmin(admin.ModelAdmin):
         })
         
         return super().changelist_view(request, extra_context=extra_context)
+
+
+# ========================================
+# CAPTIVE PORTAL ADMIN SECTION
+# ========================================
+
+# Modelo proxy principal para criar o menu "Gerenciar Captive Portal"
+class CaptivePortalProxy(EldUploadVideo):
+    """
+    Proxy model para criar o menu principal Gerenciar Captive Portal
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Gerenciar Captive Portal"
+        verbose_name_plural = "Gerenciar Captive Portal"
+        app_label = 'captive_portal'
+
+class CaptivePortalAdminModelAdmin(admin.ModelAdmin):
+    """
+    Admin personalizado para o menu principal Captive Portal
+    """
+    
+    def get_urls(self):
+        """
+        Sobrescreve as URLs para redirecionar para nossa view personalizada
+        """
+        urls = super().get_urls()
+        custom_urls = [
+            path('', self.admin_site.admin_view(self.captive_portal_view), name='painel_captiveportalproxy_changelist'),
+        ]
+        return custom_urls + urls
+    
+    def captive_portal_view(self, request):
+        """
+        View personalizada que redireciona para nossa página principal do ELD
+        """
+        from django.shortcuts import redirect
+        return redirect('/admin/eld/')
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+# REMOVIDO - Link redundante com "Gerenciar Captive Portal"
+# # Modelo proxy para criar submenu ELD Admin
+# class EldAdminProxy(EldUploadVideo):
+#     """
+#     Proxy model para criar o submenu ELD Admin
+#     """
+#     class Meta:
+#         proxy = True
+#         verbose_name = "ELD Admin"
+#         verbose_name_plural = "ELD Admin"
+#         app_label = 'captive_portal'
+
+# class EldAdminModelAdmin(admin.ModelAdmin):
+#     """
+#     Admin personalizado para o ELD Admin
+#     """
+#     
+#     def get_urls(self):
+#         """
+#         Sobrescreve as URLs para redirecionar para nossa view personalizada
+#         """
+#         urls = super().get_urls()
+#         custom_urls = [
+#             path('', self.admin_site.admin_view(self.eld_admin_view), name='painel_eldadminproxy_changelist'),
+#         ]
+#         return custom_urls + urls
+#     
+#     def eld_admin_view(self, request):
+#         """
+#         View personalizada que redireciona para nossa página principal do ELD
+#         """
+#         from django.shortcuts import redirect
+#         return redirect('/admin/eld/')
+#     
+#     def has_add_permission(self, request):
+#         return False
+#     
+#     def has_change_permission(self, request, obj=None):
+#         return False
+#     
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+
+# Modelo proxy para Listagem de Vídeos dentro do grupo Captive Portal
+class UploadVideosProxy(EldUploadVideo):
+    """
+    Proxy model para criar o submenu Listagem de Vídeos
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Listagem de Vídeos"
+        verbose_name_plural = "Listagem de Vídeos"
+        app_label = 'captive_portal'
+
+
+# Modelo proxy para Gerenciar Portal dentro do grupo Captive Portal
+class GerenciarPortalProxy(EldGerenciarPortal):
+    """
+    Proxy model para criar o submenu Gerenciar Portal
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Configuração do Portal"
+        verbose_name_plural = "Configuração do Portal"
+        app_label = 'captive_portal'
+
+# Admin para o modelo real EldUploadVideo (agora via proxy)
+# @admin.register(EldUploadVideo) - REMOVIDO para usar proxy
+class EldUploadVideoAdmin(admin.ModelAdmin):
+    """
+    Admin para visualizar e gerenciar uploads de vídeo ELD
+    """
+    list_display = ['id', 'get_video_name', 'data', 'tamanho_mb', 'get_video_link']
+    list_filter = ['data']
+    search_fields = ['video']
+    readonly_fields = ['data', 'tamanho']
+    ordering = ['-data', '-id']
+    
+    def get_video_name(self, obj):
+        if obj.video:
+            return obj.video.name.split('/')[-1]  # Apenas o nome do arquivo
+        return "N/A"
+    get_video_name.short_description = "Nome do Arquivo"
+    
+    def tamanho_mb(self, obj):
+        return f"{obj.tamanho} MB"
+    tamanho_mb.short_description = "Tamanho"
+    
+    def get_video_link(self, obj):
+        if obj.video:
+            return format_html('<a href="{}" target="_blank">▶️ Visualizar</a>', obj.video.url)
+        return "N/A"
+    get_video_link.short_description = "Visualizar"
+    
+    def has_add_permission(self, request):
+        # Usar a interface customizada para upload
+        return False
+
+
+# ========================================
+# ADMIN PARA GERENCIAR PORTAL CAPTIVE
+# ========================================
+
+class EldGerenciarPortalAdmin(admin.ModelAdmin):
+    """
+    Admin personalizado para gerenciar as configurações do portal captive
+    """
+    list_display = [
+        'status_display', 
+        'ativar_video', 
+        'video_selecionado', 
+        'portal_zip_status',
+        'data_atualizacao',
+        'ativo'
+    ]
+    
+    list_filter = [
+        'ativar_video', 
+        'ativo', 
+        'data_criacao'
+    ]
+    
+    search_fields = [
+        'nome_video__nome',
+        'nome_video__descricao'
+    ]
+    
+    fields = [
+        'ativo',
+        'ativar_video', 
+        'nome_video', 
+        'captive_portal_zip',
+        'status_info'
+    ]
+    
+    readonly_fields = ['status_info']
+    
+    # Customizar o formulário
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Customizar o campo de seleção de vídeo
+        """
+        if db_field.name == "nome_video":
+            # Mostrar apenas vídeos que estão disponíveis, ordenados por data
+            try:
+                kwargs["queryset"] = EldUploadVideo.objects.all().order_by('-data')
+                kwargs["empty_label"] = "--- Selecione um vídeo ---"
+            except Exception:
+                # Fallback sem ordenação se houver erro
+                kwargs["queryset"] = EldUploadVideo.objects.all()
+                kwargs["empty_label"] = "--- Selecione um vídeo ---"
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def status_display(self, obj):
+        """
+        Exibe o status da configuração com ícones
+        """
+        if not obj.ativo:
+            return format_html(
+                '<span style="color: #999;">⭕ Inativa</span>'
+            )
+        
+        if obj.ativar_video and obj.nome_video:
+            return format_html(
+                '<span style="color: #28a745;">✅ Ativa - Vídeo configurado</span>'
+            )
+        elif obj.ativar_video:
+            return format_html(
+                '<span style="color: #ffc107;">⚠️ Ativa - Aguardando vídeo</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: #17a2b8;">ℹ️ Ativa - Vídeo desativado</span>'
+            )
+    
+    status_display.short_description = "Status"
+    status_display.admin_order_field = 'ativo'
+    
+    def video_selecionado(self, obj):
+        """
+        Exibe o vídeo selecionado
+        """
+        if obj.nome_video:
+            video_name = obj.nome_video.video.name if obj.nome_video.video else f"Vídeo {obj.nome_video.id}"
+            return format_html(
+                '<a href="{}" target="_blank">📹 {}</a>',
+                obj.nome_video.video.url if obj.nome_video.video else '#',
+                video_name
+            )
+        return format_html('<span style="color: #999;">Nenhum vídeo selecionado</span>')
+    
+    video_selecionado.short_description = "Vídeo"
+    
+    def portal_zip_status(self, obj):
+        """
+        Exibe o status do arquivo ZIP
+        """
+        if obj.captive_portal_zip:
+            return format_html(
+                '<a href="{}" target="_blank">📦 ZIP Disponível</a>',
+                obj.captive_portal_zip.url
+            )
+        return format_html('<span style="color: #dc3545;">❌ Nenhum ZIP</span>')
+    
+    portal_zip_status.short_description = "Portal ZIP"
+    
+    def status_info(self, obj):
+        """
+        Informações detalhadas sobre o status da configuração
+        """
+        if not obj.pk:
+            return "Configure os campos abaixo e salve para ver as informações de status."
+        
+        info_html = []
+        
+        # Status geral
+        info_html.append(f"<h4>Status da Configuração:</h4>")
+        info_html.append(f"<p><strong>Status:</strong> {obj.status_configuracao}</p>")
+        
+        # Informações do vídeo
+        if obj.ativar_video:
+            if obj.nome_video:
+                info_html.append(f"<h4>Vídeo Configurado:</h4>")
+                video_name = obj.nome_video.video.name if obj.nome_video.video else f"Vídeo {obj.nome_video.id}"
+                info_html.append(f"<p><strong>Nome:</strong> {video_name}</p>")
+                info_html.append(f"<p><strong>Tamanho:</strong> {obj.nome_video.tamanho}MB</p>")
+                if obj.nome_video.video:
+                    info_html.append(f"<p><strong>URL do Vídeo:</strong> <a href='{obj.nome_video.video.url}' target='_blank'>{obj.nome_video.video.url}</a></p>")
+            else:
+                info_html.append(f"<p style='color: #dc3545;'><strong>⚠️ Atenção:</strong> Vídeo ativado mas nenhum vídeo selecionado!</p>")
+        
+        # Informações do ZIP
+        if obj.captive_portal_zip:
+            info_html.append(f"<h4>Portal ZIP:</h4>")
+            info_html.append(f"<p><strong>Arquivo:</strong> <a href='{obj.captive_portal_zip.url}' target='_blank'>{obj.captive_portal_zip.name}</a></p>")
+        
+        # URLs para OpenSense
+        info_html.append(f"<h4>URLs para OpenSense:</h4>")
+        video_url = obj.get_video_url()
+        if video_url:
+            info_html.append(f"<p><strong>URL do Vídeo:</strong> <code>{video_url}</code></p>")
+        
+        zip_url = obj.get_portal_zip_url()
+        if zip_url:
+            info_html.append(f"<p><strong>URL do ZIP:</strong> <code>{zip_url}</code></p>")
+        
+        return format_html(''.join(info_html))
+    
+    status_info.short_description = "Informações da Configuração"
+    
+    def save_model(self, request, obj, form, change):
+        """
+        Override para mostrar mensagens personalizadas
+        """
+        try:
+            super().save_model(request, obj, form, change)
+            
+            if obj.ativo:
+                if obj.ativar_video and obj.nome_video:
+                    video_name = obj.nome_video.video.name if obj.nome_video.video else f"Vídeo {obj.nome_video.id}"
+                    messages.success(request, 
+                        f'✅ Configuração salva! Vídeo "{video_name}" está ativo e pronto para o OpenSense.')
+                elif obj.ativar_video:
+                    messages.warning(request,
+                        '⚠️ Configuração salva, mas você precisa selecionar um vídeo!')
+                else:
+                    messages.info(request,
+                        'ℹ️ Configuração salva com vídeo desativado.')
+            else:
+                messages.info(request, 'Configuração salva como inativa.')
+                
+        except Exception as e:
+            messages.error(request, f'Erro ao salvar configuração: {str(e)}')
+
+    class Meta:
+        verbose_name = "Configuração do Portal"
+        verbose_name_plural = "Configurações do Portal"
+
+
+# ========================================
+# REGISTROS DOS MODELOS PROXY - CAPTIVE PORTAL
+# ========================================
+
+# Registrar o modelo proxy principal do Captive Portal
+admin.site.register(CaptivePortalProxy, CaptivePortalAdminModelAdmin)
+
+# Registrar os submenus dentro do grupo Captive Portal
+# admin.site.register(EldAdminProxy, EldAdminModelAdmin)  # REMOVIDO - redundante com CaptivePortalProxy
+admin.site.register(LogsVideosProxy, EldRegistroViewVideosAdmin)
+admin.site.register(UploadVideosProxy, EldUploadVideoAdmin)
+admin.site.register(GerenciarPortalProxy, EldGerenciarPortalAdmin)

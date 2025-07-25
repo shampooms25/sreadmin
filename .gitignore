@@ -6,3 +6,35 @@ painel/starlink_api.py
 test_view_direct.py
 test_*.py
 check_*.py
+
+# Django settings (produção)
+sreadmin/settings.py
+*.pyc
+__pycache__/
+.env
+.env.local
+.env.production
+
+# Arquivos sensíveis
+painel/starlink_api.py
+
+# Banco de dados
+db.sqlite3
+*.db
+
+# Media files (opcionais em produção)
+media/
+static_collected/
+
+# Logs
+*.log
+
+# Virtual environment
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

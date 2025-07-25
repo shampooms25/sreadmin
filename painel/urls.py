@@ -17,4 +17,10 @@ urlpatterns = [
     path('starlink/usage-report/', views.starlink_usage_report, name='starlink_usage_report'),
     path('starlink/api-status/', views.starlink_api_status, name='starlink_api_status'),
     path('starlink/debug-api/', views.starlink_debug_api, name='starlink_debug_api'),  # Debug temporário
+    
+    # URLs do ELD
+    path('eld/', views.eld_main, name='eld_main'),  # Página principal ELD
+    path('eld/videos/', views.eld_video_list, name='eld_video_list'),  # Lista de vídeos
+    path('eld/videos/upload/', views.eld_video_upload, name='eld_video_upload'),  # Upload de vídeo
+    path('eld/videos/delete/<int:video_id>/', views.eld_video_delete, name='eld_video_delete'),  # Deletar vídeo
 ]

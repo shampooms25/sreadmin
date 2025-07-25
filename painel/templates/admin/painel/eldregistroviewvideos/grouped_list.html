@@ -3,40 +3,377 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content_title %}
-<h1>{{ title }}</h1>
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Estilos personalizados para a tabela de logs */
+    .logs-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 20px 0;
+        overflow: hidden;
+    }
+    
+    .logs-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-bottom: 3px solid #5a67d8;
+    }
+    
+    .logs-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .logs-stats {
+        background: #f8fafc;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .stat-icon {
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        font-size: 12px;
+    }
+    
+    .stat-value {
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .stat-label {
+        color: #718096;
+        font-size: 14px;
+    }
+    
+    .logs-table-container {
+        overflow-x: auto;
+    }
+    
+    .logs-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+    
+    .logs-table thead th {
+        background: #f7fafc;
+        color: #2d3748;
+        font-weight: 600;
+        padding: 15px 12px;
+        text-align: left;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .logs-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: background-color 0.2s ease;
+    }
+    
+    .logs-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+    
+    .logs-table tbody tr:nth-child(even) {
+        background-color: #fafbfc;
+    }
+    
+    .logs-table tbody tr:nth-child(even):hover {
+        background-color: #f1f5f9;
+    }
+    
+    .logs-table tbody td {
+        padding: 12px;
+        font-size: 14px;
+        color: #4a5568;
+        vertical-align: middle;
+    }
+    
+    .username-cell {
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .username-cell::before {
+        content: "👤";
+        margin-right: 8px;
+    }
+    
+    .video-cell {
+        color: #667eea;
+        font-weight: 500;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .video-cell::before {
+        content: "🎥";
+        margin-right: 8px;
+    }
+    
+    .date-cell {
+        color: #4a5568;
+        font-family: 'Monaco', 'Consolas', monospace;
+    }
+    
+    .date-cell::before {
+        content: "📅";
+        margin-right: 8px;
+    }
+    
+    .count-cell {
+        text-align: center;
+        font-weight: 600;
+        color: #38a169;
+    }
+    
+    .count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 30px;
+        height: 24px;
+        background: #48bb78;
+        color: white;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .time-cell {
+        color: #718096;
+        font-family: 'Monaco', 'Consolas', monospace;
+        font-size: 13px;
+    }
+    
+    .time-cell::before {
+        content: "🕒";
+        margin-right: 8px;
+    }
+    
+    .actions-container {
+        background: #f8fafc;
+        padding: 20px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-action:hover {
+        background: #5a67d8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-secondary {
+        background: #718096;
+    }
+    
+    .btn-secondary:hover {
+        background: #4a5568;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #718096;
+    }
+    
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+    
+    .empty-state-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #4a5568;
+    }
+    
+    .empty-state-text {
+        font-size: 14px;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .logs-stats {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .logs-table {
+            font-size: 12px;
+        }
+        
+        .logs-table thead th,
+        .logs-table tbody td {
+            padding: 8px 6px;
+        }
+        
+        .video-cell {
+            max-width: 120px;
+        }
+        
+        .actions-container {
+            flex-direction: column;
+        }
+        
+        .btn-action {
+            justify-content: center;
+        }
+    }
+</style>
 {% endblock %}
+
+{% block content_title %}{% endblock %}
 
 {% block content %}
 <div id="content-main">
-    <div class="module" id="changelist">
-        <div class="results">
-            <table id="result_list">
+    <div class="logs-container">
+        <div class="logs-header">
+            <h1>📊 {{ title }}</h1>
+        </div>
+        
+        <div class="logs-stats">
+            <div class="stat-item">
+                <div class="stat-icon">📊</div>
+                <div>
+                    <div class="stat-value">{{ grouped_data|length }}</div>
+                    <div class="stat-label">Registros Agrupados</div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">👥</div>
+                <div>
+                    <div class="stat-value">{{ unique_users }}</div>
+                    <div class="stat-label">Usuários Únicos</div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">�</div>
+                <div>
+                    <div class="stat-value">{{ unique_videos }}</div>
+                    <div class="stat-label">Vídeos Únicos</div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">🎯</div>
+                <div>
+                    <div class="stat-value">{{ total_grouped_views }}</div>
+                    <div class="stat-label">Total de Visualizações</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtros de Data -->
+        <div class="filters-container" style="background: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #e2e8f0;">
+            <form method="get" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="date_from" style="font-weight: 600; color: #4a5568;">De:</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ date_from }}" 
+                           style="padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="date_to" style="font-weight: 600; color: #4a5568;">Até:</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ date_to }}" 
+                           style="padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                </div>
+                <button type="submit" class="btn-action" style="padding: 8px 16px; margin: 0;">
+                    🔍 Filtrar
+                </button>
+                <a href="?" class="btn-action btn-secondary" style="padding: 8px 16px; margin: 0;">
+                    🔄 Limpar
+                </a>
+            </form>
+        </div>
+        
+        {% if grouped_data %}
+        <div class="logs-table-container">
+            <table class="logs-table">
                 <thead>
                     <tr>
-                        <th><div class="text"><span>Usuário</span></div></th>
-                        <th><div class="text"><span>Vídeo</span></div></th>
-                        <th><div class="text"><span>Dia</span></div></th>
-                        <th><div class="text"><span>Visualizações</span></div></th>
-                        <th><div class="text"><span>Última Visualização</span></div></th>
+                        <th>👤 Usuário</th>
+                        <th>🎥 Vídeo</th>
+                        <th>📅 Dia</th>
+                        <th>📊 Visualizações</th>
+                        <th>🕒 Última Visualização</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in grouped_data %}
-                    <tr class="{% cycle 'row1' 'row2' %}">
-                        <td>{{ item.username }}</td>
-                        <td>{{ item.video }}</td>
-                        <td>{{ item.day|date:"d/m/Y" }}</td>
-                        <td>{{ item.view_count }}</td>
-                        <td>{{ item.last_view|date:"d/m/Y H:i:s" }}</td>
+                    <tr>
+                        <td class="username-cell">{{ item.username }}</td>
+                        <td class="video-cell" title="{{ item.video }}">{{ item.video }}</td>
+                        <td class="date-cell">{{ item.day|date:"d/m/Y" }}</td>
+                        <td class="count-cell">
+                            <span class="count-badge">{{ item.view_count }}</span>
+                        </td>
+                        <td class="time-cell">{{ item.last_view|date:"d/m/Y H:i:s" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-    <div style="padding: 10px 0;">
-        <a href="{{ original_changelist_url }}" class="button">Ver Lista Completa (Sem Agrupar)</a>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-title">Nenhum registro encontrado</div>
+            <div class="empty-state-text">Não há logs de visualização de vídeos para exibir.</div>
+        </div>
+        {% endif %}
+        
+        <div class="actions-container">
+            <a href="{{ original_changelist_url }}" class="btn-action">
+                📋 Ver Lista Completa
+            </a>
+            <a href="{% url 'admin:captive_portal_logsvideosproxy_changelist' %}" class="btn-action btn-secondary">
+                🔄 Atualizar
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

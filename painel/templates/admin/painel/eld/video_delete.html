@@ -1,0 +1,199 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.delete-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-section {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.delete-form {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 30px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.warning-box {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    color: #721c24;
+}
+
+.warning-box h4 {
+    margin-bottom: 15px;
+    color: #721c24;
+}
+
+.video-info {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #495057;
+}
+
+.info-value {
+    color: #333;
+}
+
+.btn-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    color: white;
+    text-decoration: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a>
+            {% else %}
+                <strong>{{ crumb.name }}</strong>
+            {% endif %}
+            {% if not forloop.last %} &gt; {% endif %}
+        {% endfor %}
+    </nav>
+
+    <!-- Header -->
+    <div class="header-section">
+        <h1><i class="fas fa-exclamation-triangle"></i> {{ title }}</h1>
+        <p>Confirmar exclusão do vídeo</p>
+    </div>
+
+    <!-- Formulário de Confirmação -->
+    <div class="delete-form">
+        <!-- Aviso -->
+        <div class="warning-box">
+            <h4><i class="fas fa-exclamation-triangle"></i> Atenção!</h4>
+            <p>Esta ação <strong>não pode ser desfeita</strong>. O arquivo será permanentemente removido do servidor e do banco de dados.</p>
+        </div>
+
+        <!-- Informações do Vídeo -->
+        <div class="video-info">
+            <h4><i class="fas fa-video"></i> Informações do Vídeo</h4>
+            
+            <div class="info-row">
+                <span class="info-label">ID:</span>
+                <span class="info-value">#{{ video.id }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Nome do Arquivo:</span>
+                <span class="info-value">{{ video.video.name }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Data do Upload:</span>
+                <span class="info-value">{{ video.data|date:"d/m/Y" }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Tamanho:</span>
+                <span class="info-value">{{ video.tamanho }} MB</span>
+            </div>
+        </div>
+
+        <!-- Formulário de Confirmação -->
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="btn-group">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza absoluta que deseja deletar este vídeo?')">
+                    <i class="fas fa-trash"></i> Sim, Deletar Vídeo
+                </button>
+                <a href="{% url 'painel:eld_video_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

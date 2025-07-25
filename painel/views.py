@@ -3,6 +3,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.contrib import messages, admin
 from django.urls import reverse
+from django.db.models import Sum
 from datetime import datetime
 from django.contrib.admin import site
 from django.template.response import TemplateResponse
@@ -748,3 +749,160 @@ def starlink_disable_auto_recharge(request):
         messages.error(request, f'Erro ao obter informações da Service Line: {str(e)}')
     
     return render(request, 'admin/painel/starlink/disable_auto_recharge.html', context)
+
+
+@staff_member_required
+def eld_video_list(request):
+    """
+    Lista todos os vídeos ELD uploadados
+    """
+    from .models import EldUploadVideo
+    
+    # Obter contexto do admin
+    context = get_admin_context(request)
+    
+    # Obter todos os vídeos ordenados por data
+    videos = EldUploadVideo.objects.all().order_by('-data', '-id')
+    
+    # Calcular estatísticas
+    total_videos = videos.count()
+    total_size = sum(video.tamanho for video in videos)
+    
+    context.update({
+        'title': 'Uploads de Vídeos ELD',
+        'breadcrumbs': [
+            {'name': 'Início', 'url': '/admin/'},
+            {'name': 'ELD Admin', 'url': '/admin/eld/'},
+            {'name': 'Uploads de Vídeos', 'url': None}
+        ],
+        'videos': videos,
+        'total_videos': total_videos,
+        'total_size': round(total_size, 2),
+        'success': True
+    })
+    
+    return render(request, 'admin/painel/eld/video_list.html', context)
+
+
+@staff_member_required
+def eld_video_upload(request):
+    """
+    Formulário para upload de vídeos ELD
+    """
+    from .forms import EldVideoUploadForm
+    from .models import EldUploadVideo
+    
+    # Obter contexto do admin
+    context = get_admin_context(request)
+    
+    if request.method == 'POST':
+        form = EldVideoUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                # Salvar o vídeo
+                video = form.save()
+                
+                messages.success(
+                    request, 
+                    f'✅ Vídeo enviado com sucesso! '
+                    f'Arquivo: {video.video.name} ({video.tamanho}MB)'
+                )
+                return redirect('painel:eld_video_list')
+                
+            except Exception as e:
+                messages.error(request, f'❌ Erro ao salvar vídeo: {str(e)}')
+        else:
+            # Mostrar erros de validação
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'❌ {error}')
+    else:
+        form = EldVideoUploadForm()
+    
+    context.update({
+        'title': 'Upload de Vídeo ELD',
+        'breadcrumbs': [
+            {'name': 'Início', 'url': '/admin/'},
+            {'name': 'ELD Admin', 'url': '/admin/eld/'},
+            {'name': 'Uploads de Vídeos', 'url': '/admin/eld/videos/'},
+            {'name': 'Novo Upload', 'url': None}
+        ],
+        'form': form
+    })
+    
+    return render(request, 'admin/painel/eld/video_upload.html', context)
+
+
+@staff_member_required
+def eld_video_delete(request, video_id):
+    """
+    Deletar um vídeo ELD
+    """
+    from .models import EldUploadVideo
+    import os
+    
+    try:
+        video = EldUploadVideo.objects.get(id=video_id)
+        
+        if request.method == 'POST':
+            # Deletar arquivo físico
+            if video.video and os.path.exists(video.video.path):
+                os.remove(video.video.path)
+            
+            # Deletar registro do banco
+            video_name = video.video.name
+            video.delete()
+            
+            messages.success(request, f'✅ Vídeo {video_name} deletado com sucesso!')
+            return redirect('painel:eld_video_list')
+        
+        # Obter contexto do admin
+        context = get_admin_context(request)
+        context.update({
+            'title': 'Deletar Vídeo ELD',
+            'breadcrumbs': [
+                {'name': 'Início', 'url': '/admin/'},
+                {'name': 'ELD Admin', 'url': '/admin/eld/'},
+                {'name': 'Uploads de Vídeos', 'url': '/admin/eld/videos/'},
+                {'name': 'Deletar', 'url': None}
+            ],
+            'video': video
+        })
+        
+        return render(request, 'admin/painel/eld/video_delete.html', context)
+        
+    except EldUploadVideo.DoesNotExist:
+        messages.error(request, '❌ Vídeo não encontrado!')
+        return redirect('painel:eld_video_list')
+
+
+@staff_member_required
+def eld_main(request):
+    """
+    Página principal do ELD Admin
+    """
+    from .models import EldUploadVideo
+    
+    # Obter contexto do admin
+    context = get_admin_context(request)
+    
+    # Estatísticas rápidas
+    total_videos = EldUploadVideo.objects.count()
+    total_size = EldUploadVideo.objects.aggregate(
+        total=Sum('tamanho')
+    )['total'] or 0
+    
+    recent_videos = EldUploadVideo.objects.order_by('-data', '-id')[:5]
+    
+    context.update({
+        'title': 'ELD Admin',
+        'breadcrumbs': [
+            {'name': 'Início', 'url': '/admin/'},
+            {'name': 'ELD Admin', 'url': None}
+        ],
+        'total_videos': total_videos,
+        'total_size': round(total_size, 2),
+        'recent_videos': recent_videos
+    })
+    
+    return render(request, 'admin/painel/eld/main.html', context)

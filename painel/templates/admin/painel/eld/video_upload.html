@@ -1,0 +1,303 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.upload-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-section {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.upload-form {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 30px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.form-control-file {
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed #28a745;
+    border-radius: 8px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.form-control-file:hover {
+    border-color: #1e7e34;
+    background: #e9ecef;
+}
+
+.form-help {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.upload-info {
+    background: #e7f3ff;
+    border: 1px solid #bee5eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.upload-info h4 {
+    color: #0c5460;
+    margin-bottom: 15px;
+}
+
+.info-list {
+    color: #0c5460;
+    margin: 0;
+}
+
+.info-list li {
+    margin-bottom: 8px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.btn-primary {
+    background: #28a745;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1e7e34;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    color: white;
+    text-decoration: none;
+}
+
+.upload-preview {
+    display: none;
+    margin-top: 15px;
+    padding: 15px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 6px;
+}
+
+.file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-name {
+    font-weight: bold;
+    color: #155724;
+}
+
+.file-size {
+    color: #155724;
+    font-size: 0.9em;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #28a745;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a>
+            {% else %}
+                <strong>{{ crumb.name }}</strong>
+            {% endif %}
+            {% if not forloop.last %} &gt; {% endif %}
+        {% endfor %}
+    </nav>
+
+    <!-- Header -->
+    <div class="header-section">
+        <h1><i class="fas fa-cloud-upload-alt"></i> {{ title }}</h1>
+        <p>Enviar novo vídeo para o sistema ELD</p>
+    </div>
+
+    <!-- Informações sobre upload -->
+    <div class="upload-info">
+        <h4><i class="fas fa-info-circle"></i> Informações sobre upload</h4>
+        <ul class="info-list">
+            <li><strong>Tamanho máximo:</strong> 5 MB por arquivo</li>
+            <li><strong>Formatos aceitos:</strong> MP4, AVI, MOV, WMV, FLV, WebM, MKV, 3GP</li>
+            <li><strong>Armazenamento:</strong> Os vídeos ficam disponíveis para visualização após upload</li>
+            <li><strong>Data:</strong> A data do upload é registrada automaticamente</li>
+        </ul>
+    </div>
+
+    <!-- Formulário de Upload -->
+    <form method="post" enctype="multipart/form-data" class="upload-form" id="upload-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.video.id_for_label }}" class="form-label">
+                <i class="fas fa-video"></i> {{ form.video.label }}
+            </label>
+            {{ form.video }}
+            {% if form.video.help_text %}
+                <div class="form-help">{{ form.video.help_text }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Preview do arquivo selecionado -->
+        <div id="upload-preview" class="upload-preview">
+            <div class="file-info">
+                <span class="file-name" id="file-name"></span>
+                <span class="file-size" id="file-size"></span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary" id="upload-btn">
+                <i class="fas fa-upload"></i> Enviar Vídeo
+            </button>
+            <a href="{% url 'painel:eld_video_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const videoInput = document.getElementById('{{ form.video.id_for_label }}');
+    const uploadPreview = document.getElementById('upload-preview');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const uploadForm = document.getElementById('upload-form');
+    const uploadBtn = document.getElementById('upload-btn');
+    const progressFill = document.getElementById('progress-fill');
+
+    videoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            uploadPreview.style.display = 'block';
+            
+            // Validação básica do tamanho
+            if (file.size > 5 * 1024 * 1024) {
+                uploadPreview.style.background = '#f8d7da';
+                uploadPreview.style.borderColor = '#f5c6cb';
+                fileName.style.color = '#721c24';
+                fileSize.style.color = '#721c24';
+                fileSize.textContent += ' (Muito grande!)';
+                uploadBtn.disabled = true;
+            } else {
+                uploadPreview.style.background = '#d4edda';
+                uploadPreview.style.borderColor = '#c3e6cb';
+                fileName.style.color = '#155724';
+                fileSize.style.color = '#155724';
+                uploadBtn.disabled = false;
+            }
+        } else {
+            uploadPreview.style.display = 'none';
+            uploadBtn.disabled = false;
+        }
+    });
+
+    uploadForm.addEventListener('submit', function(e) {
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+        uploadBtn.disabled = true;
+        
+        // Simular progresso (em um caso real, usaria AJAX)
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            progressFill.style.width = progress + '%';
+            if (progress >= 90) {
+                clearInterval(interval);
+            }
+        }, 100);
+    });
+});
+</script>
+{% endblock %}
