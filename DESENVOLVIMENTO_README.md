@@ -30,8 +30,11 @@ start_dev.bat
 
 #### 2. Configuração Manual
 
-```bash
-# 1. Ativar ambiente virtual
+```powershell
+# 1. Ativar ambiente virtual (PowerShell)
+.\venv\Scripts\Activate.ps1
+
+# 1. Alternativo (Command Prompt)
 venv\Scripts\activate
 
 # 2. Configurar settings.py (se necessário)
@@ -151,6 +154,26 @@ git push
 ```
 
 ## 🚨 Resolução de Problemas
+
+### ⚠️ Ambiente Virtual - IMPORTANTE
+**SEMPRE** trabalhe com o ambiente virtual ativado:
+
+```powershell
+# Para ativar o ambiente virtual (PowerShell)
+.\venv\Scripts\Activate.ps1
+
+# Para ativar o ambiente virtual (Command Prompt)
+venv\Scripts\activate
+
+# Verificar se está ativo (deve mostrar (venv) no prompt)
+# (venv) PS C:\Projetos\Poppnet\sreadmin>
+```
+
+**Dica:** Para comandos únicos com ambiente virtual:
+```powershell
+# Executar comando único com venv ativo
+powershell.exe -Command "& .\venv\Scripts\Activate.ps1; python manage.py migrate"
+```
 
 ### Erro de Importação
 ```bash

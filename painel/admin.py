@@ -886,4 +886,4 @@ admin.site.register(CaptivePortalProxy, CaptivePortalAdminModelAdmin)
 # admin.site.register(EldAdminProxy, EldAdminModelAdmin)  # REMOVIDO - redundante com CaptivePortalProxy
 admin.site.register(LogsVideosProxy, EldRegistroViewVideosAdmin)
 admin.site.register(UploadVideosProxy, EldUploadVideoAdmin)
-admin.site.register(GerenciarPortalProxy, EldGerenciarPortalAdmin)
+admin.site.register(GerenciarPortalProxy, EldGerenciarPortalAdmin)  # REABILITADO - tabela recriada
