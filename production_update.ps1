@@ -125,8 +125,8 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sreadmin.settings')
 django.setup()
 from painel.models import EldGerenciarPortal
-print('✅ Modelo EldGerenciarPortal carregado com sucesso')
-print(f'📊 Total de registros: {EldGerenciarPortal.objects.count()}')
+print('Modelo EldGerenciarPortal carregado com sucesso')
+print(f'Total de registros: {EldGerenciarPortal.objects.count()}')
 "
 
 if ($LASTEXITCODE -eq 0) {
