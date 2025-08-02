@@ -559,8 +559,8 @@ class CaptivePortalProxy(EldUploadVideo):
     """
     class Meta:
         proxy = True
-        verbose_name = "Gerenciar Captive Portal"
-        verbose_name_plural = "Gerenciar Captive Portal"
+        verbose_name = "Gerenciar Vídeos"
+        verbose_name_plural = "Gerenciar Vídeos"
         app_label = 'captive_portal'
 
 class CaptivePortalAdminModelAdmin(admin.ModelAdmin):
@@ -658,8 +658,8 @@ class GerenciarPortalProxy(EldGerenciarPortal):
     """
     class Meta:
         proxy = True
-        verbose_name = "Configuração do Portal"
-        verbose_name_plural = "Configuração do Portal"
+        verbose_name = "Gerenciar Captive Portal"
+        verbose_name_plural = "Gerenciar Captive Portal"
         app_label = 'captive_portal'
 
 # Admin para o modelo real EldUploadVideo (agora via proxy)
