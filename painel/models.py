@@ -441,10 +441,52 @@ class EldUploadVideo(models.Model):
         return f"Vídeo {self.id} - {self.video.name} ({self.tamanho}MB)"
     
     def save(self, *args, **kwargs):
+        # Verificar se é um novo registro
+        is_new = self.pk is None
+        
         # Calcular tamanho do arquivo em MB
         if self.video:
             self.tamanho = round(self.video.size / (1024 * 1024), 2)
+        
         super().save(*args, **kwargs)
+        
+        # Enviar notificações apenas para novos uploads
+        if is_new and self.video:
+            # Importar aqui para evitar circular imports
+            from .services import NotificationService, ZipManagerService
+            from django.contrib.auth.models import User
+            import threading
+            
+            def send_notifications():
+                """Enviar notificações em thread separada"""
+                try:
+                    # Obter usuário do request (se disponível)
+                    user = None
+                    
+                    # Enviar notificações
+                    NotificationService.send_email_notification(self.video, user)
+                    NotificationService.send_telegram_notification(self.video, user)
+                    
+                    # Buscar configuração ativa do portal para atualizar ZIP
+                    from .models import EldGerenciarPortal
+                    try:
+                        portal_config = EldGerenciarPortal.objects.filter(ativo=True).first()
+                        if portal_config and portal_config.captive_portal_zip:
+                            zip_path = portal_config.captive_portal_zip.path
+                            ZipManagerService.update_zip_with_video(zip_path, self.video)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Erro ao atualizar ZIP: {str(e)}")
+                        
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Erro ao enviar notificações: {str(e)}")
+            
+            # Executar notificações em thread separada para não bloquear o save
+            thread = threading.Thread(target=send_notifications)
+            thread.start()
 
 
 class EldGerenciarPortal(models.Model):

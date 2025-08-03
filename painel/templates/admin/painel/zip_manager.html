@@ -1,0 +1,294 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .zip-manager-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 20px 0;
+        overflow: hidden;
+    }
+    
+    .zip-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-bottom: 3px solid #5a67d8;
+    }
+    
+    .zip-content {
+        padding: 20px;
+    }
+    
+    .config-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .config-header {
+        background: #f8fafc;
+        padding: 15px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .config-body {
+        padding: 15px;
+    }
+    
+    .zip-info {
+        background: #f0fff4;
+        border: 1px solid #9ae6b4;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 10px;
+    }
+    
+    .video-list {
+        background: #fffaf0;
+        border: 1px solid #feb2b2;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 10px;
+    }
+    
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-action:hover {
+        background: #5a67d8;
+        transform: translateY(-1px);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-test {
+        background: #48bb78;
+    }
+    
+    .btn-test:hover {
+        background: #38a169;
+    }
+    
+    .status-active {
+        background: #48bb78;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+    .status-inactive {
+        background: #cbd5e0;
+        color: #4a5568;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="zip-manager-container">
+        <div class="zip-header">
+            <h1>📦 {{ title }}</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Gerencie arquivos ZIP do portal captive e teste notificações</p>
+        </div>
+        
+        <div class="zip-content">
+            {% if configs %}
+                {% for config in configs %}
+                <div class="config-card">
+                    <div class="config-header">
+                        <div>
+                            <h3 style="margin: 0;">Configuração #{{ config.id }}</h3>
+                            <p style="margin: 5px 0 0 0; color: #718096;">
+                                Criado em {{ config.data_criacao|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                        <div>
+                            {% if config.ativo %}
+                                <span class="status-active">✅ ATIVO</span>
+                            {% else %}
+                                <span class="status-inactive">⭕ INATIVO</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="config-body">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                            <div>
+                                <strong>🎥 Vídeo Ativo:</strong><br>
+                                {% if config.ativar_video %}
+                                    ✅ Ativado
+                                {% else %}
+                                    ❌ Desativado
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>📁 Vídeo Selecionado:</strong><br>
+                                {% if config.nome_video %}
+                                    {{ config.nome_video.video.name }}
+                                {% else %}
+                                    Nenhum vídeo selecionado
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if config.captive_portal_zip %}
+                        <div class="zip-info">
+                            <h4 style="margin: 0 0 10px 0;">📦 Arquivo ZIP do Portal</h4>
+                            <p><strong>Arquivo:</strong> {{ config.captive_portal_zip.name }}</p>
+                            
+                            {% if config.zip_info %}
+                            <p><strong>Tamanho:</strong> {{ config.zip_info.file_size|filesizeformat }}</p>
+                            <p><strong>Total de arquivos:</strong> {{ config.zip_info.files|length }}</p>
+                            
+                            {% if config.zip_info.videos %}
+                            <div class="video-list">
+                                <strong>🎬 Vídeos no ZIP:</strong>
+                                <ul style="margin: 5px 0 0 20px;">
+                                    {% for video in config.zip_info.videos %}
+                                    <li>{{ video }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% else %}
+                            <p style="color: #f56565;"><strong>⚠️ Nenhum vídeo encontrado no ZIP</strong></p>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        
+                        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn-action" onclick="viewZipInfo({{ config.id }})">
+                                🔍 Ver Detalhes do ZIP
+                            </button>
+                            
+                            {% if config.nome_video %}
+                            <button class="btn-action" onclick="updateZipWithVideo({{ config.id }}, {{ config.nome_video.id }})">
+                                🔄 Atualizar ZIP com Vídeo
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div style="background: #fed7d7; border: 1px solid #fc8181; border-radius: 6px; padding: 15px;">
+                            <p style="margin: 0; color: #c53030;"><strong>⚠️ Nenhum arquivo ZIP configurado</strong></p>
+                            <p style="margin: 5px 0 0 0; font-size: 14px; color: #742a2a;">
+                                Faça upload de um arquivo ZIP na seção "Gerenciar Captive Portal"
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 60px 20px; color: #718096;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+                    <h3 style="color: #4a5568;">Nenhuma configuração encontrada</h3>
+                    <p>Crie uma nova configuração na seção "Gerenciar Captive Portal"</p>
+                </div>
+            {% endif %}
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <h3>🧪 Testar Notificações</h3>
+                <p style="color: #718096;">Envie notificações de teste para verificar se email e Telegram estão funcionando:</p>
+                
+                <form method="post" action="{% url 'painel_admin:test_notifications' %}" style="margin-top: 15px;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-action btn-test">
+                        📧 Testar Notificações
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewZipInfo(configId) {
+    fetch(`/admin/painel/zip-info/${configId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let infoHtml = 'Informações do ZIP:\n\n';
+                infoHtml += `Tamanho: ${formatFileSize(data.data.file_size)}\n`;
+                infoHtml += `Total de arquivos: ${data.data.files.length}\n\n`;
+                
+                if (data.data.videos.length > 0) {
+                    infoHtml += 'Vídeos encontrados:\n';
+                    data.data.videos.forEach(video => {
+                        infoHtml += `• ${video}\n`;
+                    });
+                }
+                
+                alert(infoHtml);
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao buscar informações: ' + error);
+        });
+}
+
+function updateZipWithVideo(configId, videoId) {
+    if (confirm('Deseja atualizar o ZIP com o vídeo selecionado?')) {
+        fetch('/admin/painel/update-zip/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                config_id: configId,
+                video_id: videoId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Sucesso: ' + data.message);
+                location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro na requisição: ' + error);
+        });
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+</script>
+{% endblock %}

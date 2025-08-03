@@ -7,6 +7,7 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path('', RedirectView.as_view(url='/admin/', permanent=False), name='home'),
     path('admin/', include('painel.urls')),  # URLs do painel primeiro
+    path('admin/painel/', include('painel.admin_urls', namespace='painel_admin')),  # URLs administrativas do painel
     path('admin/', admin.site.urls),
     # API para integração com OpenSense
     path('api/captive-portal/', include('captive_portal.urls')),

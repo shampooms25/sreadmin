@@ -662,6 +662,28 @@ class GerenciarPortalProxy(EldGerenciarPortal):
         verbose_name_plural = "Gerenciar Captive Portal"
         app_label = 'captive_portal'
 
+# Classe proxy para ZIP Manager
+class ZipManagerProxy(EldGerenciarPortal):
+    """
+    Proxy model para criar o item ZIP Manager no menu
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Gerenciar ZIP Portal"
+        verbose_name_plural = "Gerenciar ZIP Portal"
+        app_label = 'captive_portal'
+
+# Classe proxy para Notificações
+class NotificationsProxy(EldGerenciarPortal):
+    """
+    Proxy model para criar o item Notificações no menu
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Sistema de Notificações"
+        verbose_name_plural = "Sistema de Notificações"
+        app_label = 'captive_portal'
+
 # Admin para o modelo real EldUploadVideo (agora via proxy)
 # @admin.register(EldUploadVideo) - REMOVIDO para usar proxy
 class EldUploadVideoAdmin(admin.ModelAdmin):
@@ -846,6 +868,31 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
     
     status_info.short_description = "Informações da Configuração"
     
+    def get_urls(self):
+        """
+        Adiciona URLs personalizadas para o sistema de notificações e ZIP manager
+        """
+        urls = super().get_urls()
+        custom_urls = [
+            path('zip-manager/', self.admin_site.admin_view(self.zip_manager_view), name='zip_manager'),
+            path('test-notifications/', self.admin_site.admin_view(self.test_notifications_view), name='test_notifications'),
+        ]
+        return custom_urls + urls
+    
+    def zip_manager_view(self, request):
+        """
+        View para o gerenciador de ZIP
+        """
+        from django.shortcuts import redirect
+        return redirect('/admin/painel/zip-manager/')
+    
+    def test_notifications_view(self, request):
+        """
+        View para testar notificações
+        """
+        from django.shortcuts import redirect
+        return redirect('/admin/painel/test-notifications/')
+
     def save_model(self, request, obj, form, change):
         """
         Override para mostrar mensagens personalizadas
@@ -876,6 +923,76 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
 
 
 # ========================================
+# ADMIN PARA ZIP MANAGER
+# ========================================
+
+class ZipManagerAdmin(admin.ModelAdmin):
+    """
+    Admin personalizado para o ZIP Manager
+    """
+    def get_urls(self):
+        """
+        Sobrescreve as URLs para redirecionar para o ZIP Manager
+        """
+        urls = super().get_urls()
+        custom_urls = [
+            path('', self.admin_site.admin_view(self.zip_manager_view), name='painel_zipmanagerproxy_changelist'),
+        ]
+        return custom_urls + urls
+    
+    def zip_manager_view(self, request):
+        """
+        View personalizada que redireciona para o ZIP Manager
+        """
+        from django.shortcuts import redirect
+        return redirect('/admin/painel/zip-manager/')
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+# ========================================
+# ADMIN PARA NOTIFICAÇÕES
+# ========================================
+
+class NotificationsAdmin(admin.ModelAdmin):
+    """
+    Admin personalizado para o Sistema de Notificações
+    """
+    def get_urls(self):
+        """
+        Sobrescreve as URLs para redirecionar para as Notificações
+        """
+        urls = super().get_urls()
+        custom_urls = [
+            path('', self.admin_site.admin_view(self.notifications_view), name='painel_notificationsproxy_changelist'),
+        ]
+        return custom_urls + urls
+    
+    def notifications_view(self, request):
+        """
+        View personalizada que redireciona para o sistema de notificações
+        """
+        from django.shortcuts import redirect
+        return redirect('/admin/painel/test-notifications/')
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+# ========================================
 # REGISTROS DOS MODELOS PROXY - CAPTIVE PORTAL
 # ========================================
 
@@ -887,3 +1004,5 @@ admin.site.register(CaptivePortalProxy, CaptivePortalAdminModelAdmin)
 admin.site.register(LogsVideosProxy, EldRegistroViewVideosAdmin)
 admin.site.register(UploadVideosProxy, EldUploadVideoAdmin)
 admin.site.register(GerenciarPortalProxy, EldGerenciarPortalAdmin)  # REABILITADO - tabela recriada
+admin.site.register(ZipManagerProxy, ZipManagerAdmin)  # NOVO - Gerenciador de ZIP
+admin.site.register(NotificationsProxy, NotificationsAdmin)  # NOVO - Sistema de Notificações
