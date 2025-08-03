@@ -906,3 +906,18 @@ def eld_main(request):
     })
     
     return render(request, 'admin/painel/eld/main.html', context)
+
+
+# ========================================
+# VIEWS PARA PORTAL SEM VÍDEO
+# ========================================
+
+# Importar views do arquivo portal_views.py
+from .portal_views import (
+    portal_sem_video_list,
+    portal_sem_video_upload, 
+    portal_sem_video_detail,
+    portal_sem_video_delete,
+    portal_sem_video_download,
+    video_preview_ajax
+)

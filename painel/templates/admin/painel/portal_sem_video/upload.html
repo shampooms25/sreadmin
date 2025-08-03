@@ -1,0 +1,377 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.upload-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-section {
+    background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.upload-form {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 30px;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.form-control,
+.form-control-file {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-control-file:focus {
+    border-color: #6f42c1;
+    background: white;
+    outline: none;
+}
+
+.form-control-file {
+    border-style: dashed;
+    border-color: #6f42c1;
+}
+
+.form-control-file:hover {
+    border-color: #5a2d91;
+    background: #e9ecef;
+}
+
+.form-help {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.upload-info {
+    background: #e7f3ff;
+    border: 1px solid #bee5eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.upload-info h4 {
+    color: #0c5460;
+    margin-bottom: 15px;
+}
+
+.info-list {
+    color: #0c5460;
+    margin: 0;
+}
+
+.info-list li {
+    margin-bottom: 8px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.btn-primary {
+    background: #6f42c1;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5a2d91;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    color: white;
+    text-decoration: none;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.form-check-input {
+    width: auto;
+    margin: 0;
+}
+
+.form-check-label {
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.upload-preview {
+    display: none;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-name {
+    font-weight: bold;
+    color: #155724;
+}
+
+.file-size {
+    color: #155724;
+    font-size: 0.9em;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #6f42c1;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a>
+            {% else %}
+                <strong>{{ crumb.name }}</strong>
+            {% endif %}
+            {% if not forloop.last %} &gt; {% endif %}
+        {% endfor %}
+    </nav>
+
+    <!-- Header -->
+    <div class="header-section">
+        <h1><i class="fas fa-upload"></i> {{ title }}</h1>
+        <p>Criar novo portal sem vídeo institucional</p>
+    </div>
+
+    <!-- Informações sobre upload -->
+    <div class="upload-info">
+        <h4><i class="fas fa-info-circle"></i> Informações sobre o portal</h4>
+        <ul class="info-list">
+            <li><strong>Arquivo:</strong> Deve ser um arquivo ZIP válido</li>
+            <li><strong>Tamanho máximo:</strong> 50 MB por arquivo</li>
+            <li><strong>Nome padrão:</strong> O arquivo será disponibilizado como scripts_poppnet_sre.zip</li>
+            <li><strong>Conteúdo:</strong> Portal captive sem diretório assets/videos</li>
+            <li><strong>Uso:</strong> Usado quando vídeo institucional estiver desativado</li>
+            <li><strong>Ativo:</strong> Apenas um portal pode estar ativo por vez</li>
+        </ul>
+    </div>
+
+    <!-- Formulário de Upload -->
+    <form method="post" enctype="multipart/form-data" class="upload-form" id="upload-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="nome" class="form-label">
+                <i class="fas fa-tag"></i> Nome do Portal
+            </label>
+            <input type="text" id="nome" name="nome" class="form-control" 
+                   placeholder="Ex: Portal Poppnet v2.0" required>
+            <div class="form-help">Nome descritivo para identificar este portal</div>
+        </div>
+
+        <div class="form-group">
+            <label for="versao" class="form-label">
+                <i class="fas fa-code-branch"></i> Versão
+            </label>
+            <input type="text" id="versao" name="versao" class="form-control" 
+                   placeholder="Ex: 2.0" required>
+            <div class="form-help">Versão do portal (usada no nome do arquivo de download)</div>
+        </div>
+
+        <div class="form-group">
+            <label for="descricao" class="form-label">
+                <i class="fas fa-align-left"></i> Descrição (Opcional)
+            </label>
+            <textarea id="descricao" name="descricao" class="form-control" rows="4"
+                      placeholder="Descrição das funcionalidades e características deste portal..."></textarea>
+            <div class="form-help">Descrição opcional das características do portal</div>
+        </div>
+
+        <div class="form-group">
+            <label for="arquivo_zip" class="form-label">
+                <i class="fas fa-file-archive"></i> Arquivo ZIP
+            </label>
+            <input type="file" id="arquivo_zip" name="arquivo_zip" class="form-control-file" 
+                   accept=".zip" required>
+            <div class="form-help">Arquivo scripts_poppnet_sre.zip (máximo 50MB)</div>
+        </div>
+
+        <div class="form-group">
+            <div class="form-check">
+                <input type="checkbox" id="ativo" name="ativo" class="form-check-input">
+                <label for="ativo" class="form-check-label">
+                    <i class="fas fa-star"></i> Marcar como portal ativo
+                </label>
+            </div>
+            <div class="form-help">Apenas um portal pode estar ativo por vez</div>
+        </div>
+
+        <!-- Preview do arquivo selecionado -->
+        <div id="upload-preview" class="upload-preview">
+            <div class="file-info">
+                <span class="file-name" id="file-name"></span>
+                <span class="file-size" id="file-size"></span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary" id="upload-btn">
+                <i class="fas fa-upload"></i> Criar Portal
+            </button>
+            <a href="{% url 'painel:portal_sem_video_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const arquivoInput = document.getElementById('arquivo_zip');
+    const uploadPreview = document.getElementById('upload-preview');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const uploadForm = document.getElementById('upload-form');
+    const uploadBtn = document.getElementById('upload-btn');
+    const progressFill = document.getElementById('progress-fill');
+
+    arquivoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Mostrar preview
+            uploadPreview.style.display = 'block';
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            
+            // Verificar tamanho
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                alert('Arquivo muito grande! Máximo: 50MB');
+                arquivoInput.value = '';
+                uploadPreview.style.display = 'none';
+                uploadBtn.disabled = true;
+                return;
+            }
+            
+            // Verificar extensão
+            if (!file.name.toLowerCase().endsWith('.zip')) {
+                alert('Apenas arquivos ZIP são permitidos!');
+                arquivoInput.value = '';
+                uploadPreview.style.display = 'none';
+                uploadBtn.disabled = true;
+                return;
+            }
+            
+            uploadBtn.disabled = false;
+        } else {
+            uploadPreview.style.display = 'none';
+            uploadBtn.disabled = false;
+        }
+    });
+
+    uploadForm.addEventListener('submit', function(e) {
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando...';
+        uploadBtn.disabled = true;
+        
+        // Simular progresso
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            progressFill.style.width = progress + '%';
+            if (progress >= 90) {
+                clearInterval(interval);
+            }
+        }, 100);
+    });
+});
+</script>
+{% endblock %}

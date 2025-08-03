@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.shortcuts import render, redirect
-from .models import Radcheck, EldRegistroViewVideos, Unidades, EldUploadVideo, EldGerenciarPortal
+from .models import Radcheck, EldRegistroViewVideos, Unidades, EldUploadVideo, EldGerenciarPortal, EldPortalSemVideo
 from django.db.models.functions import TruncDay
 from django.db.models import Count, Max
 from django.utils.html import format_html
@@ -681,6 +681,22 @@ class NotificationsProxy(EldGerenciarPortal):
     class Meta:
         proxy = True
         verbose_name = "Sistema de Notificações"
+        verbose_name_plural = "Sistema de Notificações" 
+        app_label = 'captive_portal'
+
+# Classe proxy para Portal sem Vídeo
+class PortalSemVideoProxy(EldPortalSemVideo):
+    """
+    Proxy model para criar o submenu Portal sem Vídeo
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Portal sem Vídeo"
+        verbose_name_plural = "Gerenciar Portal sem Vídeo"
+        app_label = 'captive_portal'
+    class Meta:
+        proxy = True
+        verbose_name = "Sistema de Notificações"
         verbose_name_plural = "Sistema de Notificações"
         app_label = 'captive_portal'
 
@@ -750,6 +766,7 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
         'ativar_video', 
         'nome_video', 
         'captive_portal_zip',
+        'portal_sem_video',
         'status_info'
     ]
     
@@ -922,6 +939,67 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
         verbose_name_plural = "Configurações do Portal"
 
 
+class EldPortalSemVideoAdmin(admin.ModelAdmin):
+    """
+    Admin para gerenciar portais sem vídeo
+    """
+    list_display = ['nome', 'versao', 'status_display', 'tamanho_mb', 'data_atualizacao', 'actions_display']
+    list_filter = ['ativo', 'data_criacao']
+    search_fields = ['nome', 'versao', 'descricao']
+    readonly_fields = ['tamanho_mb', 'data_criacao', 'data_atualizacao']
+    ordering = ['-data_atualizacao']
+    
+    fields = [
+        'nome',
+        'versao', 
+        'descricao',
+        'arquivo_zip',
+        'ativo',
+        'tamanho_mb',
+        'data_criacao',
+        'data_atualizacao'
+    ]
+    
+    def status_display(self, obj):
+        """Exibe o status com ícone"""
+        if obj.ativo:
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ Ativo</span>'
+            )
+        return format_html(
+            '<span style="color: #999;">⚪ Inativo</span>'
+        )
+    status_display.short_description = "Status"
+    
+    def actions_display(self, obj):
+        """Exibe ações personalizadas"""
+        download_url = reverse('painel:portal_sem_video_download', args=[obj.id])
+        return format_html(
+            '<a href="{}" class="button" target="_blank">📥 Download</a>',
+            download_url
+        )
+    actions_display.short_description = "Ações"
+    
+    def save_model(self, request, obj, form, change):
+        """Override para mostrar mensagens personalizadas"""
+        try:
+            super().save_model(request, obj, form, change)
+            
+            if obj.ativo:
+                messages.success(request, 
+                    f'✅ Portal "{obj.nome}" v{obj.versao} salvo e ativado! ({obj.tamanho_mb}MB)')
+            else:
+                messages.info(request, 
+                    f'ℹ️ Portal "{obj.nome}" v{obj.versao} salvo como inativo.')
+                
+        except Exception as e:
+            messages.error(request, f'Erro ao salvar portal: {str(e)}')
+
+    def has_add_permission(self, request):
+        # Usar interface customizada para upload
+        return False
+
+
 # ========================================
 # ADMIN PARA ZIP MANAGER
 # ========================================
@@ -1006,3 +1084,4 @@ admin.site.register(UploadVideosProxy, EldUploadVideoAdmin)
 admin.site.register(GerenciarPortalProxy, EldGerenciarPortalAdmin)  # REABILITADO - tabela recriada
 admin.site.register(ZipManagerProxy, ZipManagerAdmin)  # NOVO - Gerenciador de ZIP
 admin.site.register(NotificationsProxy, NotificationsAdmin)  # NOVO - Sistema de Notificações
+admin.site.register(PortalSemVideoProxy, EldPortalSemVideoAdmin)  # NOVO - Portal sem Vídeo

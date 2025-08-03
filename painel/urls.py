@@ -23,4 +23,14 @@ urlpatterns = [
     path('eld/videos/', views.eld_video_list, name='eld_video_list'),  # Lista de vídeos
     path('eld/videos/upload/', views.eld_video_upload, name='eld_video_upload'),  # Upload de vídeo
     path('eld/videos/delete/<int:video_id>/', views.eld_video_delete, name='eld_video_delete'),  # Deletar vídeo
+    
+    # URLs do Portal sem Vídeo
+    path('portal-sem-video/', views.portal_sem_video_list, name='portal_sem_video_list'),  # Lista de portais
+    path('portal-sem-video/upload/', views.portal_sem_video_upload, name='portal_sem_video_upload'),  # Upload de portal
+    path('portal-sem-video/<int:portal_id>/', views.portal_sem_video_detail, name='portal_sem_video_detail'),  # Detalhes
+    path('portal-sem-video/<int:portal_id>/delete/', views.portal_sem_video_delete, name='portal_sem_video_delete'),  # Deletar
+    path('portal-sem-video/<int:portal_id>/download/', views.portal_sem_video_download, name='portal_sem_video_download'),  # Download
+    
+    # AJAX URLs
+    path('ajax/video-preview/', views.video_preview_ajax, name='video_preview_ajax'),  # Preview de vídeo
 ]

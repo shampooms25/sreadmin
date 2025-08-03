@@ -518,8 +518,19 @@ class EldGerenciarPortal(models.Model):
         upload_to='captive_portal_zips/',
         null=True,
         blank=True,
-        verbose_name="Arquivo ZIP do Portal",
-        help_text="Upload do arquivo .zip contendo os arquivos do portal captive"
+        verbose_name="Arquivo ZIP do Portal (com vídeo)",
+        help_text="Upload do arquivo .zip contendo os arquivos do portal captive (src.zip)"
+    )
+    
+    # Campo para selecionar portal sem vídeo
+    portal_sem_video = models.ForeignKey(
+        'EldPortalSemVideo',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Portal sem Vídeo",
+        help_text="Portal usado quando vídeo estiver desativado (scripts_poppnet_sre.zip)",
+        related_name='configuracoes_portal'
     )
     
     # Campos de controle
@@ -566,6 +577,18 @@ class EldGerenciarPortal(models.Model):
                 'nome_video': 'Quando o vídeo estiver ativado, você deve selecionar um vídeo.'
             })
         
+        # Se ativar_video for True, captive_portal_zip deve estar presente
+        if self.ativar_video and not self.captive_portal_zip:
+            raise ValidationError({
+                'captive_portal_zip': 'Quando o vídeo estiver ativado, você deve fazer upload do arquivo src.zip.'
+            })
+        
+        # Se ativar_video for False, portal_sem_video deve estar presente
+        if not self.ativar_video and not self.portal_sem_video:
+            raise ValidationError({
+                'portal_sem_video': 'Quando o vídeo estiver desativado, você deve selecionar um portal sem vídeo.'
+            })
+        
         # Garantir que apenas uma configuração esteja ativa
         if self.ativo:
             # Verificar se já existe outra configuração ativa
@@ -596,11 +619,34 @@ class EldGerenciarPortal(models.Model):
 
     def get_portal_zip_url(self):
         """
-        Retorna a URL do arquivo ZIP do portal
+        Retorna a URL do arquivo ZIP correto baseado na configuração
         """
-        if self.captive_portal_zip:
+        if self.ativar_video and self.captive_portal_zip:
+            # Com vídeo: usar src.zip
             return self.captive_portal_zip.url
+        elif not self.ativar_video and self.portal_sem_video:
+            # Sem vídeo: usar scripts_poppnet_sre.zip
+            return self.portal_sem_video.arquivo_zip.url
         return None
+    
+    def get_portal_zip_path(self):
+        """
+        Retorna o caminho físico do arquivo ZIP correto
+        """
+        if self.ativar_video and self.captive_portal_zip:
+            return self.captive_portal_zip.path
+        elif not self.ativar_video and self.portal_sem_video:
+            return self.portal_sem_video.arquivo_zip.path
+        return None
+    
+    def get_portal_zip_name(self):
+        """
+        Retorna o nome do arquivo ZIP correto para download
+        """
+        if self.ativar_video:
+            return "src.zip"
+        else:
+            return "scripts_poppnet_sre.zip"
 
     @property
     def status_configuracao(self):
@@ -634,3 +680,114 @@ class EldGerenciarPortal(models.Model):
             config_ativa = configs.first()
             configs.exclude(pk=config_ativa.pk).update(ativo=False)
             return config_ativa
+
+
+class EldPortalSemVideo(models.Model):
+    """
+    Modelo para gerenciar portais captive sem vídeo institucional
+    Armazena o arquivo scripts_poppnet_sre.zip
+    """
+    
+    nome = models.CharField(
+        max_length=255,
+        verbose_name="Nome do Portal",
+        help_text="Nome descritivo para este portal"
+    )
+    
+    arquivo_zip = models.FileField(
+        upload_to='portal_sem_video/',
+        verbose_name="Arquivo ZIP",
+        help_text="Arquivo ZIP do portal sem vídeo (scripts_poppnet_sre.zip)"
+    )
+    
+    descricao = models.TextField(
+        blank=True,
+        verbose_name="Descrição",
+        help_text="Descrição do portal e suas características"
+    )
+    
+    versao = models.CharField(
+        max_length=50,
+        verbose_name="Versão",
+        help_text="Versão do portal (ex: 1.0, 2.1)"
+    )
+    
+    data_criacao = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Data de Criação"
+    )
+    
+    data_atualizacao = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Última Atualização"
+    )
+    
+    ativo = models.BooleanField(
+        default=False,
+        verbose_name="Portal Ativo",
+        help_text="Marcar como portal padrão para uso sem vídeo"
+    )
+    
+    tamanho_mb = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Tamanho (MB)",
+        help_text="Tamanho do arquivo ZIP em MB"
+    )
+    
+    class Meta:
+        db_table = 'eld_portal_sem_video'
+        verbose_name = "Portal sem Vídeo"
+        verbose_name_plural = "Portais sem Vídeo"
+        ordering = ['-data_atualizacao']
+    
+    def __str__(self):
+        status = "✅ Ativo" if self.ativo else "⚪ Inativo"
+        return f"{self.nome} v{self.versao} - {status}"
+    
+    def clean(self):
+        """Validações personalizadas"""
+        from django.core.exceptions import ValidationError
+        super().clean()
+        
+        # Garantir que apenas um portal esteja ativo
+        if self.ativo:
+            existing_active = EldPortalSemVideo.objects.filter(ativo=True)
+            if self.pk:
+                existing_active = existing_active.exclude(pk=self.pk)
+            
+            if existing_active.exists():
+                raise ValidationError({
+                    'ativo': 'Apenas um portal sem vídeo pode estar ativo por vez.'
+                })
+        
+        # Validar nome do arquivo
+        if self.arquivo_zip:
+            filename = self.arquivo_zip.name.lower()
+            if not filename.endswith('.zip'):
+                raise ValidationError({
+                    'arquivo_zip': 'O arquivo deve ter extensão .zip'
+                })
+    
+    def save(self, *args, **kwargs):
+        """Override do save para calcular tamanho"""
+        # Calcular tamanho do arquivo em MB
+        if self.arquivo_zip:
+            self.tamanho_mb = round(self.arquivo_zip.size / (1024 * 1024), 2)
+        
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_portal_ativo(cls):
+        """Retorna o portal sem vídeo ativo"""
+        try:
+            return cls.objects.get(ativo=True)
+        except cls.DoesNotExist:
+            return None
+        except cls.MultipleObjectsReturned:
+            # Se houver múltiplos ativos, retorna a mais recente
+            portais = cls.objects.filter(ativo=True).order_by('-data_atualizacao')
+            portal_ativo = portais.first()
+            portais.exclude(pk=portal_ativo.pk).update(ativo=False)
+            return portal_ativo

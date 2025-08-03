@@ -1,0 +1,522 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.detail-container {
+    padding: 20px;
+}
+
+.breadcrumb {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #007cba;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-section {
+    background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.detail-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 25px;
+}
+
+.detail-card h3 {
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #6f42c1;
+    padding-bottom: 10px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #666;
+}
+
+.info-value {
+    color: #333;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.zip-content {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.zip-file-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9em;
+}
+
+.zip-file-item:last-child {
+    border-bottom: none;
+}
+
+.zip-file-name {
+    color: #333;
+    font-family: monospace;
+}
+
+.zip-file-size {
+    color: #666;
+    font-weight: bold;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    margin-right: 10px;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #007cba;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #005a82;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #1e7e34;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    color: white;
+    text-decoration: none;
+}
+
+.actions-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 25px;
+    text-align: center;
+}
+
+.form-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.form-control,
+.form-control-file {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.form-control:focus,
+.form-control-file:focus {
+    border-color: #6f42c1;
+    background: white;
+    outline: none;
+}
+
+.form-help {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-check-input {
+    width: auto;
+    margin: 0;
+}
+
+.video-preview-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 25px;
+    margin-top: 25px;
+}
+
+.video-selector {
+    margin-bottom: 20px;
+}
+
+.video-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.video-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.video-item:hover {
+    background: #f8f9fa;
+}
+
+.video-item:last-child {
+    border-bottom: none;
+}
+
+.video-info {
+    flex-grow: 1;
+}
+
+.video-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.video-details {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+
+.video-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.video-preview-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.video-preview-content {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80%;
+    overflow-y: auto;
+}
+
+.video-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #666;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.video-player {
+    width: 100%;
+    max-height: 400px;
+    border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+                <a href="{{ crumb.url }}">{{ crumb.name }}</a>
+            {% else %}
+                <strong>{{ crumb.name }}</strong>
+            {% endif %}
+            {% if not forloop.last %} &gt; {% endif %}
+        {% endfor %}
+    </nav>
+
+    <!-- Header -->
+    <div class="header-section">
+        <h1><i class="fas fa-archive"></i> {{ portal.nome }}</h1>
+        <p>Versão {{ portal.versao}} - Última atualização: {{ portal.data_atualizacao|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <!-- Grid Principal -->
+    <div class="detail-grid">
+        <!-- Informações do Portal -->
+        <div class="detail-card">
+            <h3><i class="fas fa-info-circle"></i> Informações do Portal</h3>
+            
+            <div class="info-row">
+                <span class="info-label">ID:</span>
+                <span class="info-value">#{{ portal.id }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Nome:</span>
+                <span class="info-value">{{ portal.nome }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Versão:</span>
+                <span class="info-value">v{{ portal.versao }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Status:</span>
+                <span class="info-value">
+                    {% if portal.ativo %}
+                        <span class="status-badge status-active">✅ Ativo</span>
+                    {% else %}
+                        <span class="status-badge status-inactive">⚪ Inativo</span>
+                    {% endif %}
+                </span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Tamanho:</span>
+                <span class="info-value">{{ portal.tamanho_mb }} MB</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Arquivo:</span>
+                <span class="info-value">{{ portal.arquivo_zip.name }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Data de Criação:</span>
+                <span class="info-value">{{ portal.data_criacao|date:"d/m/Y H:i" }}</span>
+            </div>
+            
+            {% if portal.descricao %}
+            <div class="info-row" style="flex-direction: column; align-items: flex-start;">
+                <span class="info-label" style="margin-bottom: 8px;">Descrição:</span>
+                <span class="info-value">{{ portal.descricao }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Conteúdo do ZIP -->
+        <div class="detail-card">
+            <h3><i class="fas fa-file-archive"></i> Conteúdo do ZIP</h3>
+            
+            {% if zip_content %}
+                <div class="zip-content">
+                    {% for file in zip_content %}
+                    <div class="zip-file-item">
+                        <span class="zip-file-name">{{ file.filename }}</span>
+                        <span class="zip-file-size">
+                            {% if file.size > 1048576 %}
+                                {{ file.size|floatformat:1|mul:9.537e-07|floatformat:1 }} MB
+                            {% elif file.size > 1024 %}
+                                {{ file.size|floatformat:1|mul:9.765625e-04|floatformat:0 }} KB
+                            {% else %}
+                                {{ file.size }} B
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">Não foi possível ler o conteúdo do arquivo ZIP.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Formulário de Edição -->
+    <div class="form-section">
+        <h3><i class="fas fa-edit"></i> Editar Portal</h3>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="nome" class="form-label">Nome do Portal</label>
+                <input type="text" id="nome" name="nome" class="form-control" 
+                       value="{{ portal.nome }}" required>
+                <div class="form-help">Nome descritivo para identificar este portal</div>
+            </div>
+
+            <div class="form-group">
+                <label for="versao" class="form-label">Versão</label>
+                <input type="text" id="versao" name="versao" class="form-control" 
+                       value="{{ portal.versao }}" required>
+                <div class="form-help">Versão do portal</div>
+            </div>
+
+            <div class="form-group">
+                <label for="descricao" class="form-label">Descrição</label>
+                <textarea id="descricao" name="descricao" class="form-control" rows="4">{{ portal.descricao }}</textarea>
+                <div class="form-help">Descrição opcional das características do portal</div>
+            </div>
+
+            <div class="form-group">
+                <label for="arquivo_zip" class="form-label">Novo Arquivo ZIP (Opcional)</label>
+                <input type="file" id="arquivo_zip" name="arquivo_zip" class="form-control-file" accept=".zip">
+                <div class="form-help">Deixe em branco para manter o arquivo atual</div>
+            </div>
+
+            <div class="form-group">
+                <div class="form-check">
+                    <input type="checkbox" id="ativo" name="ativo" class="form-check-input" 
+                           {% if portal.ativo %}checked{% endif %}>
+                    <label for="ativo" class="form-check-label">
+                        Marcar como portal ativo
+                    </label>
+                </div>
+                <div class="form-help">Apenas um portal pode estar ativo por vez</div>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar Alterações
+                </button>
+                <a href="{% url 'painel:portal_sem_video_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Ações -->
+    <div class="actions-section">
+        <h3><i class="fas fa-tools"></i> Ações</h3>
+        
+        <a href="{% url 'painel:portal_sem_video_download' portal.id %}" class="btn btn-success">
+            <i class="fas fa-download"></i> Download ZIP
+        </a>
+        
+        <a href="{% url 'painel:portal_sem_video_delete' portal.id %}" class="btn btn-danger"
+           onclick="return confirm('Tem certeza que deseja deletar este portal?')">
+            <i class="fas fa-trash"></i> Deletar Portal
+        </a>
+    </div>
+</div>
+{% endblock %}
