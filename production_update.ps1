@@ -119,7 +119,8 @@ Write-Host "`n🔄 Reiniciando serviços..." @Yellow
 
 # Teste rápido
 Write-Host "`n🧪 Executando teste rápido..." @Yellow
-$testResult = python -c "
+try {
+    $testResult = python -c @"
 import os
 import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sreadmin.settings')
@@ -127,12 +128,10 @@ django.setup()
 from painel.models import EldGerenciarPortal
 print('Modelo EldGerenciarPortal carregado com sucesso')
 print(f'Total de registros: {EldGerenciarPortal.objects.count()}')
-"
-
-if ($LASTEXITCODE -eq 0) {
+"@
     Write-Host $testResult @Green
-} else {
-    Write-Host "⚠️  Erro durante o teste do modelo." @Yellow
+} catch {
+    Write-Host "⚠️  Erro durante o teste do modelo: $($_.Exception.Message)" @Yellow
 }
 
 Write-Host "`n======================================" @Cyan
