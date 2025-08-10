@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title|capfirst }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{{ back_url }}">Captive Portal</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module aligned">
+    <div class="form-row">
+        <div style="padding: 20px; text-align: center;">
+            <h2>{{ title }}</h2>
+            <div class="help" style="margin: 20px 0; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                <p>{{ message }}</p>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <a href="{{ back_url }}" class="button" style="background: #417690; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px;">
+                    ← Voltar para Captive Portal
+                </a>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px;">
+                <h3>Para habilitar esta funcionalidade:</h3>
+                <ol style="text-align: left; display: inline-block;">
+                    <li>Execute: <code>pip install requests</code></li>
+                    <li>Descomente as URLs no arquivo <code>sreadmin/urls.py</code></li>
+                    <li>Restaure o link no template <code>base_site.html</code></li>
+                    <li>Reinicie o servidor Django</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

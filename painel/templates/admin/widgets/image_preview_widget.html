@@ -1,0 +1,54 @@
+{% load i18n %}
+<div class="image-preview-widget">
+    <div class="current-image" style="margin-bottom: 10px;">
+        {% if widget.value and widget.value.url %}
+            <img src="{{ widget.value.url }}" style="max-width: 200px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;" />
+            <p><small>Atual: {{ widget.value.name }}</small></p>
+        {% endif %}
+    </div>
+    
+    <div class="new-image-preview" style="margin-bottom: 10px; display: none;">
+        <img id="preview-{{ widget.attrs.id }}" style="max-width: 200px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;" />
+        <p><small id="filename-{{ widget.attrs.id }}"></small></p>
+    </div>
+    
+    <input type="{{ widget.type }}" name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %} id="id_{{ widget.name }}">
+    
+    {% if widget.value and widget.value.url %}
+        <div style="margin-top: 5px;">
+            <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}">
+            <label for="{{ widget.checkbox_id }}">{% trans "Clear" %}</label>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('id_{{ widget.name }}');
+    const previewDiv = document.querySelector('.new-image-preview');
+    const previewImg = document.getElementById('preview-{{ widget.attrs.id }}');
+    const filenameSpan = document.getElementById('filename-{{ widget.attrs.id }}');
+    
+    if (input) {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    filenameSpan.textContent = 'Nova imagem: ' + file.name;
+                    previewDiv.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else if (file) {
+                // Se não for imagem, mostrar apenas o nome do arquivo
+                filenameSpan.textContent = 'Arquivo selecionado: ' + file.name;
+                previewDiv.style.display = 'block';
+                previewImg.style.display = 'none';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        });
+    }
+});
+</script>

@@ -122,7 +122,7 @@ function applyTranslations() {
 function addStarlinkMenuLink() {
     var menuHtml = `
         <li class="nav-item">
-            <a href="{% url 'painel:starlink_admin' %}" class="nav-link">
+            <a href="/admin/painel/starlinkadminproxy/" class="nav-link">
                 <i class="nav-icon fas fa-satellite"></i>
                 <p>
                     Starlink Admin
@@ -362,7 +362,7 @@ observer.observe(document.body, {
             Starlink API
         </h4>
         
-        <a href="{% url 'painel:starlink_dashboard' %}" style="
+        <a href="/admin/starlink/dashboard/" style="
             display: block;
             padding: 12px;
             color: #333;
@@ -375,7 +375,7 @@ observer.observe(document.body, {
             Dashboard
         </a>
         
-        <a href="{% url 'painel:starlink_service_lines' %}" style="
+        <a href="/admin/starlink/service-lines/" style="
             display: block;
             padding: 12px;
             color: #333;
@@ -388,7 +388,7 @@ observer.observe(document.body, {
             Service Lines
         </a>
         
-        <a href="{% url 'painel:starlink_billing_report' %}" style="
+        <a href="/admin/starlink/billing-report/" style="
             display: block;
             padding: 12px;
             color: #333;
@@ -401,7 +401,7 @@ observer.observe(document.body, {
             Relatório
         </a>
         
-        <a href="{% url 'painel:starlink_detailed_report' %}" style="
+        <a href="/admin/starlink/detailed-report/" style="
             display: block;
             padding: 12px;
             color: #333;
@@ -414,7 +414,7 @@ observer.observe(document.body, {
             Relatório Detalhado
         </a>
         
-        <a href="{% url 'painel:starlink_api_status' %}" style="
+        <a href="/admin/starlink/api-status/" style="
             display: block;
             padding: 12px;
             color: #333;
@@ -495,8 +495,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Prevenir fechamento ao clicar no menu
+        // Permitir navegação nos links mas prevenir fechamento do menu em outros cliques
         dropdown.addEventListener('click', function(e) {
+            // Se clicou em um link (<a>), permitir navegação
+            if (e.target.tagName === 'A' || e.target.closest('a')) {
+                // Não prevenir o comportamento padrão - deixar o link funcionar
+                dropdown.style.display = 'none'; // Fechar menu após clique no link
+                return;
+            }
+            // Para outros elementos, prevenir fechamento
             e.stopPropagation();
         });
         

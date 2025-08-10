@@ -1,25 +1,32 @@
 """
 URLs para API do portal captive
-Rotas para integração com OpenSense
+Rotas para integração com Appliances POPPFIRE
 """
 from django.urls import path
 from .api_views import (
-    CaptivePortalAPIView,
-    VideoDownloadAPIView, 
-    PortalZipDownloadAPIView,
-    StatusAPIView
+    portal_status,
+    portal_download, 
+    portal_update_status,
+    api_info
 )
+from .setup_views import setup_appliance_tokens, check_appliance_tokens
 
 app_name = 'captive_portal_api'
 
 urlpatterns = [
-    # Status do servidor
-    path('status/', StatusAPIView.as_view(), name='status'),
+    # Informações da API
+    path('appliances/info/', api_info, name='api_info'),
     
-    # Configuração do portal captive
-    path('config/', CaptivePortalAPIView.as_view(), name='config'),
+    # Status do portal
+    path('appliances/portal/status/', portal_status, name='portal_status'),
     
-    # Downloads
-    path('download/video/<int:video_id>/', VideoDownloadAPIView.as_view(), name='download_video'),
-    path('download/zip/<int:config_id>/', PortalZipDownloadAPIView.as_view(), name='download_zip'),
+    # Download do portal
+    path('appliances/portal/download/', portal_download, name='portal_download'),
+    
+    # Status de atualização dos appliances
+    path('appliances/portal/update-status/', portal_update_status, name='update_status'),
+    
+    # URLs de setup (temporárias)
+    path('setup/tokens/', setup_appliance_tokens, name='setup_tokens'),
+    path('setup/check/', check_appliance_tokens, name='check_tokens'),
 ]

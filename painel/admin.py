@@ -46,7 +46,7 @@ class StarlinkAdminModelAdmin(admin.ModelAdmin):
         View personalizada que redireciona para nossa página principal
         """
         from django.shortcuts import redirect
-        return redirect('/admin/starlink/')
+        return redirect('/starlink/starlink/')  # Redireciona para a página principal do Starlink
     
     def has_module_permission(self, request):
         return True
@@ -360,16 +360,7 @@ class RadcheckAdmin(admin.ModelAdmin):
 # Removemos o registro automático do EldRegistroViewVideos para reregistrar dentro do grupo Captive Portal
 # @admin.register(EldRegistroViewVideos) - REMOVIDO
 
-# Modelo proxy para Logs de Vídeos dentro do grupo Captive Portal
-class LogsVideosProxy(EldRegistroViewVideos):
-    """
-    Proxy model para criar o submenu Logs de Vídeos Assistidos
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Logs de Vídeos Assistidos"
-        verbose_name_plural = "Logs de Vídeos Assistidos"
-        app_label = 'captive_portal'
+# PROXY MODELS MOVIDOS PARA painel/models.py
 
 class EldRegistroViewVideosAdmin(admin.ModelAdmin):
     list_display = ('username', 'video', 'formatted_date_view')
@@ -552,60 +543,10 @@ class UnidadesAdmin(admin.ModelAdmin):
 # CAPTIVE PORTAL ADMIN SECTION
 # ========================================
 
-# Modelo proxy principal para criar o menu "Gerenciar Captive Portal"
-class CaptivePortalProxy(EldUploadVideo):
-    """
-    Proxy model para criar o menu principal Gerenciar Captive Portal
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Gerenciar Vídeos"
-        verbose_name_plural = "Gerenciar Vídeos"
-        app_label = 'captive_portal'
-
-class CaptivePortalAdminModelAdmin(admin.ModelAdmin):
-    """
-    Admin personalizado para o menu principal Captive Portal
-    """
-    
-    def get_urls(self):
-        """
-        Sobrescreve as URLs para redirecionar para nossa view personalizada
-        """
-        urls = super().get_urls()
-        custom_urls = [
-            path('', self.admin_site.admin_view(self.captive_portal_view), name='painel_captiveportalproxy_changelist'),
-        ]
-        return custom_urls + urls
-    
-    def captive_portal_view(self, request):
-        """
-        View personalizada que redireciona para nossa página principal do ELD
-        """
-        from django.shortcuts import redirect
-        return redirect('/admin/eld/')
-    
-    def has_add_permission(self, request):
-        return False
-    
-    def has_change_permission(self, request, obj=None):
-        return False
-    
-    def has_delete_permission(self, request, obj=None):
-        return False
+# PROXY MODELS MOVIDOS PARA painel/models.py
 
 
-# REMOVIDO - Link redundante com "Gerenciar Captive Portal"
-# # Modelo proxy para criar submenu ELD Admin
-# class EldAdminProxy(EldUploadVideo):
-#     """
-#     Proxy model para criar o submenu ELD Admin
-#     """
-#     class Meta:
-#         proxy = True
-#         verbose_name = "ELD Admin"
-#         verbose_name_plural = "ELD Admin"
-#         app_label = 'captive_portal'
+
 
 # class EldAdminModelAdmin(admin.ModelAdmin):
 #     """
@@ -638,67 +579,14 @@ class CaptivePortalAdminModelAdmin(admin.ModelAdmin):
 #     def has_delete_permission(self, request, obj=None):
 #         return False
 
+# =====================================================================
+# PROXY MODELS IMPORTADOS DO MODELS.PY
+# =====================================================================
+from .models import (
+    GerenciarPortalProxy, ZipManagerProxy, NotificationsProxy, 
+    PortalSemVideoProxy, UploadVideosProxy
+)
 
-# Modelo proxy para Listagem de Vídeos dentro do grupo Captive Portal
-class UploadVideosProxy(EldUploadVideo):
-    """
-    Proxy model para criar o submenu Listagem de Vídeos
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Listagem de Vídeos"
-        verbose_name_plural = "Listagem de Vídeos"
-        app_label = 'captive_portal'
-
-
-# Modelo proxy para Gerenciar Portal dentro do grupo Captive Portal
-class GerenciarPortalProxy(EldGerenciarPortal):
-    """
-    Proxy model para criar o submenu Gerenciar Portal
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Gerenciar Captive Portal"
-        verbose_name_plural = "Gerenciar Captive Portal"
-        app_label = 'captive_portal'
-
-# Classe proxy para ZIP Manager
-class ZipManagerProxy(EldGerenciarPortal):
-    """
-    Proxy model para criar o item ZIP Manager no menu
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Gerenciar ZIP Portal"
-        verbose_name_plural = "Gerenciar ZIP Portal"
-        app_label = 'captive_portal'
-
-# Classe proxy para Notificações
-class NotificationsProxy(EldGerenciarPortal):
-    """
-    Proxy model para criar o item Notificações no menu
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Sistema de Notificações"
-        verbose_name_plural = "Sistema de Notificações" 
-        app_label = 'captive_portal'
-
-# Classe proxy para Portal sem Vídeo
-class PortalSemVideoProxy(EldPortalSemVideo):
-    """
-    Proxy model para criar o submenu Portal sem Vídeo
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Portal sem Vídeo"
-        verbose_name_plural = "Gerenciar Portal sem Vídeo"
-        app_label = 'captive_portal'
-    class Meta:
-        proxy = True
-        verbose_name = "Sistema de Notificações"
-        verbose_name_plural = "Sistema de Notificações"
-        app_label = 'captive_portal'
 
 # Admin para o modelo real EldUploadVideo (agora via proxy)
 # @admin.register(EldUploadVideo) - REMOVIDO para usar proxy
@@ -728,6 +616,14 @@ class EldUploadVideoAdmin(admin.ModelAdmin):
         return "N/A"
     get_video_link.short_description = "Visualizar"
     
+    def changelist_view(self, request, extra_context=None):
+        """
+        Customiza a view da listagem para adicionar botão de upload
+        """
+        extra_context = extra_context or {}
+        extra_context['upload_video_url'] = reverse('painel:eld_video_upload')
+        return super().changelist_view(request, extra_context)
+    
     def has_add_permission(self, request):
         # Usar a interface customizada para upload
         return False
@@ -737,13 +633,26 @@ class EldUploadVideoAdmin(admin.ModelAdmin):
 # ADMIN PARA GERENCIAR PORTAL CAPTIVE
 # ========================================
 
+# Formulário customizado para Portal com Vídeo
+class GerenciarPortalForm(forms.ModelForm):
+    """
+    Formulário customizado para esconder campos desnecessários no Portal com Vídeo
+    """
+    class Meta:
+        model = EldGerenciarPortal
+        fields = ['ativo', 'nome_video', 'captive_portal_zip']
+        widgets = {
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
 class EldGerenciarPortalAdmin(admin.ModelAdmin):
     """
     Admin personalizado para gerenciar as configurações do portal captive
     """
+    form = GerenciarPortalForm
+    
     list_display = [
         'status_display', 
-        'ativar_video', 
         'video_selecionado', 
         'portal_zip_status',
         'data_atualizacao',
@@ -751,7 +660,6 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
     ]
     
     list_filter = [
-        'ativar_video', 
         'ativo', 
         'data_criacao'
     ]
@@ -763,10 +671,8 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
     
     fields = [
         'ativo',
-        'ativar_video', 
         'nome_video', 
         'captive_portal_zip',
-        'portal_sem_video',
         'status_info'
     ]
     
@@ -790,24 +696,20 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
     
     def status_display(self, obj):
         """
-        Exibe o status da configuração com ícones
+        Exibe o status do portal com vídeo
         """
         if not obj.ativo:
             return format_html(
-                '<span style="color: #999;">⭕ Inativa</span>'
+                '<span style="color: #999;">⭕ Inativo</span>'
             )
         
-        if obj.ativar_video and obj.nome_video:
+        if obj.nome_video:
             return format_html(
-                '<span style="color: #28a745;">✅ Ativa - Vídeo configurado</span>'
-            )
-        elif obj.ativar_video:
-            return format_html(
-                '<span style="color: #ffc107;">⚠️ Ativa - Aguardando vídeo</span>'
+                '<span style="color: #28a745;">✅ Ativo - Vídeo customizado</span>'
             )
         else:
             return format_html(
-                '<span style="color: #17a2b8;">ℹ️ Ativa - Vídeo desativado</span>'
+                '<span style="color: #17a2b8;">ℹ️ Ativo - Vídeo padrão (ZIP)</span>'
             )
     
     status_display.short_description = "Status"
@@ -824,7 +726,7 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
                 obj.nome_video.video.url if obj.nome_video.video else '#',
                 video_name
             )
-        return format_html('<span style="color: #999;">Nenhum vídeo selecionado</span>')
+        return format_html('<span style="color: #17a2b8;">🎥 Vídeo padrão (do ZIP)</span>')
     
     video_selecionado.short_description = "Vídeo"
     
@@ -855,24 +757,25 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
         info_html.append(f"<p><strong>Status:</strong> {obj.status_configuracao}</p>")
         
         # Informações do vídeo
-        if obj.ativar_video:
-            if obj.nome_video:
-                info_html.append(f"<h4>Vídeo Configurado:</h4>")
-                video_name = obj.nome_video.video.name if obj.nome_video.video else f"Vídeo {obj.nome_video.id}"
-                info_html.append(f"<p><strong>Nome:</strong> {video_name}</p>")
-                info_html.append(f"<p><strong>Tamanho:</strong> {obj.nome_video.tamanho}MB</p>")
-                if obj.nome_video.video:
-                    info_html.append(f"<p><strong>URL do Vídeo:</strong> <a href='{obj.nome_video.video.url}' target='_blank'>{obj.nome_video.video.url}</a></p>")
-            else:
-                info_html.append(f"<p style='color: #dc3545;'><strong>⚠️ Atenção:</strong> Vídeo ativado mas nenhum vídeo selecionado!</p>")
+        if obj.nome_video:
+            info_html.append(f"<h4>Vídeo Customizado:</h4>")
+            video_name = obj.nome_video.video.name if obj.nome_video.video else f"Vídeo {obj.nome_video.id}"
+            info_html.append(f"<p><strong>Nome:</strong> {video_name}</p>")
+            info_html.append(f"<p><strong>Tamanho:</strong> {obj.nome_video.tamanho}MB</p>")
+            if obj.nome_video.video:
+                info_html.append(f"<p><strong>URL do Vídeo:</strong> <a href='{obj.nome_video.video.url}' target='_blank'>{obj.nome_video.video.url}</a></p>")
+        else:
+            info_html.append(f"<h4>Vídeo Padrão:</h4>")
+            info_html.append(f"<p style='color: #17a2b8;'><strong>ℹ️ Info:</strong> Usando vídeo padrão incluído no arquivo ZIP do portal.</p>")
+            info_html.append(f"<p><strong>Nota:</strong> Para usar um vídeo customizado, faça upload de vídeos e selecione um na lista acima.</p>")
         
         # Informações do ZIP
         if obj.captive_portal_zip:
             info_html.append(f"<h4>Portal ZIP:</h4>")
             info_html.append(f"<p><strong>Arquivo:</strong> <a href='{obj.captive_portal_zip.url}' target='_blank'>{obj.captive_portal_zip.name}</a></p>")
         
-        # URLs para OpenSense
-        info_html.append(f"<h4>URLs para OpenSense:</h4>")
+        # URLs para Appliance POPPFIRE
+        info_html.append(f"<h4>URLs para Appliance POPPFIRE:</h4>")
         video_url = obj.get_video_url()
         if video_url:
             info_html.append(f"<p><strong>URL do Vídeo:</strong> <code>{video_url}</code></p>")
@@ -885,119 +788,199 @@ class EldGerenciarPortalAdmin(admin.ModelAdmin):
     
     status_info.short_description = "Informações da Configuração"
     
-    def get_urls(self):
-        """
-        Adiciona URLs personalizadas para o sistema de notificações e ZIP manager
-        """
-        urls = super().get_urls()
-        custom_urls = [
-            path('zip-manager/', self.admin_site.admin_view(self.zip_manager_view), name='zip_manager'),
-            path('test-notifications/', self.admin_site.admin_view(self.test_notifications_view), name='test_notifications'),
-        ]
-        return custom_urls + urls
-    
-    def zip_manager_view(self, request):
-        """
-        View para o gerenciador de ZIP
-        """
-        from django.shortcuts import redirect
-        return redirect('/admin/painel/zip-manager/')
-    
-    def test_notifications_view(self, request):
-        """
-        View para testar notificações
-        """
-        from django.shortcuts import redirect
-        return redirect('/admin/painel/test-notifications/')
-
     def save_model(self, request, obj, form, change):
         """
-        Override para mostrar mensagens personalizadas
+        Override para mostrar mensagens personalizadas e sempre ativar vídeo
         """
         try:
+            # Verificar se houve mudança de vídeo
+            video_changed = False
+            old_video = None
+            new_video = None
+            
+            if change and obj.pk:
+                try:
+                    old_instance = obj.__class__.objects.get(pk=obj.pk)
+                    old_video = old_instance.nome_video
+                    new_video = obj.nome_video
+                    video_changed = old_video != new_video
+                except obj.__class__.DoesNotExist:
+                    pass
+            
+            # Como agora é sempre "Portal com Vídeo", sempre ativar o campo vídeo
+            obj.ativar_video = True
+            # Campo portal_sem_video não é usado no Portal com Vídeo
+            obj.portal_sem_video = None
+            
             super().save_model(request, obj, form, change)
             
             if obj.ativo:
-                if obj.ativar_video and obj.nome_video:
+                if obj.nome_video:
                     video_name = obj.nome_video.video.name if obj.nome_video.video else f"Vídeo {obj.nome_video.id}"
-                    messages.success(request, 
-                        f'✅ Configuração salva! Vídeo "{video_name}" está ativo e pronto para o OpenSense.')
-                elif obj.ativar_video:
-                    messages.warning(request,
-                        '⚠️ Configuração salva, mas você precisa selecionar um vídeo!')
+                    if video_changed and obj.captive_portal_zip:
+                        messages.success(request, 
+                            f'✅ Portal com Vídeo atualizado! Vídeo "{video_name}" foi substituído no arquivo ZIP e está ativo para o Appliance POPPFIRE.')
+                    else:
+                        messages.success(request, 
+                            f'✅ Portal com Vídeo configurado! Vídeo customizado "{video_name}" está ativo e pronto para o Appliance POPPFIRE.')
                 else:
-                    messages.info(request,
-                        'ℹ️ Configuração salva com vídeo desativado.')
+                    messages.success(request,
+                        '✅ Portal com Vídeo configurado! Usando vídeo padrão do ZIP.')
             else:
-                messages.info(request, 'Configuração salva como inativa.')
+                messages.info(request, 'Portal salvo como inativo.')
                 
         except Exception as e:
-            messages.error(request, f'Erro ao salvar configuração: {str(e)}')
+            messages.error(request, f'Erro ao salvar portal: {str(e)}')
 
     class Meta:
-        verbose_name = "Configuração do Portal"
-        verbose_name_plural = "Configurações do Portal"
+        verbose_name = "Configuração do Portal com Vídeo"
+        verbose_name_plural = "Configurações do Portal com Vídeo"
 
+
+
+# Formulário customizado para upload do portal sem vídeo
+from django import forms
+from .models import EldPortalSemVideo
+
+class ImagePreviewWidget(forms.ClearableFileInput):
+    """Widget customizado para mostrar preview da imagem"""
+    template_name = 'admin/widgets/image_preview_widget.html'
+    
+    def format_value(self, value):
+        if hasattr(value, 'url'):
+            return {
+                'url': value.url,
+                'name': value.name,
+            }
+        return value
+
+class PortalSemVideoUploadForm(forms.ModelForm):
+    class Meta:
+        model = EldPortalSemVideo
+        fields = ['nome', 'versao', 'descricao', 'arquivo_zip', 'ativo', 'preview']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Portal Corporativo'}),
+            'versao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 1.0'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'arquivo_zip': forms.FileInput(attrs={'accept': '.zip', 'class': 'form-control'}),
+            'preview': ImagePreviewWidget(attrs={'accept': 'image/*', 'class': 'form-control'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 class EldPortalSemVideoAdmin(admin.ModelAdmin):
     """
     Admin para gerenciar portais sem vídeo
     """
-    list_display = ['nome', 'versao', 'status_display', 'tamanho_mb', 'data_atualizacao', 'actions_display']
+    form = PortalSemVideoUploadForm
+    list_display = ['nome', 'versao', 'status_display', 'tamanho_mb', 'data_atualizacao', 'preview_display', 'actions_display']
     list_filter = ['ativo', 'data_criacao']
     search_fields = ['nome', 'versao', 'descricao']
     readonly_fields = ['tamanho_mb', 'data_criacao', 'data_atualizacao']
     ordering = ['-data_atualizacao']
-    
+
     fields = [
+        'ativo',
         'nome',
-        'versao', 
+        'versao',
         'descricao',
         'arquivo_zip',
-        'ativo',
         'tamanho_mb',
+        'preview',
         'data_criacao',
         'data_atualizacao'
     ]
-    
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('upload/', self.admin_site.admin_view(self.upload_portal_view), name='portal_sem_video_upload'),
+            path('add/', self.admin_site.admin_view(self.upload_portal_view), name='painel_eldportalsemvideo_add'),
+        ]
+        return custom_urls + urls
+
+    def upload_portal_view(self, request):
+        from django.shortcuts import redirect
+        
+        # Detectar se está sendo acessado via captive_portal app
+        is_captive_portal = 'captive_portal' in request.path
+        template_name = 'admin/captive_portal/portalsemvideoproxy/add_form.html' if is_captive_portal else 'admin/painel/portalsemvideoproxy/upload_list.html'
+        
+        if request.method == 'POST':
+            form = PortalSemVideoUploadForm(request.POST, request.FILES)
+            print(f"Form data: {request.POST}")
+            print(f"Files data: {request.FILES}")
+            if form.is_valid():
+                print("Form is valid, saving...")
+                portal = form.save(commit=False)
+                
+                # Calcular tamanho do arquivo ZIP se foi fornecido
+                if portal.arquivo_zip:
+                    try:
+                        portal.tamanho_mb = round(portal.arquivo_zip.size / (1024 * 1024), 2)
+                        print(f"Calculated file size: {portal.tamanho_mb} MB")
+                    except Exception as e:
+                        print(f"Error calculating file size: {e}")
+                        portal.tamanho_mb = 0.0
+                
+                portal.save()
+                print(f"Portal saved: {portal}")
+                messages.success(request, f'Portal sem vídeo cadastrado com sucesso! Tamanho: {portal.tamanho_mb}MB')
+                return redirect('..')
+            else:
+                print(f"Form errors: {form.errors}")
+                messages.error(request, f'Erro no formulário: {form.errors}')
+        else:
+            form = PortalSemVideoUploadForm()
+        
+        # Listagem dos portais cadastrados
+        portais = EldPortalSemVideo.objects.all().order_by('-data_atualizacao')
+        context = self.admin_site.each_context(request)
+        context.update({
+            'form': form,
+            'portais': portais,
+            'opts': self.model._meta,
+            'title': 'Upload de Portal Sem Vídeo',
+            'timestamp': int(__import__('time').time()),  # Para evitar cache
+        })
+        return render(request, template_name, context)
+
+    def preview_display(self, obj):
+        if hasattr(obj, 'preview') and obj.preview:
+            return format_html('<img src="{}" style="max-width:120px; max-height:80px;" />', obj.preview.url)
+        return '—'
+    preview_display.short_description = 'Preview'
+
     def status_display(self, obj):
-        """Exibe o status com ícone"""
         if obj.ativo:
-            return format_html(
-                '<span style="color: green; font-weight: bold;">✅ Ativo</span>'
-            )
-        return format_html(
-            '<span style="color: #999;">⚪ Inativo</span>'
-        )
+            return format_html('<span style="color: green; font-weight: bold;">✅ Ativo</span>')
+        return format_html('<span style="color: #999;">⚪ Inativo</span>')
     status_display.short_description = "Status"
-    
+
     def actions_display(self, obj):
-        """Exibe ações personalizadas"""
         download_url = reverse('painel:portal_sem_video_download', args=[obj.id])
-        return format_html(
-            '<a href="{}" class="button" target="_blank">📥 Download</a>',
-            download_url
-        )
+        return format_html('<a href="{}" class="button" target="_blank">📥 Download</a>', download_url)
     actions_display.short_description = "Ações"
-    
+
     def save_model(self, request, obj, form, change):
-        """Override para mostrar mensagens personalizadas"""
         try:
+            # Calcular tamanho antes de salvar
+            if obj.arquivo_zip:
+                try:
+                    obj.tamanho_mb = round(obj.arquivo_zip.size / (1024 * 1024), 2)
+                except:
+                    obj.tamanho_mb = 0.0
+            
             super().save_model(request, obj, form, change)
             
             if obj.ativo:
-                messages.success(request, 
-                    f'✅ Portal "{obj.nome}" v{obj.versao} salvo e ativado! ({obj.tamanho_mb}MB)')
+                messages.success(request, f'✅ Portal "{obj.nome}" v{obj.versao} salvo e ativado! ({obj.tamanho_mb}MB)')
             else:
-                messages.info(request, 
-                    f'ℹ️ Portal "{obj.nome}" v{obj.versao} salvo como inativo.')
-                
+                messages.info(request, f'ℹ️ Portal "{obj.nome}" v{obj.versao} salvo como inativo. ({obj.tamanho_mb}MB)')
         except Exception as e:
             messages.error(request, f'Erro ao salvar portal: {str(e)}')
 
     def has_add_permission(self, request):
-        # Usar interface customizada para upload
-        return False
+        return True
 
 
 # ========================================
@@ -1020,10 +1003,10 @@ class ZipManagerAdmin(admin.ModelAdmin):
     
     def zip_manager_view(self, request):
         """
-        View personalizada que redireciona para o ZIP Manager
+        View personalizada que chama diretamente o ZIP Manager
         """
-        from django.shortcuts import redirect
-        return redirect('/admin/painel/zip-manager/')
+        from . import admin_views
+        return admin_views.zip_manager_view(request)
     
     def has_add_permission(self, request):
         return False
@@ -1055,10 +1038,10 @@ class NotificationsAdmin(admin.ModelAdmin):
     
     def notifications_view(self, request):
         """
-        View personalizada que redireciona para o sistema de notificações
+        View personalizada que chama diretamente o sistema de notificações
         """
-        from django.shortcuts import redirect
-        return redirect('/admin/painel/test-notifications/')
+        from . import admin_views
+        return admin_views.test_notifications_view(request)
     
     def has_add_permission(self, request):
         return False
@@ -1074,14 +1057,5 @@ class NotificationsAdmin(admin.ModelAdmin):
 # REGISTROS DOS MODELOS PROXY - CAPTIVE PORTAL
 # ========================================
 
-# Registrar o modelo proxy principal do Captive Portal
-admin.site.register(CaptivePortalProxy, CaptivePortalAdminModelAdmin)
-
-# Registrar os submenus dentro do grupo Captive Portal
-# admin.site.register(EldAdminProxy, EldAdminModelAdmin)  # REMOVIDO - redundante com CaptivePortalProxy
-admin.site.register(LogsVideosProxy, EldRegistroViewVideosAdmin)
-admin.site.register(UploadVideosProxy, EldUploadVideoAdmin)
-admin.site.register(GerenciarPortalProxy, EldGerenciarPortalAdmin)  # REABILITADO - tabela recriada
-admin.site.register(ZipManagerProxy, ZipManagerAdmin)  # NOVO - Gerenciador de ZIP
-admin.site.register(NotificationsProxy, NotificationsAdmin)  # NOVO - Sistema de Notificações
-admin.site.register(PortalSemVideoProxy, EldPortalSemVideoAdmin)  # NOVO - Portal sem Vídeo
+# MOVIDOS PARA captive_portal/admin.py PARA CORREÇÃO DE URLS
+# Os proxy models com app_label='captive_portal' devem ser registrados lá

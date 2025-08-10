@@ -1,0 +1,293 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/image_preview.css' %}?v={{ timestamp }}">
+    <style>
+        /* CSS inline para garantir que funcione */
+        .portal-ativo-destaque {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .portal-ativo-destaque label {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #007bff;
+        }
+        .file-size-info {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+        }
+        .image-preview-widget .current-image img,
+        .image-preview-widget .new-image-preview img {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+    </style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{{ title }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- Primeira linha: Portal Ativo -->
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <div class="form-group">
+                                            <div class="portal-ativo-destaque">
+                                                {{ form.ativo }}
+                                                <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                                    {{ form.ativo.label }}
+                                                </label>
+                                                {% if form.ativo.help_text %}
+                                                    <small class="form-text text-muted d-block mt-2">{{ form.ativo.help_text }}</small>
+                                                {% endif %}
+                                                {% if form.ativo.errors %}
+                                                    <div class="text-danger">{{ form.ativo.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+                                    {{ form.nome }}
+                                    {% if form.nome.help_text %}
+                                        <small class="form-text text-muted">{{ form.nome.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.nome.errors %}
+                                        <div class="text-danger">{{ form.nome.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.versao.id_for_label }}">{{ form.versao.label }}</label>
+                                    {{ form.versao }}
+                                    {% if form.versao.help_text %}
+                                        <small class="form-text text-muted">{{ form.versao.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.versao.errors %}
+                                        <div class="text-danger">{{ form.versao.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+                                    {{ form.descricao }}
+                                    {% if form.descricao.help_text %}
+                                        <small class="form-text text-muted">{{ form.descricao.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.descricao.errors %}
+                                        <div class="text-danger">{{ form.descricao.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.arquivo_zip.id_for_label }}">{{ form.arquivo_zip.label }}</label>
+                                    {{ form.arquivo_zip }}
+                                    {% if form.arquivo_zip.help_text %}
+                                        <small class="form-text text-muted">{{ form.arquivo_zip.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.arquivo_zip.errors %}
+                                        <div class="text-danger">{{ form.arquivo_zip.errors }}</div>
+                                    {% endif %}
+                                    
+                                    <!-- Tamanho do arquivo ZIP -->
+                                    <div class="file-size-info mt-2">
+                                        <strong>Tamanho (MB):</strong> 
+                                        <span id="file-size-display" style="color: #666;">Nenhum arquivo selecionado</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.preview.id_for_label }}">{{ form.preview.label }}</label>
+                                    {{ form.preview }}
+                                    {% if form.preview.help_text %}
+                                        <small class="form-text text-muted">{{ form.preview.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.preview.errors %}
+                                        <div class="text-danger">{{ form.preview.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <h6>💡 Dicas:</h6>
+                                    <ul style="margin-bottom: 0; padding-left: 20px;">
+                                        <li>Use imagens PNG, JPG ou JPEG</li>
+                                        <li>A imagem será redimensionada automaticamente</li>
+                                        <li>Tamanho recomendado: 800x600px</li>
+                                        <li>O arquivo ZIP será automaticamente medido</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salvar Portal
+                            </button>
+                            <a href="../" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if portais %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Portais Cadastrados</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Versão</th>
+                                    <th>Status</th>
+                                    <th>Tamanho</th>
+                                    <th>Preview</th>
+                                    <th>Data</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for portal in portais %}
+                                <tr>
+                                    <td>{{ portal.nome }}</td>
+                                    <td>{{ portal.versao }}</td>
+                                    <td>
+                                        {% if portal.ativo %}
+                                            <span class="badge badge-success">✅ Ativo</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">⚪ Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ portal.tamanho_mb }}MB</td>
+                                    <td>
+                                        {% if portal.preview %}
+                                            <img src="{{ portal.preview.url }}" style="max-width: 60px; max-height: 40px;" class="img-thumbnail" />
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ portal.data_atualizacao|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <a href="../{{ portal.id }}/change/" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para formatar bytes em MB
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 MB';
+        const mb = bytes / (1024 * 1024);
+        return mb.toFixed(2) + ' MB';
+    }
+    
+    // Debug para o input de preview
+    const previewInput = document.querySelector('input[name="preview"]');
+    if (previewInput) {
+        previewInput.addEventListener('change', function(e) {
+            console.log('Preview file selected:', e.target.files[0]);
+            if (e.target.files[0]) {
+                console.log('File name:', e.target.files[0].name);
+                console.log('File size:', e.target.files[0].size);
+                console.log('File type:', e.target.files[0].type);
+            }
+        });
+    }
+    
+    // Monitorar mudanças no arquivo ZIP e atualizar o tamanho
+    const zipInput = document.querySelector('input[name="arquivo_zip"]');
+    const fileSizeDisplay = document.getElementById('file-size-display');
+    
+    if (zipInput && fileSizeDisplay) {
+        zipInput.addEventListener('change', function(e) {
+            console.log('ZIP file input changed:', e.target.files);
+            
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                const fileSize = formatFileSize(file.size);
+                const fileName = file.name;
+                
+                console.log('ZIP file details:', {
+                    name: fileName,
+                    size: file.size,
+                    sizeFormatted: fileSize,
+                    type: file.type
+                });
+                
+                // Atualizar o display do tamanho
+                fileSizeDisplay.innerHTML = `<strong>${fileSize}</strong> (${fileName})`;
+                fileSizeDisplay.style.color = '#28a745';
+                
+                // Validar se é um arquivo ZIP
+                if (!fileName.toLowerCase().endsWith('.zip')) {
+                    fileSizeDisplay.innerHTML += '<br><span style="color: #dc3545;">⚠️ Atenção: O arquivo deve ter extensão .zip</span>';
+                }
+            } else {
+                fileSizeDisplay.textContent = 'Nenhum arquivo selecionado';
+                fileSizeDisplay.style.color = '#6c757d';
+            }
+        });
+    }
+    
+    // Debug para todos os inputs de arquivo
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            console.log('File input changed:', input.name, e.target.files);
+        });
+    });
+});
+</script>
+{% endblock %}

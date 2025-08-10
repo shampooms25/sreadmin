@@ -1,0 +1,30 @@
+{
+    "generated_at": "2025-08-09T15:30:00Z",
+    "total_tokens": 3,
+    "tokens": {
+        "test-token-123456789": {
+            "appliance_id": "TEST-APPLIANCE",
+            "appliance_name": "Appliance de Teste",
+            "description": "Token de teste para desenvolvimento",
+            "created_at": "2025-08-09T10:00:00Z",
+            "last_used": null,
+            "ip_address": null
+        },
+        "f8e7d6c5b4a3928170695e4c3d2b1a0f": {
+            "appliance_id": "APPLIANCE-001",
+            "appliance_name": "Appliance POPPFIRE 001",
+            "description": "Token para appliance de produção 001",
+            "created_at": "2025-08-09T10:00:00Z",
+            "last_used": "2025-08-09T08:59:23.593932",
+            "ip_address": null
+        },
+        "1234567890abcdef1234567890abcdef": {
+            "appliance_id": "APPLIANCE-DEV",
+            "appliance_name": "Appliance de Desenvolvimento",
+            "description": "Token para desenvolvimento e testes",
+            "created_at": "2025-08-09T10:00:00Z",
+            "last_used": null,
+            "ip_address": null
+        }
+    }
+}

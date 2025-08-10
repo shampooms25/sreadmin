@@ -499,7 +499,7 @@ class EldGerenciarPortal(models.Model):
     ativar_video = models.BooleanField(
         default=False,
         verbose_name="Ativar Vídeo",
-        help_text="Ativar para permitir que o OpenSense baixe e exiba vídeos no portal captive"
+        help_text="Ativar para permitir que o Appliance POPPFIRE baixe e exiba vídeos no portal captive"
     )
     
     # Campo para selecionar qual vídeo será exibido
@@ -557,36 +557,28 @@ class EldGerenciarPortal(models.Model):
         ordering = ['-data_atualizacao']
 
     def __str__(self):
-        status_video = "✅ Ativo" if self.ativar_video else "❌ Inativo"
         if self.nome_video:
             video_nome = self.nome_video.video.name if self.nome_video.video else f"Vídeo {self.nome_video.id}"
         else:
             video_nome = "Nenhum vídeo selecionado"
-        return f"Portal Captive - Vídeo: {status_video} | {video_nome}"
+        status = "✅ Ativo" if self.ativo else "❌ Inativo"
+        return f"Portal com Vídeo - {status} | {video_nome}"
 
     def clean(self):
         """
-        Validações personalizadas do modelo
+        Validações personalizadas do modelo - Portal com Vídeo
         """
         from django.core.exceptions import ValidationError
         super().clean()
         
-        # Se ativar_video for True, nome_video deve ser obrigatório
-        if self.ativar_video and not self.nome_video:
-            raise ValidationError({
-                'nome_video': 'Quando o vídeo estiver ativado, você deve selecionar um vídeo.'
-            })
+        # Para Portal com Vídeo, sempre ativar_video deve ser True
+        if not self.ativar_video:
+            self.ativar_video = True
         
-        # Se ativar_video for True, captive_portal_zip deve estar presente
-        if self.ativar_video and not self.captive_portal_zip:
+        # Arquivo ZIP do portal é obrigatório
+        if not self.captive_portal_zip:
             raise ValidationError({
-                'captive_portal_zip': 'Quando o vídeo estiver ativado, você deve fazer upload do arquivo src.zip.'
-            })
-        
-        # Se ativar_video for False, portal_sem_video deve estar presente
-        if not self.ativar_video and not self.portal_sem_video:
-            raise ValidationError({
-                'portal_sem_video': 'Quando o vídeo estiver desativado, você deve selecionar um portal sem vídeo.'
+                'captive_portal_zip': 'Você deve fazer upload do arquivo ZIP do portal.'
             })
         
         # Garantir que apenas uma configuração esteja ativa
@@ -604,65 +596,139 @@ class EldGerenciarPortal(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Override do save para aplicar validações
+        Override do save para aplicar validações e substituir vídeo no ZIP
         """
+        # Verificar se é uma atualização com mudança de vídeo
+        is_video_change = False
+        old_video = None
+        
+        if self.pk:
+            try:
+                old_instance = EldGerenciarPortal.objects.get(pk=self.pk)
+                old_video = old_instance.nome_video
+                is_video_change = old_video != self.nome_video
+            except EldGerenciarPortal.DoesNotExist:
+                pass
+        
         self.clean()
         super().save(*args, **kwargs)
+        
+        # Se houve mudança de vídeo e temos um ZIP, substituir o vídeo dentro do ZIP
+        if is_video_change and self.captive_portal_zip and self.nome_video:
+            self._substitute_video_in_zip()
+    
+    def _substitute_video_in_zip(self):
+        """
+        Substitui o vídeo dentro do arquivo ZIP na pasta src/assets/videos
+        """
+        import os
+        import zipfile
+        import tempfile
+        import shutil
+        from django.core.files.base import ContentFile
+        
+        try:
+            # Caminho do arquivo ZIP atual
+            zip_path = self.captive_portal_zip.path
+            
+            if not os.path.exists(zip_path):
+                print(f"[ERRO] Arquivo ZIP não encontrado: {zip_path}")
+                return
+            
+            # Caminho do novo vídeo
+            if not self.nome_video or not self.nome_video.video:
+                print("[ERRO] Nenhum vídeo selecionado para substituição")
+                return
+                
+            video_path = self.nome_video.video.path
+            if not os.path.exists(video_path):
+                print(f"[ERRO] Arquivo de vídeo não encontrado: {video_path}")
+                return
+            
+            print(f"[INFO] Iniciando substituição de vídeo no ZIP...")
+            print(f"[INFO] ZIP: {zip_path}")
+            print(f"[INFO] Novo vídeo: {video_path}")
+            
+            # Criar diretório temporário
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_zip_path = os.path.join(temp_dir, "temp_portal.zip")
+                
+                # Abrir ZIP original e criar novo ZIP temporário
+                with zipfile.ZipFile(zip_path, 'r') as original_zip:
+                    with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED) as new_zip:
+                        
+                        # Copiar todos os arquivos exceto vídeos antigos na pasta src/assets/videos
+                        for item in original_zip.infolist():
+                            # Pular arquivos de vídeo na pasta src/assets/videos
+                            if item.filename.startswith('src/assets/videos/') and item.filename.lower().endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv')):
+                                print(f"[INFO] Removendo vídeo antigo: {item.filename}")
+                                continue
+                            
+                            # Copiar outros arquivos
+                            data = original_zip.read(item.filename)
+                            new_zip.writestr(item, data)
+                        
+                        # Adicionar o novo vídeo na pasta src/assets/videos
+                        video_filename = os.path.basename(video_path)
+                        zip_video_path = f"src/assets/videos/{video_filename}"
+                        
+                        with open(video_path, 'rb') as video_file:
+                            new_zip.writestr(zip_video_path, video_file.read())
+                        
+                        print(f"[INFO] Novo vídeo adicionado: {zip_video_path}")
+                
+                # Substituir o arquivo ZIP original
+                shutil.move(temp_zip_path, zip_path)
+                print(f"[SUCESSO] Vídeo substituído com sucesso no ZIP!")
+                
+        except Exception as e:
+            print(f"[ERRO] Falha ao substituir vídeo no ZIP: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def get_video_url(self):
         """
-        Retorna a URL do vídeo selecionado para o OpenSense
+        Retorna a URL do vídeo selecionado para o Appliance POPPFIRE
         """
-        if self.ativar_video and self.nome_video:
+        if self.nome_video:
             return self.nome_video.video.url
         return None
 
     def get_portal_zip_url(self):
         """
-        Retorna a URL do arquivo ZIP correto baseado na configuração
+        Retorna a URL do arquivo ZIP do Portal com Vídeo
         """
-        if self.ativar_video and self.captive_portal_zip:
-            # Com vídeo: usar src.zip
+        if self.captive_portal_zip:
             return self.captive_portal_zip.url
-        elif not self.ativar_video and self.portal_sem_video:
-            # Sem vídeo: usar scripts_poppnet_sre.zip
-            return self.portal_sem_video.arquivo_zip.url
         return None
     
     def get_portal_zip_path(self):
         """
-        Retorna o caminho físico do arquivo ZIP correto
+        Retorna o caminho físico do arquivo ZIP do Portal com Vídeo
         """
-        if self.ativar_video and self.captive_portal_zip:
+        if self.captive_portal_zip:
             return self.captive_portal_zip.path
-        elif not self.ativar_video and self.portal_sem_video:
-            return self.portal_sem_video.arquivo_zip.path
         return None
     
     def get_portal_zip_name(self):
         """
-        Retorna o nome do arquivo ZIP correto para download
+        Retorna o nome do arquivo ZIP para download (sempre src.zip para Portal com Vídeo)
         """
-        if self.ativar_video:
-            return "src.zip"
-        else:
-            return "scripts_poppnet_sre.zip"
+        return "src.zip"
 
     @property
     def status_configuracao(self):
         """
-        Retorna o status da configuração em formato legível
+        Retorna o status da configuração em formato legível - Portal com Vídeo
         """
         if not self.ativo:
-            return "Inativa"
+            return "Inativo"
         
-        if self.ativar_video and self.nome_video:
+        if self.nome_video:
             video_name = self.nome_video.video.name if self.nome_video.video else f"Vídeo {self.nome_video.id}"
-            return f"Ativa - Vídeo: {video_name}"
-        elif self.ativar_video:
-            return "Ativa - Aguardando seleção de vídeo"
+            return f"Ativo - Vídeo customizado: {video_name}"
         else:
-            return "Ativa - Vídeo desativado"
+            return "Ativo - Vídeo padrão (do ZIP)"
 
     @classmethod
     def get_configuracao_ativa(cls):
@@ -735,6 +801,59 @@ class EldPortalSemVideo(models.Model):
         help_text="Tamanho do arquivo ZIP em MB"
     )
     
+    preview = models.ImageField(
+        upload_to='portais_sem_video/previews/',
+        blank=True,
+        null=True,
+        verbose_name='Preview do Portal',
+        help_text="Imagem de preview/screenshot do portal"
+    )
+
+    def save(self, *args, **kwargs):
+        # Calcular tamanho do arquivo ZIP
+        if self.arquivo_zip:
+            try:
+                self.tamanho_mb = round(self.arquivo_zip.size / (1024 * 1024), 2)
+            except:
+                self.tamanho_mb = 0.0
+        
+        # Salvar primeiro para ter o arquivo disponível
+        super().save(*args, **kwargs)
+        
+        # Redimensionar a imagem de preview se foi fornecida
+        if self.preview:
+            self._resize_preview()
+    
+    def _resize_preview(self):
+        """Redimensiona a imagem de preview para um tamanho otimizado"""
+        try:
+            from PIL import Image
+            import os
+            from django.conf import settings
+            
+            # Caminho completo para a imagem
+            image_path = os.path.join(settings.MEDIA_ROOT, self.preview.name)
+            
+            # Abrir e redimensionar
+            with Image.open(image_path) as img:
+                # Converter para RGB se necessário (para PNG com transparência)
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                    img = background
+                
+                # Redimensionar mantendo proporção (máximo 400x300)
+                img.thumbnail((400, 300), Image.Resampling.LANCZOS)
+                
+                # Salvar com qualidade otimizada
+                img.save(image_path, 'JPEG', quality=85, optimize=True)
+                
+        except Exception as e:
+            # Log do erro mas não falha o save
+            print(f"Erro ao redimensionar preview: {e}")
+    
     class Meta:
         db_table = 'eld_portal_sem_video'
         verbose_name = "Portal sem Vídeo"
@@ -791,3 +910,84 @@ class EldPortalSemVideo(models.Model):
             portal_ativo = portais.first()
             portais.exclude(pk=portal_ativo.pk).update(ativo=False)
             return portal_ativo
+
+
+# =====================================================================
+# PROXY MODELS PARA ORGANIZAR MENU ADMINISTRATIVO
+# =====================================================================
+
+class GerenciarPortalProxy(EldGerenciarPortal):
+    """
+    Proxy model para o menu Gerenciar Portal com Vídeo
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Gerenciar Portal com Vídeo"
+        verbose_name_plural = "Gerenciar Portal com Vídeo"
+        app_label = 'captive_portal'
+
+
+class ZipManagerProxy(EldGerenciarPortal):
+    """
+    Proxy model para gerenciar arquivos ZIP do portal
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Gerenciar ZIP Portal"
+        verbose_name_plural = "Gerenciar ZIP Portal"
+        app_label = 'captive_portal'
+
+
+class NotificationsProxy(EldGerenciarPortal):
+    """
+    Proxy model para sistema de notificações
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Sistema de Notificações"
+        verbose_name_plural = "Sistema de Notificações"
+        app_label = 'captive_portal'
+
+
+class PortalSemVideoProxy(EldPortalSemVideo):
+    """
+    Proxy model para portais sem vídeo
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Portal sem Vídeo"
+        verbose_name_plural = "Gerenciar Portal sem Vídeo"
+        app_label = 'captive_portal'
+
+
+class UploadVideosProxy(EldUploadVideo):
+    """
+    Proxy model para upload de vídeos
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Gerenciar Vídeos"
+        verbose_name_plural = "Gerenciar Vídeos"
+        app_label = 'captive_portal'
+
+
+class CaptivePortalProxy(EldGerenciarPortal):
+    """
+    Proxy model principal para o app Captive Portal
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Captive Portal"
+        verbose_name_plural = "Captive Portal"
+        app_label = 'captive_portal'
+
+
+class LogsVideosProxy(EldRegistroViewVideos):
+    """
+    Proxy model para logs de vídeos
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Logs de Vídeos"
+        verbose_name_plural = "Logs de Vídeos"
+        app_label = 'captive_portal'

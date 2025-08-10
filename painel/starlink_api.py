@@ -2,7 +2,10 @@
 Módulo para integração com a API da Starlink
 """
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 import time
 import json
 from datetime import datetime, timedelta
@@ -88,6 +91,9 @@ def get_token(client_id, client_secret):
     """
     Obtém um novo token de acesso da API Starlink
     """
+    if requests is None:
+        raise Exception("Módulo requests não disponível")
+        
     payload = {
         "client_id": client_id,
         "client_secret": client_secret,
@@ -961,19 +967,29 @@ def get_usage_report_data(account_id=None, cycle_start=None, cycle_end=None):
             current_cycle_data = None
             billing_cycles = billing_result.get("billingCycles", [])
             
-            # Procurar pelo ciclo atual (julho 2025 ou o mais recente)
-            for cycle in billing_cycles:
-                start_date = cycle.get("startDate", "")
-                end_date = cycle.get("endDate", "")
+            # Converter cycle_start e cycle_end para formato da API se fornecidos
+            if cycle_start and cycle_end:
+                # Converter de DD/MM/YYYY para YYYY-MM-DD
+                cycle_start_api = datetime.strptime(cycle_start, "%d/%m/%Y").strftime("%Y-%m-%d")
+                cycle_end_api = datetime.strptime(cycle_end, "%d/%m/%Y").strftime("%Y-%m-%d")
                 
-                # Priorizar ciclo de julho 2025, ou pegar o mais recente
-                if "2025-07-03" in start_date or "2025-08-03" in end_date:
-                    current_cycle_data = cycle
-                    break
+                print(f"🔍 Procurando ciclo que contenha: {cycle_start_api} até {cycle_end_api}")
+                
+                # Procurar pelo ciclo que contenha o período atual
+                for cycle in billing_cycles:
+                    start_date = cycle.get("startDate", "")[:10]  # Só a data, sem hora
+                    end_date = cycle.get("endDate", "")[:10]
+                    
+                    # Verificar se o ciclo atual está dentro do período do billing cycle
+                    if start_date <= cycle_start_api and end_date >= cycle_end_api:
+                        current_cycle_data = cycle
+                        print(f"✅ Ciclo encontrado: {start_date} até {end_date}")
+                        break
             
-            # Se não encontrou ciclo de julho, pegar o primeiro disponível
+            # Se não encontrou com filtro de data, pegar o mais recente
             if not current_cycle_data and billing_cycles:
                 current_cycle_data = billing_cycles[0]
+                print(f"⚠️  Usando ciclo mais recente disponível")
             
             if not current_cycle_data:
                 print(f"⚠️  Ciclo atual não encontrado para {service_line_number}")
@@ -981,6 +997,20 @@ def get_usage_report_data(account_id=None, cycle_start=None, cycle_end=None):
             
             # Calcular consumo real baseado em dailyDataUsage
             daily_usage = current_cycle_data.get("dailyDataUsage", [])
+            
+            # Filtrar apenas os dias do ciclo atual se cycle_start e cycle_end foram fornecidos
+            if cycle_start and cycle_end and daily_usage:
+                cycle_start_api = datetime.strptime(cycle_start, "%d/%m/%Y").strftime("%Y-%m-%d")
+                cycle_end_api = datetime.strptime(cycle_end, "%d/%m/%Y").strftime("%Y-%m-%d")
+                
+                filtered_usage = []
+                for day in daily_usage:
+                    day_date = day.get("date", "")[:10]  # Só a data, sem hora
+                    if cycle_start_api <= day_date <= cycle_end_api:
+                        filtered_usage.append(day)
+                
+                daily_usage = filtered_usage
+                print(f"📊 Filtrados {len(daily_usage)} dias do período {cycle_start} até {cycle_end}")
             
             priority_gb = 0
             standard_gb = 0

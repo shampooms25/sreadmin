@@ -14,8 +14,8 @@ class Migration(migrations.Migration):
             name='captiveportalproxy',
             options={'verbose_name': 'Gerenciar Vídeos', 'verbose_name_plural': 'Gerenciar Vídeos'},
         ),
-        migrations.AlterModelOptions(
-            name='gerenciarportalproxy',
-            options={'verbose_name': 'Gerenciar Captive Portal', 'verbose_name_plural': 'Gerenciar Captive Portal'},
-        ),
+        # migrations.AlterModelOptions(
+        #     name='gerenciarportalproxy',
+        #     options={'verbose_name': 'Gerenciar Captive Portal', 'verbose_name_plural': 'Gerenciar Captive Portal'},
+        # ),
     ]

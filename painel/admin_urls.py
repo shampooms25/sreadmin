@@ -1,7 +1,7 @@
 from django.urls import path
 from . import admin_views
 
-app_name = 'admin_painel'
+app_name = 'painel_admin'
 
 urlpatterns = [
     # ZIP Manager Views
