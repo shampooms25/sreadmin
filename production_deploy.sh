@@ -111,8 +111,14 @@ if [ -f "backup_tokens.json" ]; then
     python manage.py loaddata backup_tokens.json || echo "⚠️ Erro ao restaurar tokens"
 fi
 
-# Sincronizar tokens do JSON se existe
+# Ajustar permissões e sincronizar tokens do JSON se existe
 if [ -f "appliance_tokens.json" ]; then
+    echo "🔄 Verificando permissões do arquivo JSON..."
+    
+    # Ajustar permissões do arquivo JSON
+    chmod 644 appliance_tokens.json 2>/dev/null || echo "⚠️ Não foi possível ajustar permissões do JSON"
+    chown www-data:www-data appliance_tokens.json 2>/dev/null || echo "⚠️ Não foi possível ajustar owner do JSON"
+    
     echo "🔄 Sincronizando tokens do arquivo JSON..."
     python manage.py shell << 'EOF'
 import json
@@ -120,28 +126,124 @@ import os
 from captive_portal.models import ApplianceToken
 from django.utils import timezone
 
-if os.path.exists('appliance_tokens.json'):
-    with open('appliance_tokens.json', 'r') as f:
-        data = json.load(f)
-    
-    tokens_data = data.get('tokens', {})
-    created_count = 0
-    
-    for token, info in tokens_data.items():
-        obj, created = ApplianceToken.objects.get_or_create(
-            token=token,
-            defaults={
-                'appliance_id': info['appliance_id'],
-                'appliance_name': info['appliance_name'],
-                'description': info['description'],
-                'is_active': True,
+json_file = 'appliance_tokens.json'
+
+try:
+    if os.path.exists(json_file) and os.access(json_file, os.R_OK):
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        tokens_data = data.get('tokens', {})
+        created_count = 0
+        updated_count = 0
+        
+        for token, info in tokens_data.items():
+            obj, created = ApplianceToken.objects.get_or_create(
+                token=token,
+                defaults={
+                    'appliance_id': info['appliance_id'],
+                    'appliance_name': info['appliance_name'],
+                    'description': info['description'],
+                    'is_active': True,
+                }
+            )
+            
+            if created:
+                created_count += 1
+                print(f"Token criado: {info['appliance_name']}")
+            else:
+                # Atualizar informações se necessário
+                if obj.appliance_name != info['appliance_name'] or obj.description != info['description']:
+                    obj.appliance_name = info['appliance_name']
+                    obj.description = info['description']
+                    obj.save()
+                    updated_count += 1
+                    print(f"Token atualizado: {info['appliance_name']}")
+        
+        print(f"✅ Sincronização concluída: {created_count} criados, {updated_count} atualizados")
+        
+    else:
+        print("⚠️ Arquivo JSON não acessível - criando tokens padrão...")
+        # Criar tokens padrão se não conseguir ler o arquivo
+        default_tokens = [
+            {
+                'token': 'test-token-123456789',
+                'appliance_id': 'TEST-APPLIANCE',
+                'appliance_name': 'Appliance de Teste',
+                'description': 'Token de teste para desenvolvimento'
+            },
+            {
+                'token': 'f8e7d6c5b4a3928170695e4c3d2b1a0f',
+                'appliance_id': 'APPLIANCE-001',
+                'appliance_name': 'Appliance POPPFIRE 001',
+                'description': 'Token para appliance de produção 001'
             }
-        )
-        if created:
-            created_count += 1
-            print(f"Token criado: {info['appliance_name']}")
-    
-    print(f"✅ {created_count} tokens sincronizados")
+        ]
+        
+        created_count = 0
+        for token_info in default_tokens:
+            obj, created = ApplianceToken.objects.get_or_create(
+                token=token_info['token'],
+                defaults={
+                    'appliance_id': token_info['appliance_id'],
+                    'appliance_name': token_info['appliance_name'],
+                    'description': token_info['description'],
+                    'is_active': True,
+                }
+            )
+            if created:
+                created_count += 1
+                print(f"Token padrão criado: {token_info['appliance_name']}")
+        
+        print(f"✅ {created_count} tokens padrão criados")
+
+except Exception as e:
+    print(f"⚠️ Erro ao sincronizar tokens: {e}")
+    print("📝 Tokens podem ser criados manualmente pelo admin")
+EOF
+else
+    echo "⚠️ Arquivo appliance_tokens.json não encontrado - criando tokens padrão..."
+    python manage.py shell << 'EOF'
+from captive_portal.models import ApplianceToken
+
+# Criar tokens padrão se arquivo JSON não existe
+default_tokens = [
+    {
+        'token': 'test-token-123456789',
+        'appliance_id': 'TEST-APPLIANCE',
+        'appliance_name': 'Appliance de Teste',
+        'description': 'Token de teste para desenvolvimento'
+    },
+    {
+        'token': 'f8e7d6c5b4a3928170695e4c3d2b1a0f',
+        'appliance_id': 'APPLIANCE-001',
+        'appliance_name': 'Appliance POPPFIRE 001',
+        'description': 'Token para appliance de produção 001'
+    },
+    {
+        'token': '1234567890abcdef1234567890abcdef',
+        'appliance_id': 'APPLIANCE-DEV',
+        'appliance_name': 'Appliance de Desenvolvimento',
+        'description': 'Token para desenvolvimento e testes'
+    }
+]
+
+created_count = 0
+for token_info in default_tokens:
+    obj, created = ApplianceToken.objects.get_or_create(
+        token=token_info['token'],
+        defaults={
+            'appliance_id': token_info['appliance_id'],
+            'appliance_name': token_info['appliance_name'],
+            'description': token_info['description'],
+            'is_active': True,
+        }
+    )
+    if created:
+        created_count += 1
+        print(f"Token padrão criado: {token_info['appliance_name']}")
+
+print(f"✅ {created_count} tokens padrão criados")
 EOF
 fi
 
