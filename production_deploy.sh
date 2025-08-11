@@ -167,6 +167,12 @@ try:
         # Criar tokens padrão se não conseguir ler o arquivo
         default_tokens = [
             {
+                'token': 'c8c786467d4a8d2825eaf549534d1ab0',
+                'appliance_id': 'POSTMAN-TEST',
+                'appliance_name': 'Appliance Teste Postman',
+                'description': 'Token para testes via Postman - Linux'
+            },
+            {
                 'token': 'test-token-123456789',
                 'appliance_id': 'TEST-APPLIANCE',
                 'appliance_name': 'Appliance de Teste',
@@ -208,6 +214,12 @@ from captive_portal.models import ApplianceToken
 
 # Criar tokens padrão se arquivo JSON não existe
 default_tokens = [
+    {
+        'token': 'c8c786467d4a8d2825eaf549534d1ab0',
+        'appliance_id': 'POSTMAN-TEST',
+        'appliance_name': 'Appliance Teste Postman',
+        'description': 'Token para testes via Postman - Linux'
+    },
     {
         'token': 'test-token-123456789',
         'appliance_id': 'TEST-APPLIANCE',
