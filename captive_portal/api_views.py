@@ -146,68 +146,107 @@ def portal_status(request):
     }
     """
     try:
-        # Buscar configuração ativa do portal
+        # Modo de consulta: 'auto' (padrão), 'with_video' ou 'without_video'
+        header_mode = request.headers.get('X-Portal-Type') or request.META.get('HTTP_X_PORTAL_TYPE')
+        mode = (request.GET.get('type') or header_mode or 'auto').strip().lower()
+
+        # Estados atuais
         portal_config = EldGerenciarPortal.get_configuracao_ativa()
-        
-        if not portal_config or not portal_config.ativo:
-            # Não há portal ativo, retornar portal sem vídeo padrão
-            portal_sem_video = EldPortalSemVideo.objects.filter(ativo=True).first()
-            
-            if not portal_sem_video:
-                return JsonResponse({
-                    'error': 'Nenhum portal disponível',
-                    'message': 'Não há portal com vídeo ativo nem portal sem vídeo disponível',
-                    'timestamp': datetime.now().isoformat()
-                }, status=404)
-            
-            # Calcular hash do arquivo
+        portal_sem_video = EldPortalSemVideo.objects.filter(ativo=True).first()
+
+        is_with_video_active = bool(portal_config and portal_config.ativo and getattr(portal_config, 'captive_portal_zip', None))
+        is_without_video_active = bool(portal_sem_video)
+
+        # Helper: montar resposta do portal sem vídeo
+        def build_without_video_response():
             file_hash = _calculate_file_hash(portal_sem_video.arquivo_zip.path)
-            
-            return JsonResponse({
+            return {
                 'status': 'active',
                 'portal_type': 'without_video',
                 'portal_hash': file_hash,
                 'portal_name': portal_sem_video.nome,
-                'portal_version': portal_sem_video.versao,
-                'last_updated': portal_sem_video.data_atualizacao.isoformat(),
+                'portal_version': getattr(portal_sem_video, 'versao', None),
+                'last_updated': portal_sem_video.data_atualizacao.isoformat() if getattr(portal_sem_video, 'data_atualizacao', None) else None,
                 'download_url': f'/api/appliances/portal/download/?type=without_video',
-                'file_size_mb': portal_sem_video.tamanho_mb,
-                'timestamp': datetime.now().isoformat()
-            })
-        
-        # Portal com vídeo está ativo
-        if portal_config.captive_portal_zip:
+                'file_size_mb': getattr(portal_sem_video, 'tamanho_mb', None),
+                'timestamp': datetime.now().isoformat(),
+                'mode': mode,
+                'is_with_video_active': is_with_video_active,
+                'is_without_video_active': is_without_video_active,
+            }
+
+        # Helper: montar resposta do portal com vídeo
+        def build_with_video_response():
             file_hash = _calculate_file_hash(portal_config.captive_portal_zip.path)
-            
-            response_data = {
+            data = {
                 'status': 'active',
                 'portal_type': 'with_video',
                 'portal_hash': file_hash,
-                'last_updated': portal_config.data_atualizacao.isoformat(),
+                'last_updated': portal_config.data_atualizacao.isoformat() if getattr(portal_config, 'data_atualizacao', None) else None,
                 'download_url': f'/api/appliances/portal/download/?type=with_video',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'mode': mode,
+                'is_with_video_active': is_with_video_active,
+                'is_without_video_active': is_without_video_active,
             }
-            
             # Adicionar informações do vídeo se disponível
-            if portal_config.nome_video:
-                response_data.update({
+            if getattr(portal_config, 'nome_video', None):
+                data.update({
                     'video_name': os.path.basename(portal_config.nome_video.video.name),
                     'video_url': request.build_absolute_uri(portal_config.nome_video.video.url),
-                    'video_size_mb': portal_config.nome_video.tamanho,
-                    'using_custom_video': True
+                    'video_size_mb': getattr(portal_config.nome_video, 'tamanho', None),
+                    'using_custom_video': True,
                 })
             else:
-                response_data['using_custom_video'] = False
-                response_data['video_info'] = 'Usando vídeo padrão incluído no ZIP'
-            
-            return JsonResponse(response_data)
-        
-        else:
-            return JsonResponse({
-                'error': 'Portal mal configurado',
-                'message': 'Portal ativo sem arquivo ZIP',
-                'timestamp': datetime.now().isoformat()
-            }, status=500)
+                data['using_custom_video'] = False
+                data['video_info'] = 'Usando vídeo padrão incluído no ZIP'
+            return data
+
+        # Lógica por modo
+        if mode == 'with_video':
+            if not is_with_video_active:
+                return JsonResponse({
+                    'status': 'inactive',
+                    'portal_type': 'with_video',
+                    'message': 'Portal com vídeo não está ativo',
+                    'timestamp': datetime.now().isoformat(),
+                    'mode': mode,
+                    'is_with_video_active': is_with_video_active,
+                    'is_without_video_active': is_without_video_active,
+                })
+            return JsonResponse(build_with_video_response())
+
+        if mode == 'without_video':
+            if not is_without_video_active:
+                return JsonResponse({
+                    'status': 'inactive',
+                    'portal_type': 'without_video',
+                    'message': 'Nenhum portal sem vídeo está ativo',
+                    'timestamp': datetime.now().isoformat(),
+                    'mode': mode,
+                    'is_with_video_active': is_with_video_active,
+                    'is_without_video_active': is_without_video_active,
+                })
+            return JsonResponse(build_without_video_response())
+
+        # Modo 'auto' (padrão): prioriza com vídeo, senão cai para sem vídeo
+        if is_with_video_active:
+            return JsonResponse(build_with_video_response())
+
+        if is_without_video_active:
+            return JsonResponse(build_without_video_response())
+
+        # Nenhum portal disponível
+        return JsonResponse({
+            'status': 'inactive',
+            'portal_type': None,
+            'error': 'Nenhum portal disponível',
+            'message': 'Não há portal com vídeo ativo nem portal sem vídeo disponível',
+            'timestamp': datetime.now().isoformat(),
+            'mode': mode,
+            'is_with_video_active': is_with_video_active,
+            'is_without_video_active': is_without_video_active,
+        }, status=404)
             
     except Exception as e:
         logger.error(f"Erro em portal_status: {str(e)}")

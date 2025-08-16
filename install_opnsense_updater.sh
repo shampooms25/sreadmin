@@ -7,8 +7,8 @@
 # o updater do portal captive automaticamente
 #
 
-echo "=== Configuração do Portal Captive Updater ==="
-echo "Servidor: 172.18.25.253:8000"
+echo "=== Configuração do Portal Captive Updater (POPPFIRE) ==="
+echo "Servidor padrão: https://paineleld.poppnet.com.br"
 echo ""
 
 # Verificar se é root
@@ -30,14 +30,23 @@ mkdir -p "$VIDEOS_DIR"
 mkdir -p "$BACKUP_DIR"
 mkdir -p "$SCRIPTS_DIR"
 
-# Criar o script updater
 echo "Instalando script updater..."
 cat > "$SCRIPTS_DIR/captive_updater.py" << 'EOF'
 #!/usr/bin/env python3
-"""
-[Aqui seria colocado o conteúdo do script Python - 
- copiar o conteúdo do arquivo opnsense_captive_updater.py]
-"""
+import os, sys
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+SRC = BASE_DIR / 'sreadmin' / 'opnsense_captive_updater.py'
+
+if SRC.exists():
+    # Executa o updater a partir do arquivo distribuído (mantém uma cópia única)
+    with open(SRC, 'rb') as f:
+        code = compile(f.read(), str(SRC), 'exec')
+        exec(code, {'__name__': '__main__'})
+else:
+    print(f"Arquivo de origem não encontrado: {SRC}")
+    sys.exit(1)
 EOF
 
 # Tornar executável
@@ -51,7 +60,7 @@ cat > "$SCRIPTS_DIR/update_captive_portal.sh" << 'EOF'
 #
 
 SCRIPT_DIR="/usr/local/captiveportal/scripts"
-LOG_FILE="/var/log/captive_portal_updater.log"
+LOG_FILE="/var/log/poppfire_portal_updater.log"
 LOCK_FILE="/tmp/captive_updater.lock"
 
 # Verificar se já está executando
@@ -80,13 +89,14 @@ chmod +x "$SCRIPTS_DIR/update_captive_portal.sh"
 # Configurar cron para execução automática
 echo "Configurando execução automática (cron)..."
 
-# Adicionar entrada no crontab para executar a cada 5 minutos
-(crontab -l 2>/dev/null; echo "*/5 * * * * /usr/local/captiveportal/scripts/update_captive_portal.sh") | crontab -
+# Adicionar entrada no crontab para executar a cada 5 minutos (idempotente)
+CRON_LINE="*/5 * * * * /usr/local/captiveportal/scripts/update_captive_portal.sh"
+(crontab -l 2>/dev/null | grep -F "$CRON_LINE") || (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
 
 # Criar configuração de log rotation
 cat > "/etc/newsyslog.conf.d/captive_portal.conf" << 'EOF'
 # Log rotation para captive portal updater
-/var/log/captive_portal_updater.log    644  10   1000 *     JC
+/var/log/poppfire_portal_updater.log    644  10   1000 *     JC
 EOF
 
 # Criar script de status
@@ -97,7 +107,7 @@ cat > "$SCRIPTS_DIR/status.sh" << 'EOF'
 #
 
 LOG_FILE="/var/log/captive_portal_updater.log"
-STATE_FILE="/usr/local/captiveportal/update_state.json"
+STATE_FILE="/var/db/poppfire_portal_state.json"
 LOCK_FILE="/tmp/captive_updater.lock"
 
 echo "=== Status do Portal Captive Updater ==="
@@ -135,22 +145,15 @@ chmod +x "$SCRIPTS_DIR/status.sh"
 
 # Testar conectividade com servidor
 echo "Testando conectividade com servidor..."
-if ping -c 1 172.18.25.253 > /dev/null 2>&1; then
-    echo "✓ Conectividade OK"
-    
-    # Testar API
-    if command -v curl > /dev/null 2>&1; then
-        if curl -s --connect-timeout 5 "http://172.18.25.253:8000/api/captive-portal/status/" > /dev/null; then
-            echo "✓ API acessível"
-        else
-            echo "⚠ API não acessível (verificar se servidor Django está rodando)"
-        fi
+if command -v curl > /dev/null 2>&1; then
+    if curl -s --connect-timeout 5 "https://paineleld.poppnet.com.br/api/appliances/portal/status/" -o /dev/null; then
+        echo "✓ API acessível"
     else
-        echo "⚠ curl não encontrado - instalando..."
-        pkg install -y curl
+        echo "⚠ API não acessível (verifique URL, DNS e conectividade)"
     fi
 else
-    echo "⚠ Servidor não acessível - verificar conectividade"
+    echo "⚠ curl não encontrado - instalando..."
+    pkg install -y curl
 fi
 
 # Executar primeira verificação
@@ -165,6 +168,8 @@ echo "Comandos disponíveis:"
 echo "  Status:           $SCRIPTS_DIR/status.sh"
 echo "  Executar manual:  $SCRIPTS_DIR/update_captive_portal.sh"
 echo "  Log em tempo real: tail -f $LOG_FILE"
+echo ""
+echo "Antes de rodar em produção, edite o token no arquivo Python em: /usr/local/captiveportal/scripts/captive_updater.py (ou no fonte opnsense_captive_updater.py) e ajuste API_BASE_URL se necessário."
 echo ""
 echo "Configuração do cron: verificação a cada 5 minutos"
 echo "Para alterar: crontab -e"
