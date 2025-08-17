@@ -957,7 +957,12 @@ class EldPortalSemVideoAdmin(admin.ModelAdmin):
     status_display.short_description = "Status"
 
     def actions_display(self, obj):
-        download_url = reverse('painel:portal_sem_video_download', args=[obj.id])
+        # Preferir rota sob o namespace admin para evitar 404 quando só /admin é publicado
+        try:
+            download_url = reverse('painel_admin:portal_sem_video_download_admin', args=[obj.id])
+        except Exception:
+            # Fallback para rota pública
+            download_url = reverse('painel:portal_sem_video_download', args=[obj.id])
         return format_html('<a href="{}" class="button" target="_blank">📥 Download</a>', download_url)
     actions_display.short_description = "Ações"
 

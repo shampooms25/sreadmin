@@ -22,7 +22,7 @@ from datetime import datetime
 class Config:
     # Ajuste para seu ambiente de produção
     API_BASE_URL = "https://paineleld.poppnet.com.br"
-    API_TOKEN = "TROQUE_PELO_TOKEN"  # defina o token válido
+    API_TOKEN = "884f88da2e8a947500ceb4af1dafa10d"  # token do appliance
 
     PORTAL_HTDOCS_PATH = "/var/captiveportal/zone0/htdocs"
     STATE_FILE = "/var/db/poppfire_portal_state.json"
@@ -207,10 +207,15 @@ class Installer:
                 if os.path.exists(self.htdocs):
                     shutil.rmtree(self.htdocs)
                 os.makedirs(self.htdocs, exist_ok=True)
-                for root, _, files in os.walk(extract):
+                # Se o ZIP tiver uma única pasta na raiz, achatar para a raiz do htdocs
+                entries = [e for e in os.listdir(extract) if not e.startswith('__MACOSX')]
+                base_dir = extract
+                if len(entries) == 1 and os.path.isdir(os.path.join(extract, entries[0])):
+                    base_dir = os.path.join(extract, entries[0])
+                for root, _, files in os.walk(base_dir):
                     for f in files:
                         src = os.path.join(root, f)
-                        rel = os.path.relpath(src, extract)
+                        rel = os.path.relpath(src, base_dir)
                         dst = os.path.join(self.htdocs, rel)
                         os.makedirs(os.path.dirname(dst), exist_ok=True)
                         shutil.copy2(src, dst)
@@ -292,6 +297,7 @@ class Updater:
                     'last_update': datetime.now().isoformat(),
                     'update_count': self.state.data.get('update_count', 0) + 1
                 })
+                logger.info(f"Portal atualizado com sucesso! Novo hash: {new_hash}")
                 self.api.report('success', new_hash, portal_type)
                 self._restart_services()
             else:
@@ -313,7 +319,9 @@ class Updater:
 
     def _restart_services(self):
         try:
+            # Tenta 'onerestart' para lighttpd (recomendado em FreeBSD), depois fallback para 'restart'
             cmds = [
+                "/usr/local/etc/rc.d/lighttpd onerestart",
                 "/usr/local/etc/rc.d/lighttpd restart",
                 "configctl captiveportal restart"
             ]

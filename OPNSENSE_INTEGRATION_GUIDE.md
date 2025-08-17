@@ -15,11 +15,11 @@ Django Server (172.18.25.253:8000)
 │   └── /api/captive-portal/zip/<id>/    - Download de arquivos ZIP
 │
 OpenSense
-├── /usr/local/captiveportal/
-│   ├── scripts/captive_updater.py       - Script principal
-│   ├── videos/                          - Vídeos baixados
-│   ├── backup/                          - Backup dos arquivos
-│   └── update_state.json               - Estado das atualizações
+├── /root/portal/
+│   ├── captive_updater.py               - Launcher (executa opnsense_captive_updater.py)
+│   ├── opnsense_captive_updater.py      - Script principal
+│   ├── venv/                            - Ambiente virtual (opcional)
+│   └── logs/estado em /var/log e /var/db (ver abaixo)
 ```
 
 ## Instalação no OpenSense
@@ -79,25 +79,24 @@ Baixa arquivo ZIP do portal específico.
 
 ### Verificar Status
 ```bash
-/usr/local/captiveportal/scripts/status.sh
+/root/portal/status.sh
 ```
 
 ### Executar Manualmente
 ```bash
-/usr/local/captiveportal/scripts/update_captive_portal.sh
+/root/portal/update_captive_portal.sh
 ```
 
 ### Ver Log em Tempo Real
 ```bash
-tail -f /var/log/captive_portal_updater.log
+tail -f /var/log/poppfire_portal_updater.log
 ```
 
 ### Alterar Frequência do Cron
 ```bash
 crontab -e
-# Alterar linha: */5 * * * * (a cada 5 minutos)
-# Para:          */1 * * * * (a cada 1 minuto)
-# Ou:           0 */1 * * * (a cada hora)
+# Ajuste recomendado: executar 1x/dia à meia-noite
+# 0 0 * * * /root/portal/update_captive_portal.sh
 ```
 
 ## Funcionamento
@@ -112,8 +111,8 @@ crontab -e
 ## Logs e Monitoramento
 
 ### Localização dos Logs
-- **Principal**: `/var/log/captive_portal_updater.log`
-- **Estado**: `/usr/local/captiveportal/update_state.json`
+- **Principal**: `/var/log/poppfire_portal_updater.log`
+- **Estado**: `/var/db/poppfire_portal_state.json`
 - **Lock**: `/tmp/captive_updater.lock` (temporário)
 
 ### Estrutura do Log
@@ -145,13 +144,13 @@ curl http://172.18.25.253:8000/api/captive-portal/status/
 ### Problema: Script não executa
 ```bash
 # Verificar permissões
-ls -la /usr/local/captiveportal/scripts/
+ls -la /root/portal/
 
 # Verificar Python
 python3 --version
 
 # Executar com debug
-python3 -u /usr/local/captiveportal/scripts/captive_updater.py
+python3 -u /root/portal/captive_updater.py
 ```
 
 ### Problema: Downloads falham
@@ -169,7 +168,7 @@ curl -I http://172.18.25.253:8000/api/captive-portal/video/1/
 ## Configuração Avançada
 
 ### Alterar Diretórios
-Editar `/usr/local/captiveportal/scripts/captive_updater.py`:
+Editar `/root/portal/opnsense_captive_updater.py`:
 ```python
 self.captive_dir = "/seu/diretorio/customizado"
 self.videos_dir = "/seu/diretorio/videos"
@@ -210,7 +209,7 @@ cp -r /usr/local/captiveportal /backup/captiveportal-$(date +%Y%m%d)
 ### Atualização do Script
 ```bash
 # Backup do script atual
-cp /usr/local/captiveportal/scripts/captive_updater.py /backup/
+cp /root/portal/opnsense_captive_updater.py /backup/
 
 # Substituir por nova versão
 # Depois reiniciar cron se necessário

@@ -18,35 +18,36 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # Diretórios necessários
-CAPTIVE_DIR="/usr/local/captiveportal"
-VIDEOS_DIR="/usr/local/captiveportal/videos"
-BACKUP_DIR="/usr/local/captiveportal/backup"
-SCRIPTS_DIR="/usr/local/captiveportal/scripts"
+# Ajuste para seu ambiente local (scripts e venv em /root/portal)
+SCRIPTS_DIR="/root/portal"
 LOG_DIR="/var/log"
 
 echo "Criando diretórios necessários..."
-mkdir -p "$CAPTIVE_DIR"
-mkdir -p "$VIDEOS_DIR"
-mkdir -p "$BACKUP_DIR"
 mkdir -p "$SCRIPTS_DIR"
 
-echo "Instalando script updater..."
+echo "Instalando script updater (launcher)..."
 cat > "$SCRIPTS_DIR/captive_updater.py" << 'EOF'
 #!/usr/bin/env python3
 import os, sys
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-SRC = BASE_DIR / 'sreadmin' / 'opnsense_captive_updater.py'
+SCRIPT_DIR = Path(__file__).resolve().parent
 
-if SRC.exists():
-    # Executa o updater a partir do arquivo distribuído (mantém uma cópia única)
-    with open(SRC, 'rb') as f:
-        code = compile(f.read(), str(SRC), 'exec')
-        exec(code, {'__name__': '__main__'})
-else:
-    print(f"Arquivo de origem não encontrado: {SRC}")
-    sys.exit(1)
+# Preferir opnsense_captive_updater.py, senão usar install_opnsense_updater.py
+candidates = [
+    SCRIPT_DIR / 'opnsense_captive_updater.py',
+    SCRIPT_DIR / 'install_opnsense_updater.py',
+]
+
+for src in candidates:
+    if src.exists():
+        with open(src, 'rb') as f:
+            code = compile(f.read(), str(src), 'exec')
+            exec(code, {'__name__': '__main__'})
+        sys.exit(0)
+
+print("Nenhum arquivo de updater encontrado (opnsense_captive_updater.py ou install_opnsense_updater.py)")
+sys.exit(1)
 EOF
 
 # Tornar executável
@@ -59,9 +60,16 @@ cat > "$SCRIPTS_DIR/update_captive_portal.sh" << 'EOF'
 # Wrapper para executar o updater do portal captive
 #
 
-SCRIPT_DIR="/usr/local/captiveportal/scripts"
+SCRIPT_DIR="/root/portal"
 LOG_FILE="/var/log/poppfire_portal_updater.log"
 LOCK_FILE="/tmp/captive_updater.lock"
+
+# Selecionar Python do venv, se existir
+if [ -x "$SCRIPT_DIR/venv/bin/python3" ]; then
+    PY="$SCRIPT_DIR/venv/bin/python3"
+else
+    PY="python3"
+fi
 
 # Verificar se já está executando
 if [ -f "$LOCK_FILE" ]; then
@@ -74,7 +82,7 @@ echo $$ > "$LOCK_FILE"
 
 # Executar updater
 echo "$(date): Iniciando verificação de atualizações" >> "$LOG_FILE"
-python3 "$SCRIPT_DIR/captive_updater.py" >> "$LOG_FILE" 2>&1
+$PY "$SCRIPT_DIR/captive_updater.py" >> "$LOG_FILE" 2>&1
 exit_code=$?
 
 # Remover lock
@@ -89,9 +97,15 @@ chmod +x "$SCRIPTS_DIR/update_captive_portal.sh"
 # Configurar cron para execução automática
 echo "Configurando execução automática (cron)..."
 
-# Adicionar entrada no crontab para executar a cada 5 minutos (idempotente)
-CRON_LINE="*/5 * * * * /usr/local/captiveportal/scripts/update_captive_portal.sh"
-(crontab -l 2>/dev/null | grep -F "$CRON_LINE") || (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
+# Agendar execução diária à meia-noite e remover entradas antigas
+NEW_CRON_LINE="0 0 * * * /root/portal/update_captive_portal.sh"
+OLD_PATH="/usr/local/captiveportal/scripts/update_captive_portal.sh"
+
+# Captura crontab atual (ou vazio), remove linhas antigas e quaisquer linhas antigas do mesmo script, e aplica nova linha
+{
+    crontab -l 2>/dev/null | grep -v "$OLD_PATH" | grep -v "/root/portal/update_captive_portal.sh" 2>/dev/null
+    echo "$NEW_CRON_LINE"
+} | crontab -
 
 # Criar configuração de log rotation
 cat > "/etc/newsyslog.conf.d/captive_portal.conf" << 'EOF'
@@ -106,7 +120,7 @@ cat > "$SCRIPTS_DIR/status.sh" << 'EOF'
 # Script para verificar status do updater
 #
 
-LOG_FILE="/var/log/captive_portal_updater.log"
+LOG_FILE="/var/log/poppfire_portal_updater.log"
 STATE_FILE="/var/db/poppfire_portal_state.json"
 LOCK_FILE="/tmp/captive_updater.lock"
 
@@ -169,13 +183,10 @@ echo "  Status:           $SCRIPTS_DIR/status.sh"
 echo "  Executar manual:  $SCRIPTS_DIR/update_captive_portal.sh"
 echo "  Log em tempo real: tail -f $LOG_FILE"
 echo ""
-echo "Antes de rodar em produção, edite o token no arquivo Python em: /usr/local/captiveportal/scripts/captive_updater.py (ou no fonte opnsense_captive_updater.py) e ajuste API_BASE_URL se necessário."
+echo "Antes de rodar em produção, edite o token no arquivo Python em: /root/portal/opnsense_captive_updater.py (ou no launcher /root/portal/captive_updater.py) e ajuste API_BASE_URL se necessário."
 echo ""
-echo "Configuração do cron: verificação a cada 5 minutos"
+echo "Configuração do cron: execução diária à meia-noite (00:00)"
 echo "Para alterar: crontab -e"
 echo ""
 echo "Diretórios:"
-echo "  Portal:  $CAPTIVE_DIR"
-echo "  Vídeos:  $VIDEOS_DIR"
-echo "  Backup:  $BACKUP_DIR"
 echo "  Scripts: $SCRIPTS_DIR"
