@@ -892,11 +892,44 @@ class EldPortalSemVideoAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         urls = super().get_urls()
+        # Nome estável no namespace do admin: admin:captive_portal_portalsemvideoproxy_download
+        download_name = f"{self.model._meta.app_label}_{self.model._meta.model_name}_download"
         custom_urls = [
             path('upload/', self.admin_site.admin_view(self.upload_portal_view), name='portal_sem_video_upload'),
-            path('add/', self.admin_site.admin_view(self.upload_portal_view), name='painel_eldportalsemvideo_add'),
+            path('add/', self.admin_site.admin_view(self.upload_portal_view), name='painel_eldportalsemvideoproxy_add'),
+            path('portalsemvideoproxy/<int:portal_id>/download/', self.admin_site.admin_view(self.download_portal_sem_video), name=download_name),
+            path('download/<int:portal_id>/', self.admin_site.admin_view(self.download_portal_sem_video), name=download_name),
         ]
         return custom_urls + urls
+
+    def download_portal_sem_video(self, request, portal_id: int):
+        """Entrega o ZIP via admin, compatível com storage e nomes."""
+        from django.shortcuts import get_object_or_404
+        from django.http import FileResponse, Http404
+        from django.core.files.storage import default_storage
+        from .models import EldPortalSemVideo
+
+        portal = get_object_or_404(EldPortalSemVideo, id=portal_id)
+        file_field = getattr(portal, 'arquivo_zip', None)
+        if not file_field:
+            raise Http404("Arquivo não encontrado")
+        try:
+            fobj = file_field.open('rb')
+        except Exception:
+            name = getattr(file_field, 'name', None)
+            if not name or not default_storage.exists(name):
+                raise Http404("Arquivo não encontrado")
+            fobj = default_storage.open(name, 'rb')
+        resp = FileResponse(fobj, content_type='application/zip')
+        filename = f"scripts_poppnet_sre_v{getattr(portal, 'versao', '1.0')}.zip"
+        resp['Content-Disposition'] = f'attachment; filename="{filename}"'
+        try:
+            size = getattr(file_field, 'size', None) or getattr(fobj, 'size', None)
+            if size:
+                resp['Content-Length'] = size
+        except Exception:
+            pass
+        return resp
 
     def upload_portal_view(self, request):
         from django.shortcuts import redirect
@@ -960,6 +993,7 @@ class EldPortalSemVideoAdmin(admin.ModelAdmin):
         # Tenta rotas em ordem de confiabilidade; cai para MEDIA como último recurso
         download_url = None
         route_names = [
+            'admin:captive_portal_portalsemvideoproxy_download',  # Rota interna do ModelAdmin
             'portal_sem_video_download_admin_compat_proxy',
             'painel_admin:portal_sem_video_download_admin',
             'portal_sem_video_download_admin_compat',
