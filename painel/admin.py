@@ -957,16 +957,20 @@ class EldPortalSemVideoAdmin(admin.ModelAdmin):
     status_display.short_description = "Status"
 
     def actions_display(self, obj):
-        # Preferir rota compatível sob /admin/captive_portal/ (mais segura no proxy)
-        try:
-            download_url = reverse('portal_sem_video_download_admin_compat', args=[obj.id])
-        except Exception:
-            # Tentar rota sob o namespace admin/painel
+        # 1) Preferir URL direta do arquivo (MEDIA), que geralmente já está publicada e funciona em produção
+        if getattr(obj, 'arquivo_zip', None) and getattr(obj.arquivo_zip, 'url', None):
+            download_url = obj.arquivo_zip.url
+        else:
+            # 2) Tentar rota compatível sob /admin/captive_portal/ (mais segura no proxy)
             try:
-                download_url = reverse('painel_admin:portal_sem_video_download_admin', args=[obj.id])
+                download_url = reverse('portal_sem_video_download_admin_compat', args=[obj.id])
             except Exception:
-                # Último fallback para rota pública
-                download_url = reverse('painel:portal_sem_video_download', args=[obj.id])
+                # 3) Tentar rota sob o namespace admin/painel
+                try:
+                    download_url = reverse('painel_admin:portal_sem_video_download_admin', args=[obj.id])
+                except Exception:
+                    # 4) Último fallback para rota pública
+                    download_url = reverse('painel:portal_sem_video_download', args=[obj.id])
         return format_html('<a href="{}" class="button" target="_blank">📥 Download</a>', download_url)
     actions_display.short_description = "Ações"
 
