@@ -64,6 +64,9 @@ SCRIPT_DIR="/root/portal"
 LOG_FILE="/var/log/poppfire_portal_updater.log"
 LOCK_FILE="/tmp/captive_updater.lock"
 
+# Garantir PATH adequado quando executado via cron
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 # Selecionar Python do venv, se existir
 if [ -x "$SCRIPT_DIR/venv/bin/python3" ]; then
     PY="$SCRIPT_DIR/venv/bin/python3"
@@ -79,6 +82,9 @@ fi
 
 # Criar lock
 echo $$ > "$LOCK_FILE"
+
+# Garantir remoção do lock em qualquer saída
+trap 'rm -f "$LOCK_FILE"' EXIT INT TERM
 
 # Executar updater
 echo "$(date): Iniciando verificação de atualizações" >> "$LOG_FILE"
@@ -181,7 +187,7 @@ echo ""
 echo "Comandos disponíveis:"
 echo "  Status:           $SCRIPTS_DIR/status.sh"
 echo "  Executar manual:  $SCRIPTS_DIR/update_captive_portal.sh"
-echo "  Log em tempo real: tail -f $LOG_FILE"
+echo "  Log em tempo real: tail -f /var/log/poppfire_portal_updater.log"
 echo ""
 echo "Antes de rodar em produção, edite o token no arquivo Python em: /root/portal/opnsense_captive_updater.py (ou no launcher /root/portal/captive_updater.py) e ajuste API_BASE_URL se necessário."
 echo ""

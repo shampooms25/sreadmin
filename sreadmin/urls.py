@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from painel.portal_views import portal_sem_video_download  # Rota compatível para download no admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
@@ -8,6 +9,9 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/admin/', permanent=False), name='home'),
     path('admin/painel/', include('painel.admin_urls', namespace='painel_admin')),  # URLs administrativas do painel
     path('admin/', admin.site.urls),  # Django admin depois das customizadas
+    # Compat: espelhar download do Portal sem Vídeo sob o prefixo usado pelo admin captive_portal
+    # Isso evita 404 em ambientes onde apenas /admin/captive_portal/* está roteado para o Django
+    path('admin/captive_portal/portal-sem-video/<int:portal_id>/download/', portal_sem_video_download, name='portal_sem_video_download_admin_compat'),
     path('starlink/', include('painel.urls')),  # URLs do painel Starlink
     # API para integração com Appliances POPPFIRE
     path('api/', include('captive_portal.urls')),
