@@ -10,6 +10,7 @@ urlpatterns = [
     # Compat: espelhar download do Portal sem Vídeo sob o prefixo usado pelo admin captive_portal
     # Isso evita 404 em ambientes onde apenas /admin/captive_portal/* está roteado para o Django
     path('admin/captive_portal/portal-sem-video/<int:portal_id>/download/', portal_sem_video_download, name='portal_sem_video_download_admin_compat'),    
+    path('admin/captive_portal/portalsemvideoproxy/<int:portal_id>/download/', portal_sem_video_download, name='portal_sem_video_download_admin_compat_proxy'),
     path('admin/painel/', include('painel.admin_urls', namespace='painel_admin')),  # URLs administrativas do painel
     path('admin/', admin.site.urls),  # Django admin depois das customizadas
     path('starlink/', include('painel.urls')),  # URLs do painel Starlink

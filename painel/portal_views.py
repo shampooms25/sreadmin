@@ -257,20 +257,37 @@ def video_preview_ajax(request):
 def portal_sem_video_download(request, portal_id):
     """Download do arquivo ZIP do portal sem vídeo"""
     from .models import EldPortalSemVideo
-    
+    from django.core.files.storage import default_storage
+
     portal = get_object_or_404(EldPortalSemVideo, id=portal_id)
-    
-    if not portal.arquivo_zip or not os.path.exists(portal.arquivo_zip.path):
+
+    file_field = getattr(portal, 'arquivo_zip', None)
+    if not file_field:
         raise Http404("Arquivo não encontrado")
-    
-    response = FileResponse(
-        open(portal.arquivo_zip.path, 'rb'),
-        content_type='application/zip'
-    )
-    
-    # Nome do arquivo para download
+
+    # Tentar abrir via API de storage (compatível com FileSystemStorage e outros storages)
+    file_obj = None
+    try:
+        file_obj = file_field.open('rb')
+    except Exception:
+        # Se falhar por path/encoding, tentar via default_storage
+        name = getattr(file_field, 'name', None)
+        if not name or not default_storage.exists(name):
+            raise Http404("Arquivo não encontrado")
+        file_obj = default_storage.open(name, 'rb')
+
+    response = FileResponse(file_obj, content_type='application/zip')
+
+    # Nome do arquivo para download (controlado, sem depender do nome do storage)
     filename = f"scripts_poppnet_sre_v{portal.versao}.zip"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    response['Content-Length'] = os.path.getsize(portal.arquivo_zip.path)
-    
+    try:
+        size = getattr(file_field, 'size', None)
+        if not size and hasattr(file_obj, 'size'):
+            size = file_obj.size
+        if size:
+            response['Content-Length'] = size
+    except Exception:
+        pass
+
     return response
