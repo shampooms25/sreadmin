@@ -957,24 +957,25 @@ class EldPortalSemVideoAdmin(admin.ModelAdmin):
     status_display.short_description = "Status"
 
     def actions_display(self, obj):
-        # 1) Preferir rota compatível sob /admin/captive_portal/ (serve via view, evita problemas de nome/espaco)
-        try:
-            # Primeiro tenta o padrão de proxy do Django Admin (portalsemvideoproxy)
-            download_url = reverse('portal_sem_video_download_admin_compat_proxy', args=[obj.id])
-        except Exception:
-            # 2) Tentar rota sob o namespace admin/painel
+        # Tenta rotas em ordem de confiabilidade; cai para MEDIA como último recurso
+        download_url = None
+        route_names = [
+            'portal_sem_video_download_admin_compat_proxy',
+            'painel_admin:portal_sem_video_download_admin',
+            'portal_sem_video_download_admin_compat',
+            'painel:portal_sem_video_download',
+        ]
+        for name in route_names:
             try:
-                download_url = reverse('painel_admin:portal_sem_video_download_admin', args=[obj.id])
+                download_url = reverse(name, args=[obj.id])
+                break
             except Exception:
-                # 3) Tentar rota compat sob /admin/captive_portal/ (sem proxy)
-                try:
-                    download_url = reverse('portal_sem_video_download_admin_compat', args=[obj.id])
-                except Exception:
-                    # 4) Último fallback: URL direta do arquivo (MEDIA)
-                if getattr(obj, 'arquivo_zip', None) and getattr(obj.arquivo_zip, 'url', None):
-                    download_url = obj.arquivo_zip.url
-                else:
-                    download_url = '#'
+                continue
+        if not download_url:
+            if getattr(obj, 'arquivo_zip', None) and getattr(obj.arquivo_zip, 'url', None):
+                download_url = obj.arquivo_zip.url
+            else:
+                download_url = '#'
         return format_html('<a href="{}" class="button" target="_blank">📥 Download</a>', download_url)
     actions_display.short_description = "Ações"
 
