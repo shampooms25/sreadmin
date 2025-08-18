@@ -889,11 +889,33 @@ class EldPortalSemVideo(models.Model):
                 })
     
     def save(self, *args, **kwargs):
-        """Override do save para calcular tamanho"""
+        """Override do save para calcular tamanho e sanear nome do arquivo."""
         # Calcular tamanho do arquivo em MB
         if self.arquivo_zip:
-            self.tamanho_mb = round(self.arquivo_zip.size / (1024 * 1024), 2)
-        
+            try:
+                self.tamanho_mb = round(self.arquivo_zip.size / (1024 * 1024), 2)
+            except Exception:
+                pass
+
+            # Sanear nome do arquivo (remover espaços extras e normalizar)
+            try:
+                import os, re
+                current = getattr(self.arquivo_zip, 'name', '') or ''
+                if current:
+                    dir_name = os.path.dirname(current) or 'portal_sem_video'
+                    base = os.path.basename(current)
+                    name, ext = os.path.splitext(base)
+                    # trim, colapsar espaços em '_', manter apenas caracteres seguros básicos
+                    cleaned_name = re.sub(r'\s+', '_', name.strip())
+                    cleaned_name = re.sub(r'[^A-Za-z0-9_\-\.]+', '', cleaned_name) or 'portal_sem_video'
+                    cleaned_ext = ext if ext else '.zip'
+                    safe_base = f"{cleaned_name}{cleaned_ext}"
+                    safe_name = os.path.join(dir_name, safe_base)
+                    if safe_name != current:
+                        self.arquivo_zip.name = safe_name
+            except Exception:
+                pass
+
         self.clean()
         super().save(*args, **kwargs)
     
