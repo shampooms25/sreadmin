@@ -32,9 +32,9 @@ def fix_portal_paths():
         
         # Verificar se há duplicação
         if 'portal_sem_video/portal_sem_video/' in current_name:
-            # Remover duplicação
-            new_name = current_name.replace('portal_sem_video/portal_sem_video/', 'portal_sem_video/')
-            print(f"CORREÇÃO: Removendo duplicação")
+            # Remover duplicação e fazer trim de espaços
+            new_name = current_name.replace('portal_sem_video/portal_sem_video/', 'portal_sem_video/').strip()
+            print(f"CORREÇÃO: Removendo duplicação e espaços extras")
             print(f"Novo caminho: '{new_name}'")
             
             portal.arquivo_zip.name = new_name
@@ -44,8 +44,10 @@ def fix_portal_paths():
             
         elif current_name.startswith('portal_sem_video/'):
             # Caminho correto, mas vamos normalizar para apenas nome do arquivo
-            filename = os.path.basename(current_name)
-            if filename != current_name:
+            filename = os.path.basename(current_name.strip())
+            normalized_name = current_name.strip()
+            
+            if filename != normalized_name:
                 print(f"NORMALIZAÇÃO: Simplificando para nome do arquivo")
                 print(f"Novo caminho: '{filename}'")
                 
@@ -53,10 +55,29 @@ def fix_portal_paths():
                 portal.save()
                 fixed_count += 1
                 print("✅ Normalizado!")
+            elif normalized_name != current_name:
+                print(f"LIMPEZA: Removendo espaços extras")
+                print(f"Novo caminho: '{normalized_name}'")
+                
+                portal.arquivo_zip.name = normalized_name
+                portal.save()
+                fixed_count += 1
+                print("✅ Limpo!")
             else:
                 print("✅ Já está correto")
         else:
-            print("✅ Caminho OK")
+            # Fazer trim mesmo se caminho parecer OK
+            trimmed_name = current_name.strip()
+            if trimmed_name != current_name:
+                print(f"LIMPEZA: Removendo espaços extras do caminho")
+                print(f"Novo caminho: '{trimmed_name}'")
+                
+                portal.arquivo_zip.name = trimmed_name
+                portal.save()
+                fixed_count += 1
+                print("✅ Limpo!")
+            else:
+                print("✅ Caminho OK")
             
         # Verificar se arquivo existe
         try:
