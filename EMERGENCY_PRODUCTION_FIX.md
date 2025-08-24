@@ -1,21 +1,43 @@
-# 🚨 CORREÇÃO URGENTE - Produção Ubuntu
+# 🚨 CORREÇÃO EMERGENCIAL - Erro 404 Portal sem Vídeo
 
-## ❌ PROBLEMA: Ainda recebendo 401 em produção
+## 🎯 Problema Identificado
 
-Você está recebendo "Token não fornecido ou formato inválido" mesmo após as correções. Vamos diagnosticar e corrigir:
+**Erro**: `404 Client Error: Not Found for url: https://paineleld.poppnet.com.br/api/appliances/portal/download/?type=without_video`
 
-## 🔧 SOLUÇÃO PASSO A PASSO
+**Causa**: Duplicação no caminho do arquivo no banco de dados:
+- ❌ **Errado**: `/var/www/sreadmin/media/portal_sem_video/portal_sem_video/hotspot-auth-default.zip`
+- ✅ **Correto**: `/var/www/sreadmin/media/portal_sem_video/hotspot-auth-default.zip`
 
-### 1. **Conectar no servidor Ubuntu:**
+## 🔧 Solução
+
+### Passo 1: Fazer Upload dos Scripts de Correção
+
+1. Faça upload destes arquivos para o servidor `/var/www/sreadmin/`:
+   - `fix_portal_paths_production.py`
+   - `deploy_portal_fix.sh`
+
+### Passo 2: Executar Correção no Servidor
+
 ```bash
-ssh usuario@SEU-IP-SERVIDOR
+# SSH no servidor
+ssh user@paineleld.poppnet.com.br
+
+# Navegar para diretório
 cd /var/www/sreadmin
+
+# Tornar script executável
+chmod +x deploy_portal_fix.sh
+
+# Executar correção
+./deploy_portal_fix.sh
 ```
 
-### 2. **Executar diagnóstico completo:**
+**OU** executar diretamente:
+
 ```bash
-chmod +x diagnose_production.sh
-sudo ./diagnose_production.sh
+cd /var/www/sreadmin
+source venv/bin/activate  # se houver venv
+python fix_portal_paths_production.py
 ```
 
 ### 3. **OU executar correção emergencial:**
