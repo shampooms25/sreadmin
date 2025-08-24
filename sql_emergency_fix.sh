@@ -1,8 +1,8 @@
 #!/bin/bash
 echo "=== CORREÇÃO EMERGENCIAL VIA SQL ==="
-echo "Executando correção direta no banco de dados..."
+echo "Descobrindo nome correto da tabela..."
 
-# Conectar no banco e executar SQL direto
+# Primeiro descobrir o nome da tabela
 python << 'EOF'
 import os
 import django
@@ -10,38 +10,56 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sreadmin.settings')
 django.setup()
 
 from django.db import connection
+from painel.models import EldPortalSemVideo
 
-# SQL direto para corrigir o campo
-sql_commands = [
-    # Mostrar estado atual
-    "SELECT id, nome, arquivo_zip FROM painel_eldportalsemvideo WHERE ativo = true;",
-    
-    # Corrigir duplicação e espaços
-    """UPDATE painel_eldportalsemvideo 
-     SET arquivo_zip = TRIM(REPLACE(arquivo_zip, 'portal_sem_video/portal_sem_video/', 'portal_sem_video/'))
-     WHERE arquivo_zip LIKE '%portal_sem_video/portal_sem_video/%' OR arquivo_zip != TRIM(arquivo_zip);""",
-    
-    # Mostrar resultado
-    "SELECT id, nome, arquivo_zip FROM painel_eldportalsemvideo WHERE ativo = true;"
-]
+# Descobrir nome da tabela
+table_name = EldPortalSemVideo._meta.db_table
+print(f"Nome correto da tabela: {table_name}")
 
+# Listar todas as tabelas para confirmar
 with connection.cursor() as cursor:
-    print("=== ANTES DA CORREÇÃO ===")
-    cursor.execute(sql_commands[0])
-    for row in cursor.fetchall():
-        print(f"ID: {row[0]}, Nome: {row[1]}, Arquivo: '{row[2]}' (len={len(row[2])})")
+    cursor.execute("""
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name LIKE '%portal%'
+        ORDER BY table_name;
+    """)
     
-    print("\n=== EXECUTANDO CORREÇÃO ===")
-    cursor.execute(sql_commands[1])
-    affected_rows = cursor.rowcount
-    print(f"Registros afetados: {affected_rows}")
-    
-    print("\n=== APÓS CORREÇÃO ===")
-    cursor.execute(sql_commands[2])
+    print("\nTabelas relacionadas a portal:")
     for row in cursor.fetchall():
-        print(f"ID: {row[0]}, Nome: {row[1]}, Arquivo: '{row[2]}' (len={len(row[2])})")
+        print(f"  {row[0]}")
 
-print("\n✅ Correção SQL concluída!")
+# Agora executar a correção com o nome correto
+try:
+    print(f"\n=== ANTES DA CORREÇÃO ===")
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT id, nome, arquivo_zip FROM {table_name} WHERE ativo = true;")
+        for row in cursor.fetchall():
+            print(f"ID: {row[0]}, Nome: {row[1]}, Arquivo: '{row[2]}' (len={len(row[2])})")
+    
+    print(f"\n=== EXECUTANDO CORREÇÃO ===")
+    with connection.cursor() as cursor:
+        cursor.execute(f"""
+            UPDATE {table_name} 
+            SET arquivo_zip = TRIM(REPLACE(arquivo_zip, 'portal_sem_video/portal_sem_video/', 'portal_sem_video/'))
+            WHERE arquivo_zip LIKE '%portal_sem_video/portal_sem_video/%' OR arquivo_zip != TRIM(arquivo_zip);
+        """)
+        affected_rows = cursor.rowcount
+        print(f"Registros afetados: {affected_rows}")
+    
+    print(f"\n=== APÓS CORREÇÃO ===")
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT id, nome, arquivo_zip FROM {table_name} WHERE ativo = true;")
+        for row in cursor.fetchall():
+            print(f"ID: {row[0]}, Nome: {row[1]}, Arquivo: '{row[2]}' (len={len(row[2])})")
+            
+    print("\n✅ Correção SQL concluída!")
+
+except Exception as e:
+    print(f"❌ Erro durante correção: {e}")
+    import traceback
+    traceback.print_exc()
 EOF
 
 echo ""
