@@ -190,6 +190,18 @@ class ZipManagerService:
                 
                 logger.info(f"Novo vídeo adicionado: {video_file.name}")
                 
+                # Criar selected_video.txt para override automático
+                try:
+                    selected_txt_path = os.path.join(videos_dir, 'selected_video.txt')
+                    with open(selected_txt_path, 'w', encoding='utf-8') as f:
+                        f.write(video_file.name)
+                    logger.info(f"selected_video.txt criado com: {video_file.name}")
+                except Exception as e:
+                    logger.warning(f"Falha ao criar selected_video.txt: {e}")
+                
+                # Atualizar HTMLs com nome do vídeo correto
+                ZipManagerService._patch_html_video_references(temp_dir, video_file.name)
+                
                 # Recriar ZIP
                 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
                     for root, dirs, files in os.walk(temp_dir):
@@ -241,3 +253,66 @@ class ZipManagerService:
         except Exception as e:
             logger.error(f"Erro ao obter informações do ZIP: {str(e)}")
             return None
+    
+    @staticmethod
+    def _patch_html_video_references(temp_dir, video_filename):
+        """
+        Atualiza referências de vídeo em arquivos HTML dentro do diretório extraído
+        """
+        import re
+        
+        # HTMLs que precisam ser atualizados (assumindo estrutura src/)
+        html_files = ['src/index.html', 'src/login.html', 'src/login2.html']
+        
+        for html_file in html_files:
+            file_path = os.path.join(temp_dir, html_file)
+            if not os.path.exists(file_path):
+                continue
+                
+            try:
+                # Ler conteúdo atual
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                original_content = content
+                
+                # Atualizar tag <source src="assets/videos/...">
+                pattern = r'(<source\b[^>]*\bsrc=["\']assets/videos/)([^"\']+)(["\'][^>]*>)'
+                content, n = re.subn(pattern, r'\1' + video_filename + r'\3', content, count=1)
+                
+                # Fallback: substituir referências diretas de eldNN.mp4
+                if n == 0:
+                    content = re.sub(r'assets/videos/eld\d+\.mp4', f'assets/videos/{video_filename}', content, count=1)
+                    if content != original_content:
+                        n = 1
+                
+                # Atualizar poster se existir (tentativa de mesma base)
+                base_no_ext = os.path.splitext(video_filename)[0]
+                for ext in ['.jpg', '.png']:
+                    poster_file = f'assets/videos/{base_no_ext}{ext}'
+                    poster_path = os.path.join(temp_dir, 'src', 'assets', 'videos', f'{base_no_ext}{ext}')
+                    
+                    # Se o poster existir, atualizar referência
+                    if os.path.exists(poster_path):
+                        content, n_poster = re.subn(
+                            r'(poster=["\']assets/videos/)([^"\']+)(["\'])', 
+                            r'\1' + base_no_ext + ext + r'\3', 
+                            content, count=1
+                        )
+                        if n_poster == 0:
+                            # Fallback para eldNN.jpg/png
+                            content = re.sub(
+                                r'poster=["\']assets/videos/eld\d+\.(jpg|png)["\']', 
+                                f'poster="assets/videos/{base_no_ext}{ext}"', 
+                                content, count=1
+                            )
+                        break
+                
+                # Gravar se houve mudanças
+                if content != original_content:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    logger.info(f"{html_file} atualizado para usar vídeo {video_filename}")
+                
+            except Exception as e:
+                logger.warning(f"Falha ao atualizar {html_file}: {e}")

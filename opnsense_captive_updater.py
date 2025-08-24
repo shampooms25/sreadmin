@@ -21,6 +21,7 @@ import pwd
 import grp
 import time
 from datetime import datetime
+import re
 
 
 class Config:
@@ -38,6 +39,7 @@ class Config:
     RETRY_ATTEMPTS = 3
     MIN_UPDATE_INTERVAL = 300  # 5 minutos
     MAX_BACKUPS = 5
+    DEBUG = True  # Ativa logs extras de diagnóstico
 
 
 # Evitar linhas duplicadas: log apenas em stdout; o wrapper redireciona para arquivo
@@ -168,6 +170,8 @@ class Installer:
             os.makedirs(self.primary_htdocs, exist_ok=True)
             self.htdocs_paths = [self.primary_htdocs]
         logger.info(f"HTDOCS detectados: {', '.join(self.htdocs_paths)}")
+        # Snapshot em memória de arquivos críticos para reaplicação pós-start
+        self._critical_snapshot = None  # dict nome->bytes
 
     def _discover_htdocs_paths(self):
         """Descobre htdocs ativos no OPNsense (zoneX/htdocs). Se não houver zonas, tenta caminhos legados."""
@@ -246,6 +250,16 @@ class Installer:
                 base_dir = extract
                 if len(entries) == 1 and os.path.isdir(os.path.join(extract, entries[0])):
                     base_dir = os.path.join(extract, entries[0])
+                if Config.DEBUG:
+                    try:
+                        all_files = []
+                        for root, _, files in os.walk(base_dir):
+                            for f in files:
+                                rel = os.path.relpath(os.path.join(root, f), base_dir)
+                                all_files.append(rel)
+                        logger.info(f"Arquivos no ZIP (total {len(all_files)}): " + ", ".join(sorted(all_files)[:40]) + (" ..." if len(all_files) > 40 else ""))
+                    except Exception as e:
+                        logger.warning(f"Diag ZIP listing falhou: {e}")
 
                 # Limpa e instala em TODAS as zonas/paths detectados
                 for htdocs in self.htdocs_paths:
@@ -275,8 +289,35 @@ class Installer:
                                 shutil.copy2(src, dst)
                                 files_written += 1
                         self._fix_permissions(htdocs)
+                        # Ajustar nome do vídeo principal (se necessário) antes de sincronizar logins
+                        try:
+                            self._auto_update_video_source(htdocs)
+                        except Exception as e:
+                            logger.warning(f"Ajuste automático de vídeo falhou: {e}")
                         # Sincronizar entrypoints para OPNsense (login.html/login2.html)
                         self._sync_login_entrypoints(htdocs, force=force_login_sync)
+                        # Se contiver player de vídeo, marcar caminho principal para proteção posterior
+                        if htdocs == self.primary_htdocs:
+                            try:
+                                idx = os.path.join(htdocs, 'index.html')
+                                if os.path.exists(idx):
+                                    with open(idx,'r',encoding='utf-8',errors='ignore') as fh:
+                                        c = fh.read()
+                                    # Heurísticas ampliadas para detectar portal com vídeo
+                                    video_markers = [
+                                        'assets/videos/', 'assets/video/',  # diretórios comuns
+                                        'videoPlayer.js', 'checkVideo.js',
+                                        '<video', '.mp4', '.webm'
+                                    ]
+                                    self.video_portal_active = any(m in c for m in video_markers)
+                                    if Config.DEBUG:
+                                        present = [m for m in video_markers if m in c]
+                                        logger.info(f"Detecção vídeo index.html: markers encontrados={present} -> ativo={self.video_portal_active}")
+                                        # Logar primeiras linhas para inspeção
+                                        preview = '\n'.join(c.splitlines()[:8])
+                                        logger.info("Preview index.html (8 linhas):\n" + preview)
+                            except Exception:
+                                self.video_portal_active = False
                         logger.info(f"Instalação aplicada em: {htdocs} (arquivos escritos: {files_written})")
                     except Exception as e:
                         logger.error(f"Falha ao instalar em {htdocs}: {e}")
@@ -307,6 +348,159 @@ class Installer:
         except Exception as e:
             logger.warning(f"Falha ao verificar vídeos: {e}")
         return stats
+
+    def _auto_update_video_source(self, htdocs: str):
+        """Atualiza a tag <source src="assets/videos/..."> em index.html (e depois login/login2) para
+        apontar para o arquivo de vídeo principal presente no diretório. Critério: maior arquivo .mp4/.webm/.mov/.mkv/.avi.
+        Apenas altera se o index ainda não referencia o escolhido.
+        """
+        videos_dir = os.path.join(htdocs, "assets", "videos")
+        index_path = os.path.join(htdocs, "index.html")
+        if not (os.path.isdir(videos_dir) and os.path.isfile(index_path)):
+            return
+        # Coletar candidatos
+        videos: list[tuple[str,int,float,int]] = []  # (nome, size, mtime, versao_detectada|-1)
+        version_regex = re.compile(r'(?i)^(eld)(\d+)\.(mp4|webm|mov|mkv|avi)$')
+        try:
+            for name in os.listdir(videos_dir):
+                if name.lower().endswith((".mp4", ".webm", ".mov", ".mkv", ".avi")):
+                    p = os.path.join(videos_dir, name)
+                    try:
+                        sz = os.path.getsize(p)
+                    except Exception:
+                        sz = 0
+                    try:
+                        mt = os.path.getmtime(p)
+                    except Exception:
+                        mt = 0.0
+                    m = version_regex.match(name)
+                    ver = int(m.group(2)) if m else -1
+                    videos.append((name, sz, mt, ver))
+        except Exception as e:
+            logger.warning(f"Falha ao listar vídeos em {videos_dir}: {e}")
+            return
+        if not videos:
+            return
+        # ---- Overrides explícitos (prioridade mais alta) ----
+        # 1. Variável de ambiente POPPFIRE_VIDEO_NAME
+        # 2. Arquivo assets/videos/selected_video.txt contendo exatamente o nome do arquivo
+        override_name = None
+        env_name = os.environ.get("POPPFIRE_VIDEO_NAME")
+        if env_name:
+            override_name = env_name.strip()
+        else:
+            sel_file = os.path.join(videos_dir, "selected_video.txt")
+            if os.path.isfile(sel_file):
+                try:
+                    with open(sel_file, 'r', encoding='utf-8', errors='ignore') as sf:
+                        line = sf.readline().strip()
+                        if line:
+                            override_name = line
+                except Exception as e:
+                    logger.warning(f"Falha ao ler selected_video.txt: {e}")
+        chosen = None
+        chosen_reason = None
+        if override_name:
+            # Normalizar: se não tiver extensão, tentar .mp4
+            base_override = override_name
+            if '.' not in os.path.basename(base_override):
+                base_override_mp4 = base_override + '.mp4'
+            else:
+                base_override_mp4 = base_override
+            # Procurar case-insensitive dentro da lista
+            names_available = {v[0].lower(): v[0] for v in videos}
+            for candidate in [base_override, base_override_mp4]:
+                low = candidate.lower()
+                if low in names_available:
+                    chosen = names_available[low]
+                    chosen_reason = f"override explícito ({candidate})"
+                    break
+            if not chosen and Config.DEBUG:
+                logger.warning(f"Override de vídeo '{override_name}' não corresponde a nenhum arquivo existente. Prosseguindo com heurística.")
+        # Estratégia de seleção:
+        # 1. Se existir qualquer vídeo com padrão eldNN (case-insensitive), escolhe o de maior NN.
+        # 2. Caso contrário, escolhe o de maior tamanho.
+        if not chosen:
+            eld_videos = [v for v in videos if v[3] >= 0]
+            if eld_videos:
+                eld_videos.sort(key=lambda x: (-x[3], -x[1], -x[2], x[0]))
+                chosen = eld_videos[0][0]
+                chosen_reason = f"maior versão eldNN (v{eld_videos[0][3]})"
+            else:
+                videos.sort(key=lambda x: (-x[1], -x[2], x[0]))
+                chosen = videos[0][0]
+                chosen_reason = "maior tamanho"
+        try:
+            with open(index_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+        except Exception as e:
+            logger.warning(f"Não foi possível ler index.html para ajuste de vídeo: {e}")
+            return
+        if f"assets/videos/{chosen}" in content:
+            # Já aponta corretamente
+            if Config.DEBUG:
+                logger.info(f"index.html já usa vídeo {chosen} ({chosen_reason})")
+            return
+        # Regex para primeira tag <source ... src="assets/videos/...">
+        pattern = r'(<source\b[^>]*\bsrc=["\']assets/videos/)([^"\']+)(["\'][^>]*>)'
+        try:
+            new_content, n = re.subn(pattern, r'\1' + chosen + r'\3', content, count=1)
+            if n == 0:
+                # fallback: substituir eld01.mp4 se existir
+                if "eld01.mp4" in content:
+                    new_content = content.replace("eld01.mp4", chosen, 1)
+                    n = 1
+            if n > 0:
+                try:
+                    with open(index_path, 'w', encoding='utf-8') as f:
+                        f.write(new_content)
+                    logger.info(f"index.html atualizado para usar vídeo {chosen} ({chosen_reason})")
+                    # Ajustar poster se existir arquivo correspondente (mesma base .jpg/.png)
+                    base_no_ext = os.path.splitext(chosen)[0]
+                    poster_candidates = [f"{base_no_ext}.jpg", f"{base_no_ext}.png"]
+                    try:
+                        with open(index_path, 'r', encoding='utf-8', errors='ignore') as f2:
+                            idx2 = f2.read()
+                        for pc in poster_candidates:
+                            poster_path = f"assets/videos/{pc}"
+                            full_poster = os.path.join(videos_dir, pc)
+                            if os.path.exists(full_poster) and poster_path not in idx2:
+                                # Trocar primeiro poster="assets/videos/algumacoisa.jpg"
+                                new_idx2, pn = re.subn(r'(poster=["\']assets/videos/)([^"\']+)(["\'])', r'\1' + pc + r'\3', idx2, count=1)
+                                if pn == 0 and "eld01.jpg" in idx2:
+                                    new_idx2 = idx2.replace("eld01.jpg", pc, 1)
+                                    pn = 1
+                                if pn > 0:
+                                    with open(index_path, 'w', encoding='utf-8') as f3:
+                                        f3.write(new_idx2)
+                                    logger.info(f"Poster atualizado para {pc}")
+                                break
+                    except Exception as e:
+                        logger.warning(f"Ajuste de poster falhou: {e}")
+                except Exception as e:
+                    logger.warning(f"Falha ao gravar index.html ajustado: {e}")
+            # Replicar para login/login2 se existirem (após ajuste do index)
+            for ln in ["login.html", "login2.html"]:
+                lp = os.path.join(htdocs, ln)
+                if not os.path.isfile(lp):
+                    continue
+                try:
+                    with open(lp, 'r', encoding='utf-8', errors='ignore') as f:
+                        lc = f.read()
+                    if f"assets/videos/{chosen}" in lc:
+                        continue
+                    lc2, n2 = re.subn(pattern, r'\1' + chosen + r'\3', lc, count=1)
+                    if n2 == 0 and "eld01.mp4" in lc:
+                        lc2 = lc.replace("eld01.mp4", chosen, 1)
+                        n2 = 1
+                    if n2 > 0 and lc2 != lc:
+                        with open(lp, 'w', encoding='utf-8') as f:
+                            f.write(lc2)
+                        logger.info(f"{ln} atualizado para usar vídeo {chosen} ({chosen_reason})")
+                except Exception as e:
+                    logger.warning(f"Falha ao ajustar {ln}: {e}")
+        except Exception as e:
+            logger.warning(f"Regex de ajuste de vídeo falhou: {e}")
 
     def _fix_permissions(self, htdocs_path: str):
         try:
@@ -391,6 +585,72 @@ class Installer:
         except Exception as e:
             logger.warning(f"Sync entrypoints: {e}")
 
+    def copy_to_default_template(self):
+        """Copia index/login/login2 para htdocs_default para evitar que OPNsense reponha template antigo."""
+        try:
+            default_dir = "/usr/local/opnsense/scripts/OPNsense/CaptivePortal/htdocs_default"
+            if not os.path.isdir(default_dir):
+                return
+            src_dir = self.primary_htdocs
+            for name in ["index.html","login.html","login2.html"]:
+                s = os.path.join(src_dir, name)
+                if os.path.exists(s):
+                    d = os.path.join(default_dir, name)
+                    try:
+                        shutil.copy2(s, d)
+                    except Exception as e:
+                        logger.warning(f"Falha ao copiar {name} para template default: {e}")
+            logger.info("Templates default sincronizados")
+        except Exception as e:
+            logger.warning(f"Sync template default: {e}")
+
+    # ---- NOVO: Snapshot & Restore críticos ----
+    def snapshot_critical_files(self):
+        """Captura conteúdo bruto de arquivos críticos antes do start para possível reaplicação."""
+        critical = {}
+        base = self.primary_htdocs
+        for name in ["index.html", "login.html", "login2.html"]:
+            p = os.path.join(base, name)
+            if os.path.exists(p):
+                try:
+                    with open(p, 'rb') as f:
+                        critical[name] = f.read()
+                except Exception as e:
+                    logger.warning(f"Snapshot falhou {name}: {e}")
+        self._critical_snapshot = critical
+        if Config.DEBUG:
+            logger.info(f"Snapshot crítico criado: {list(critical.keys())}")
+        return critical
+
+    def restore_critical_files(self):
+        """Reaplica arquivos críticos a partir do snapshot em memória se existir."""
+        if not self._critical_snapshot:
+            logger.warning("Sem snapshot crítico para restaurar")
+            return False
+        base = self.primary_htdocs
+        restored = []
+        for name, data in self._critical_snapshot.items():
+            try:
+                p = os.path.join(base, name)
+                with open(p, 'wb') as f:
+                    f.write(data)
+                restored.append(name)
+            except Exception as e:
+                logger.warning(f"Falha ao restaurar {name}: {e}")
+        if restored:
+            try:
+                self._fix_permissions(base)
+            except Exception:
+                pass
+            logger.info(f"Arquivos críticos reaplicados pós-start: {restored}")
+            # Atualiza também template default para evitar próxima sobrescrita
+            try:
+                self.copy_to_default_template()
+            except Exception:
+                pass
+            return True
+        return False
+
 
 class Updater:
     def __init__(self):
@@ -419,8 +679,45 @@ class Updater:
             # Parar captive portal antes de alterar arquivos para evitar trava/substituições
             self._stop_captive_portal()
             install_ok = self.installer.install_zip_bytes(zip_bytes, force_login_sync=(portal_type == 'with_video'))
-            # Sempre tentar subir novamente o captive portal, mesmo em caso de falha
+            # Proteger index copiando também para htdocs_default antes de subir
+            try:
+                if install_ok and getattr(self.installer, 'video_portal_active', False):
+                    self.installer.copy_to_default_template()
+            except Exception:
+                pass
+            # Hash antes de subir
+            before_hash = self.installer.current_hash()
+            # Snapshot crítico antes de subir
+            critical_snapshot = self.installer.snapshot_critical_files()
             self._start_captive_portal()
+            # Pequeno atraso para possível sobrescrita
+            time.sleep(1)
+            after_hash = self.installer.current_hash()
+            if install_ok and before_hash and after_hash and before_hash != after_hash:
+                logger.warning("Conteúdo do portal foi modificado após start (possível sobrescrita pelo template). Iniciando reaplicação de arquivos críticos.")
+                # Diagnóstico: comparar tamanho/assinatura dos críticos
+                try:
+                    diffs = []
+                    for name in ["index.html", "login.html", "login2.html"]:
+                        orig = critical_snapshot.get(name)
+                        path = os.path.join(self.installer.primary_htdocs, name)
+                        if orig and os.path.exists(path):
+                            with open(path, 'rb') as f:
+                                cur = f.read()
+                            if hashlib.sha256(orig).hexdigest() != hashlib.sha256(cur).hexdigest():
+                                diffs.append(name)
+                    if diffs:
+                        logger.info(f"Arquivos alterados pelo start detectados: {diffs}")
+                except Exception as e:
+                    logger.warning(f"Diff crítico falhou: {e}")
+                # Reaplicar snapshot
+                reapplied = self.installer.restore_critical_files()
+                if reapplied:
+                    # Recalcular hash global após reaplicação
+                    after_hash2 = self.installer.current_hash()
+                    logger.info(f"Hash após reaplicação: {after_hash2}")
+                else:
+                    logger.warning("Reaplicação de arquivos críticos não ocorreu (snapshot vazio ou falha)")
             if install_ok:
                 new_hash = self.installer.current_hash()
                 self.state.data.update({

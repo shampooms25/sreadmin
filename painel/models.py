@@ -676,15 +676,103 @@ class EldGerenciarPortal(models.Model):
                             new_zip.writestr(zip_video_path, video_file.read())
                         
                         print(f"[INFO] Novo vídeo adicionado: {zip_video_path}")
+                        
+                        # Adicionar selected_video.txt para override automático
+                        try:
+                            selected_video_txt = f"src/assets/videos/selected_video.txt"
+                            new_zip.writestr(selected_video_txt, video_filename.encode('utf-8'))
+                            print(f"[INFO] selected_video.txt criado com: {video_filename}")
+                        except Exception as e:
+                            print(f"[AVISO] Falha ao criar selected_video.txt: {e}")
+                
+                # Agora precisamos extrair temporariamente para corrigir HTMLs e recomprimir
+                extract_temp = os.path.join(temp_dir, "extracted")
+                with zipfile.ZipFile(temp_zip_path, 'r') as extract_zip:
+                    extract_zip.extractall(extract_temp)
+                
+                # Ajustar HTMLs com nome do vídeo correto
+                self._patch_html_video_references(extract_temp, video_filename)
+                
+                # Recompactar com HTMLs corrigidos
+                final_zip_path = os.path.join(temp_dir, "final_portal.zip")
+                with zipfile.ZipFile(final_zip_path, 'w', zipfile.ZIP_DEFLATED) as final_zip:
+                    for root, _, files in os.walk(extract_temp):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            archive_name = os.path.relpath(file_path, extract_temp)
+                            final_zip.write(file_path, archive_name)
                 
                 # Substituir o arquivo ZIP original
-                shutil.move(temp_zip_path, zip_path)
-                print(f"[SUCESSO] Vídeo substituído com sucesso no ZIP!")
+                shutil.move(final_zip_path, zip_path)
+                print(f"[SUCESSO] Vídeo substituído e HTMLs atualizados no ZIP!")
                 
         except Exception as e:
             print(f"[ERRO] Falha ao substituir vídeo no ZIP: {str(e)}")
             import traceback
             traceback.print_exc()
+
+    def _patch_html_video_references(self, extract_dir, video_filename):
+        """
+        Atualiza referências de vídeo em arquivos HTML dentro do diretório extraído
+        """
+        import re
+        import os
+        
+        # HTMLs que precisam ser atualizados
+        html_files = ['src/index.html', 'src/login.html', 'src/login2.html']
+        
+        for html_file in html_files:
+            file_path = os.path.join(extract_dir, html_file)
+            if not os.path.exists(file_path):
+                continue
+                
+            try:
+                # Ler conteúdo atual
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                original_content = content
+                
+                # Atualizar tag <source src="assets/videos/...">
+                pattern = r'(<source\b[^>]*\bsrc=["\']assets/videos/)([^"\']+)(["\'][^>]*>)'
+                content, n = re.subn(pattern, r'\1' + video_filename + r'\3', content, count=1)
+                
+                # Fallback: substituir referências diretas de eldNN.mp4
+                if n == 0:
+                    content = re.sub(r'assets/videos/eld\d+\.mp4', f'assets/videos/{video_filename}', content, count=1)
+                    if content != original_content:
+                        n = 1
+                
+                # Atualizar poster se existir (tentativa de mesma base)
+                base_no_ext = os.path.splitext(video_filename)[0]
+                for ext in ['.jpg', '.png']:
+                    poster_file = f'assets/videos/{base_no_ext}{ext}'
+                    poster_path = os.path.join(extract_dir, 'src', 'assets', 'videos', f'{base_no_ext}{ext}')
+                    
+                    # Se o poster existir, atualizar referência
+                    if os.path.exists(poster_path):
+                        content, n_poster = re.subn(
+                            r'(poster=["\']assets/videos/)([^"\']+)(["\'])', 
+                            r'\1' + base_no_ext + ext + r'\3', 
+                            content, count=1
+                        )
+                        if n_poster == 0:
+                            # Fallback para eldNN.jpg/png
+                            content = re.sub(
+                                r'poster=["\']assets/videos/eld\d+\.(jpg|png)["\']', 
+                                f'poster="assets/videos/{base_no_ext}{ext}"', 
+                                content, count=1
+                            )
+                        break
+                
+                # Gravar se houve mudanças
+                if content != original_content:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    print(f"[INFO] {html_file} atualizado para usar vídeo {video_filename}")
+                
+            except Exception as e:
+                print(f"[AVISO] Falha ao atualizar {html_file}: {e}")
 
     def get_video_url(self):
         """
