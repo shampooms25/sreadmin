@@ -596,11 +596,14 @@ class EldGerenciarPortal(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Override do save para aplicar validações e substituir vídeo no ZIP
+        Override do save para aplicar validações, substituir vídeo no ZIP e gerenciar ativação automática
         """
         # Verificar se é uma atualização com mudança de vídeo
         is_video_change = False
         old_video = None
+        
+        # Verificar se está sendo ativado e precisa desativar portal sem vídeo
+        activating_portal = self.ativo and (not self.pk or not EldGerenciarPortal.objects.filter(pk=self.pk, ativo=True).exists())
         
         if self.pk:
             try:
@@ -612,6 +615,16 @@ class EldGerenciarPortal(models.Model):
         
         self.clean()
         super().save(*args, **kwargs)
+        
+        # Se este portal com vídeo foi ativado, desativar automaticamente portal sem vídeo
+        if activating_portal:
+            try:
+                portais_sem_video = EldPortalSemVideo.objects.filter(ativo=True)
+                if portais_sem_video.exists():
+                    portais_sem_video.update(ativo=False)
+                    print(f"[AUTO-SWITCH] Portal com vídeo ativado - Portal sem vídeo desativado automaticamente")
+            except Exception as e:
+                print(f"[ERRO] Falha ao desativar portal sem vídeo: {e}")
         
         # Se houve mudança de vídeo e temos um ZIP, substituir o vídeo dentro do ZIP
         if is_video_change and self.captive_portal_zip and self.nome_video:
@@ -977,7 +990,10 @@ class EldPortalSemVideo(models.Model):
                 })
     
     def save(self, *args, **kwargs):
-        """Override do save para calcular tamanho e sanear nome do arquivo."""
+        """Override do save para calcular tamanho, sanear nome do arquivo e gerenciar ativação automática."""
+        # Verificar se está sendo ativado e precisa desativar portal com vídeo
+        activating_portal = self.ativo and (not self.pk or not EldPortalSemVideo.objects.filter(pk=self.pk, ativo=True).exists())
+        
         # Calcular tamanho do arquivo em MB
         if self.arquivo_zip:
             try:
@@ -1006,6 +1022,18 @@ class EldPortalSemVideo(models.Model):
 
         self.clean()
         super().save(*args, **kwargs)
+        
+        # Se este portal sem vídeo foi ativado, desativar automaticamente portal com vídeo
+        if activating_portal:
+            try:
+                # Importar aqui para evitar importação circular
+                from . import models as painel_models
+                portais_com_video = painel_models.EldGerenciarPortal.objects.filter(ativo=True)
+                if portais_com_video.exists():
+                    portais_com_video.update(ativo=False)
+                    print(f"[AUTO-SWITCH] Portal sem vídeo '{self.nome}' ativado - Portal com vídeo desativado automaticamente")
+            except Exception as e:
+                print(f"[ERRO] Falha ao desativar portal com vídeo: {e}")
     
     @classmethod
     def get_portal_ativo(cls):
