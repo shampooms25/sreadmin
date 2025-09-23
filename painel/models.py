@@ -902,13 +902,13 @@ class EldPortalSemVideo(models.Model):
         help_text="Tamanho do arquivo ZIP em MB"
     )
     
-    preview = models.ImageField(
-        upload_to='portais_sem_video/previews/',
-        blank=True,
-        null=True,
-        verbose_name='Preview do Portal',
-        help_text="Imagem de preview/screenshot do portal"
-    )
+    # preview = models.ImageField(
+    #     upload_to='portais_sem_video/previews/',
+    #     blank=True,
+    #     null=True,
+    #     verbose_name='Preview do Portal',
+    #     help_text="Imagem de preview/screenshot do portal"
+    # )
 
     def save(self, *args, **kwargs):
         # Calcular tamanho do arquivo ZIP
@@ -921,39 +921,39 @@ class EldPortalSemVideo(models.Model):
         # Salvar primeiro para ter o arquivo disponível
         super().save(*args, **kwargs)
         
-        # Redimensionar a imagem de preview se foi fornecida
-        if self.preview:
-            self._resize_preview()
+        # # Redimensionar a imagem de preview se foi fornecida
+        # if self.preview:
+        #     self._resize_preview()
     
-    def _resize_preview(self):
-        """Redimensiona a imagem de preview para um tamanho otimizado"""
-        try:
-            from PIL import Image
-            import os
-            from django.conf import settings
-            
-            # Caminho completo para a imagem
-            image_path = os.path.join(settings.MEDIA_ROOT, self.preview.name)
-            
-            # Abrir e redimensionar
-            with Image.open(image_path) as img:
-                # Converter para RGB se necessário (para PNG com transparência)
-                if img.mode in ('RGBA', 'LA', 'P'):
-                    background = Image.new('RGB', img.size, (255, 255, 255))
-                    if img.mode == 'P':
-                        img = img.convert('RGBA')
-                    background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-                    img = background
-                
-                # Redimensionar mantendo proporção (máximo 400x300)
-                img.thumbnail((400, 300), Image.Resampling.LANCZOS)
-                
-                # Salvar com qualidade otimizada
-                img.save(image_path, 'JPEG', quality=85, optimize=True)
-                
-        except Exception as e:
-            # Log do erro mas não falha o save
-            print(f"Erro ao redimensionar preview: {e}")
+    # def _resize_preview(self):
+    #     """Redimensiona a imagem de preview para um tamanho otimizado"""
+    #     try:
+    #         from PIL import Image
+    #         import os
+    #         from django.conf import settings
+    #         
+    #         # Caminho completo para a imagem
+    #         image_path = os.path.join(settings.MEDIA_ROOT, self.preview.name)
+    #         
+    #         # Abrir e redimensionar
+    #         with Image.open(image_path) as img:
+    #             # Converter para RGB se necessário (para PNG com transparência)
+    #             if img.mode in ('RGBA', 'LA', 'P'):
+    #                 background = Image.new('RGB', img.size, (255, 255, 255))
+    #                 if img.mode == 'P':
+    #                     img = img.convert('RGBA')
+    #                 background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+    #                 img = background
+    #             
+    #             # Redimensionar mantendo proporção (máximo 400x300)
+    #             img.thumbnail((400, 300), Image.Resampling.LANCZOS)
+    #             
+    #             # Salvar com qualidade otimizada
+    #             img.save(image_path, 'JPEG', quality=85, optimize=True)
+    #             
+    #     except Exception as e:
+    #         # Log do erro mas não falha o save
+    #         print(f"Erro ao redimensionar preview: {e}")
     
     class Meta:
         db_table = 'eld_portal_sem_video'

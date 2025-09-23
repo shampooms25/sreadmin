@@ -1,0 +1,576 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - Starlink Admin{% endblock %}
+
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'adminlte4/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .metric-card {
+            transition: transform 0.2s ease-in-out;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        .status-excellent { color: #28a745; }
+        .status-good { color: #17a2b8; }
+        .status-warning { color: #ffc107; }
+        .status-critical { color: #dc3545; }
+        
+        .uptime-bar {
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .uptime-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .uptime-excellent { background-color: #28a745; }
+        .uptime-good { background-color: #17a2b8; }
+        .uptime-warning { background-color: #ffc107; }
+        .uptime-critical { background-color: #dc3545; }
+        
+        .service-line-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .connectivity-metrics {
+            min-width: 80px;
+            font-size: 0.85rem;
+        }
+        .connectivity-metrics .d-flex {
+            align-items: center;
+            gap: 2px;
+        }
+        .connectivity-metrics small {
+            font-size: 0.75rem;
+        }
+        
+        .export-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .cycle-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-stats {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">
+                        <i class="fas fa-satellite text-primary"></i>
+                        {{ title }}
+                    </h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        {% for breadcrumb in breadcrumbs %}
+                            {% if breadcrumb.url %}
+                                <li class="breadcrumb-item">
+                                    <a href="{{ breadcrumb.url }}">{{ breadcrumb.name }}</a>
+                                </li>
+                            {% else %}
+                                <li class="breadcrumb-item active">{{ breadcrumb.name }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            
+            <!-- Seção de Exportação -->
+            <div class="export-section">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4><i class="fas fa-file-pdf"></i> Exportar Relatório</h4>
+                        <p class="mb-0">Baixe o relatório completo em formato PDF com todas as métricas de disponibilidade</p>
+                    </div>
+                    <div class="col-md-4 text-right">
+                        <a href="?{% for sl in selected_service_lines %}service_lines={{ sl }}&{% endfor %}{% if request.GET.billing_cycle %}billing_cycle={{ request.GET.billing_cycle }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}export=pdf" 
+                           class="btn btn-light btn-lg">
+                            <i class="fas fa-download"></i>
+                            Baixar PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações do Ciclo -->
+            <div class="cycle-info">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-calendar-alt text-primary"></i> Período Analisado</h5>
+                        <p class="mb-0">
+                            <strong>{{ cycle_start }}</strong> até <strong>{{ cycle_end }}</strong>
+                            <br><small class="text-muted">Ciclo de faturamento Starlink (dia 03 - dia 02)</small>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-satellite text-primary"></i> Service Lines</h5>
+                        <p class="mb-0">
+                            <strong>{{ total_service_lines }}</strong> Service Lines selecionadas
+                            <br><small class="text-muted">Dados de telemetria e tráfego combinados</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estatísticas Resumo -->
+            <div class="row">
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-success metric-card">
+                        <div class="inner">
+                            <h3>{{ avg_uptime }}%</h3>
+                            <p>Uptime Médio</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-warning metric-card">
+                        <div class="inner">
+                            <h3>{{ avg_downtime }}h</h3>
+                            <p>Downtime Médio</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-danger metric-card">
+                        <div class="inner">
+                            <h3>{{ avg_obstruction }}h</h3>
+                            <p>Obstrução Média</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-satellite-dish"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-primary metric-card">
+                        <div class="inner">
+                            <h3>{{ avg_consumption }} GB</h3>
+                            <p>Consumo Médio</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-secondary metric-card">
+                        <div class="inner">
+                            <h3>{{ avg_usage_percentage }}%</h3>
+                            <p>Uso Franquia</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-info metric-card">
+                        <div class="inner">
+                            <h3>{{ total_service_lines }}</h3>
+                            <p>Service Lines</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-network-wired"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Detalhada -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-table text-primary"></i>
+                        Detalhamento por Service Line
+                    </h3>
+                    <div class="card-tools">
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-color uptime-excellent"></div>
+                                <span>Excelente (≥99%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color uptime-good"></div>
+                                <span>Bom (95-99%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color uptime-warning"></div>
+                                <span>Atenção (90-95%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color uptime-critical"></div>
+                                <span>Crítico (&lt;90%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th style="width: 18%">Service Line</th>
+                                <th style="width: 14%">Localização</th>
+                                <th style="width: 12%">Uptime</th>
+                                <th style="width: 8%">Downtime</th>
+                                <th style="width: 8%">Obstrução</th>
+                                <th style="width: 12%">Conectividade</th>
+                                <th style="width: 12%">Consumo</th>
+                                <th style="width: 10%">Franquia</th>
+                                <th style="width: 8%">Disponibilidade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in filtered_data %}
+                            <tr class="service-line-row">
+                                <td>
+                                    <code class="text-primary">{{ data.service_line }}</code>
+                                </td>
+                                <td>
+                                    <strong>{{ data.location }}</strong>
+                                </td>
+                                <td>
+                                    <div>
+                                        <span class="badge 
+                                            {% if data.uptime_percentage >= 99 %}badge-success
+                                            {% elif data.uptime_percentage >= 95 %}badge-info  
+                                            {% elif data.uptime_percentage >= 90 %}badge-warning
+                                            {% else %}badge-danger{% endif %}">
+                                            {{ data.uptime_percentage }}%
+                                        </span>
+                                        <div class="uptime-bar">
+                                            <div class="uptime-fill 
+                                                {% if data.uptime_percentage >= 99 %}uptime-excellent
+                                                {% elif data.uptime_percentage >= 95 %}uptime-good
+                                                {% elif data.uptime_percentage >= 90 %}uptime-warning
+                                                {% else %}uptime-critical{% endif %}"
+                                                style="width: {{ data.uptime_percentage|floatformat:0 }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-warning">
+                                        <i class="fas fa-clock"></i>
+                                        {{ data.downtime_hours }}h
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-danger">
+                                        <i class="fas fa-satellite-dish"></i>
+                                        {{ data.obstruction_hours }}h
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if data.ping_metrics %}
+                                        <div class="connectivity-metrics">
+                                            <!-- Uptime com ícone visual -->
+                                            <div class="d-flex align-items-center mb-1">
+                                                {% if data.uptime_percentage >= 99 %}
+                                                    <span class="text-success me-1">🟢</span>
+                                                {% elif data.uptime_percentage >= 95 %}
+                                                    <span class="text-info me-1">🔵</span>
+                                                {% elif data.uptime_percentage >= 90 %}
+                                                    <span class="text-warning me-1">🟡</span>
+                                                {% else %}
+                                                    <span class="text-danger me-1">🔴</span>
+                                                {% endif %}
+                                                <small class="text-muted">↑{{ data.uptime_percentage|floatformat:1 }}%</small>
+                                            </div>
+                                            
+                                            <!-- Latência com ícone visual -->
+                                            <div class="d-flex align-items-center">
+                                                {% if data.ping_metrics.ping_latency_avg <= 50 %}
+                                                    <span class="text-success me-1">🟢</span>
+                                                {% elif data.ping_metrics.ping_latency_avg <= 100 %}
+                                                    <span class="text-warning me-1">🟡</span>
+                                                {% else %}
+                                                    <span class="text-danger me-1">🔴</span>
+                                                {% endif %}
+                                                <small class="text-info">
+                                                    <i class="fas fa-wifi" style="font-size: 10px;"></i>
+                                                    {{ data.ping_metrics.ping_latency_avg|floatformat:1 }}ms
+                                                </small>
+                                            </div>
+                                            
+                                            <!-- Packet Loss (opcional, só se > 0) -->
+                                            {% if data.ping_metrics.packet_loss_percentage > 0 %}
+                                                <div class="d-flex align-items-center mt-1">
+                                                    <small class="text-warning">
+                                                        <i class="fas fa-exclamation-triangle" style="font-size: 8px;"></i>
+                                                        {{ data.ping_metrics.packet_loss_percentage|floatformat:1 }}%
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% elif data.has_real_ping_data %}
+                                        <span class="text-success">
+                                            <i class="fas fa-check-circle"></i>
+                                            Dados disponíveis
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            <i class="fas fa-question-circle"></i>
+                                            N/A
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>
+                                        <small class="text-muted">Priority:</small> 
+                                        <strong>{{ data.priority_gb|floatformat:1 }} GB</strong><br>
+                                        <small class="text-muted">Standard:</small> 
+                                        <strong>{{ data.standard_gb|floatformat:1 }} GB</strong><br>
+                                        <small class="text-info">Total:</small> 
+                                        <strong class="text-primary">{{ data.total_gb|floatformat:1 }} GB</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <span class="badge 
+                                            {% if data.usage_percentage < 70 %}badge-success
+                                            {% elif data.usage_percentage < 80 %}badge-info
+                                            {% elif data.usage_percentage < 90 %}badge-warning
+                                            {% elif data.usage_percentage < 100 %}badge-danger
+                                            {% else %}badge-dark{% endif %}">
+                                            {{ data.usage_percentage|floatformat:1 }}%
+                                        </span>
+                                        <br><small class="text-muted">{{ data.usage_threshold|title }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if data.availability_status == 'Excelente' %}badge-success
+                                        {% elif data.availability_status == 'Bom' %}badge-info
+                                        {% elif data.availability_status == 'Atenção' %}badge-warning
+                                        {% else %}badge-danger{% endif %}">
+                                        {{ data.availability_status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td><strong>MÉDIAS GERAIS</strong></td>
+                                <td><strong>{{ total_service_lines }} Locations</strong></td>
+                                <td>
+                                    <strong class="text-success">{{ avg_uptime }}%</strong>
+                                </td>
+                                <td>
+                                    <strong class="text-warning">{{ avg_downtime }}h</strong>
+                                </td>
+                                <td>
+                                    <strong class="text-danger">{{ avg_obstruction }}h</strong>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">Consolidado</span>
+                                </td>
+                                <td>-</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Informações Adicionais -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card card-outline card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-info-circle"></i>
+                                Sobre os Dados
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success"></i> <strong>Uptime:</strong> Percentual de tempo online</li>
+                                <li><i class="fas fa-times text-danger"></i> <strong>Downtime:</strong> Horas de indisponibilidade</li>
+                                <li><i class="fas fa-satellite-dish text-warning"></i> <strong>Obstrução:</strong> Bloqueios do sinal</li>
+                                <li><i class="fas fa-chart-line text-info"></i> <strong>Status:</strong> Avaliação consolidada</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card card-outline card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-cog"></i>
+                                Configurações
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Fonte dos dados:</strong> API Starlink Telemetry</p>
+                            <p><strong>Ciclo de faturamento:</strong> {{ cycle_start }} - {{ cycle_end }}</p>
+                            <p><strong>Última atualização:</strong> Em tempo real</p>
+                            <p><strong>Service Lines:</strong> {{ total_service_lines }} selecionadas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card-footer text-center">
+                        <a href="{% url 'painel:starlink_availability_selection' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar à Seleção
+                        </a>
+                        <a href="#" 
+                           onclick="downloadPDF('?{% for sl in selected_service_lines %}service_lines={{ sl }}&{% endfor %}{% if request.GET.billing_cycle %}billing_cycle={{ request.GET.billing_cycle }}&{% endif %}{% if request.GET.start_date %}start_date={{ request.GET.start_date }}&{% endif %}{% if request.GET.end_date %}end_date={{ request.GET.end_date }}&{% endif %}export=pdf')"
+                           class="btn btn-primary btn-lg ml-2">
+                            <i class="fas fa-file-pdf"></i>
+                            Exportar PDF
+                        </a>
+                        <a href="{% url 'painel:starlink_dashboard' %}" class="btn btn-info btn-lg ml-2">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animação das barras de uptime
+    const uptimeFills = document.querySelectorAll('.uptime-fill');
+    uptimeFills.forEach(fill => {
+        const width = fill.style.width;
+        fill.style.width = '0%';
+        setTimeout(() => {
+            fill.style.width = width;
+        }, 500);
+    });
+
+    // Tooltip para métricas
+    const metricCards = document.querySelectorAll('.metric-card');
+    metricCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.boxShadow = 'none';
+        });
+    });
+
+    // Destacar linhas na tabela
+    const tableRows = document.querySelectorAll('.service-line-row');
+    tableRows.forEach(row => {
+        row.addEventListener('click', function() {
+            // Remove destaque de outras linhas
+            tableRows.forEach(r => r.classList.remove('table-active'));
+            // Adiciona destaque na linha clicada
+            this.classList.add('table-active');
+        });
+    });
+
+    console.log('Relatório de Disponibilidade carregado com {{ total_service_lines }} Service Lines');
+});
+
+// Função para forçar download do PDF
+function downloadPDF(url) {
+    const fullUrl = window.location.href.split('?')[0] + url;
+    
+    // Usar fetch para garantir que o download funcione
+    fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/pdf',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro ao gerar PDF');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Criar URL do blob
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // Criar elemento 'a' para download
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        
+        // Gerar nome do arquivo
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '_');
+        link.download = `relatorio_disponibilidade_starlink_${timestamp}.pdf`;
+        
+        // Adicionar ao DOM e simular clique
+        document.body.appendChild(link);
+        link.click();
+        
+        // Limpar
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+        
+        console.log('PDF baixado com sucesso!');
+    })
+    .catch(error => {
+        console.error('Erro ao baixar PDF:', error);
+        alert('Erro ao baixar PDF. Tente novamente.');
+        
+        // Fallback: abrir em nova aba
+        window.open(fullUrl, '_blank');
+    });
+}
+</script>
+{% endblock %}

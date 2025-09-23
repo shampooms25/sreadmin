@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+python emergency_table_fix.py#!/usr/bin/env python
 """
 Script para corrigir caminhos duplicados nos arquivos de portal sem vídeo
 Execute no servidor de produção

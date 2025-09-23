@@ -276,9 +276,9 @@
                     <i class="fas fa-clock"></i>
                 </div>
                 <div class="summary-value" style="color: #6f42c1; font-size: 1.2em;">
-                    {{ billing_data.last_update }}
+                    {{ current_time|date:"d/m/Y H:i" }}
                 </div>
-                <div class="summary-label">Última Atualização</div>
+                <div class="summary-label">Gerado em</div>
             </div>
             
             {% if billing_data.total_charges %}
@@ -313,8 +313,8 @@
                         <strong>{{ billing_data.billing_cycles_analyzed|default:12 }}</strong>
                     </div>
                     <div class="detail-item">
-                        <span>Data de Consulta:</span>
-                        <strong>{{ billing_data.last_update }}</strong>
+                        <span>Relatório Gerado em:</span>
+                        <strong>{{ current_time|date:"d/m/Y H:i:s" }}</strong>
                     </div>
                     <div class="detail-item">
                         <span>Status da API:</span>

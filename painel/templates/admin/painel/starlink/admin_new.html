@@ -515,8 +515,8 @@
         </div>
         
         <div class="refresh-indicator">
-            <i class="fas fa-sync-alt"></i> Última atualização: {{ last_update }}
-            <br>Os dados são atualizados automaticamente a cada 5 minutos
+            <i class="fas fa-sync-alt"></i> Página carregada em: {% now "d/m/Y H:i:s" %}
+            <br>Os dados são consultados em tempo real
         </div>
     {% endif %}
 

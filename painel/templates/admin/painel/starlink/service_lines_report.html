@@ -1,0 +1,495 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load dict_extras %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin-lte/plugins/fontawesome-free/css/all.min.css' %}">
+<link rel="stylesheet" href="{% static 'admin-lte/dist/css/adminlte.min.css' %}">
+<style>
+.service-line-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid #dee2e6;
+}
+
+.service-line-table {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.service-line-table th,
+.service-line-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.service-line-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.service-line-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.status-active {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.export-section {
+    background: #e8f4f8;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-left: 4px solid #17a2b8;
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.checkbox-item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.btn-export {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    color: white;
+    padding: 12px 30px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-export:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-filter {
+    background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    border: none;
+    color: white;
+    padding: 10px 25px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.btn-clear {
+    background: #6c757d;
+    border: none;
+    color: white;
+    padding: 10px 25px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.details-row {
+    background-color: #f8f9fa !important;
+}
+
+.monthly-details {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    margin: 10px 0;
+    border: 1px solid #e9ecef;
+}
+
+.month-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.month-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+}
+
+.cycle-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.cycle-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.cycle-header {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+}
+
+.cycle-period {
+    margin-bottom: 12px;
+    color: #6c757d;
+}
+
+.cycle-data {
+    font-size: 14px;
+}
+
+.cycle-data hr {
+    margin: 10px 0;
+}
+
+.text-warning {
+    color: #f39c12 !important;
+    font-weight: 600;
+}
+
+.text-info {
+    color: #17a2b8 !important;
+    font-weight: 600;
+}
+
+.text-success {
+    color: #28a745 !important;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">{{ title }}</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    {% for crumb in breadcrumbs %}
+                        {% if crumb.url %}
+                            <li class="breadcrumb-item"><a href="{{ crumb.url }}">{{ crumb.name }}</a></li>
+                        {% else %}
+                            <li class="breadcrumb-item active">{{ crumb.name }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="container-fluid">
+        
+        <!-- Seção de Exportação -->
+        <div class="export-section">
+            <h4><i class="fas fa-download"></i> Exportar Relatório</h4>
+            <p>Exporte o relatório filtrado para PDF com todas as informações das Service Lines selecionadas.</p>
+            <form method="get" id="exportForm" style="display: inline;">
+                <input type="hidden" name="export" value="pdf">
+                {% for sl in selected_service_lines %}
+                    <input type="hidden" name="service_lines" value="{{ sl }}">
+                {% endfor %}
+                <button type="submit" class="btn-export">
+                    <i class="fas fa-file-pdf"></i> Exportar para PDF
+                </button>
+            </form>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="stats-card">
+            <h4><i class="fas fa-chart-bar"></i> Estatísticas do Relatório</h4>
+            <div class="row">
+                <div class="col-md-2">
+                    <h5>{{ total_service_lines }}</h5>
+                    <p>Service Lines</p>
+                </div>
+                <div class="col-md-2">
+                    <h5>{{ total_cycles }}</h5>
+                    <p>Ciclos Processados</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>{{ total_consumption_all }} GB</h5>
+                    <p>Consumo Total</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>{{ average_consumption_all }} GB</h5>
+                    <p>Média por Service Line</p>
+                </div>
+                <div class="col-md-2">
+                    <h5>03-02</h5>
+                    <p>Ciclo Mensal</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-section">
+            <h4><i class="fas fa-filter"></i> Filtrar Service Lines</h4>
+            <p>Selecione as Service Lines que deseja incluir no relatório:</p>
+            
+            <form method="get" id="filterForm">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <button type="button" id="selectAll" class="btn-filter">
+                            <i class="fas fa-check-square"></i> Selecionar Todas
+                        </button>
+                        <button type="button" id="clearAll" class="btn-clear">
+                            <i class="fas fa-square"></i> Limpar Seleção
+                        </button>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <button type="submit" class="btn-filter">
+                            <i class="fas fa-search"></i> Aplicar Filtros
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="checkbox-grid">
+                    {% for sl in available_service_lines %}
+                        <div class="checkbox-item">
+                            <input type="checkbox" 
+                                   id="sl_{{ forloop.counter }}" 
+                                   name="service_lines" 
+                                   value="{{ sl }}"
+                                   {% if sl in selected_service_lines %}checked{% endif %}>
+                            <label for="sl_{{ forloop.counter }}">
+                                <strong>{{ sl }}</strong><br>
+                                <small class="text-muted">{{ service_line_locations|get_item:sl|default:"N/A" }}</small>
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabela de Resultados -->
+        <div class="service-line-card">
+            <h4><i class="fas fa-table"></i> Consumo por Ciclos de Faturamento (Dia 03 - Dia 02)</h4>
+            <p class="text-muted"><i class="fas fa-info-circle"></i> Consumo Total = Priority + Standard | Ciclo: 03/mês até 02/mês seguinte</p>
+            
+            {% if filtered_data %}
+                <div class="table-responsive">
+                    <table class="service-line-table">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-satellite-dish"></i> Service Line</th>
+                                <th><i class="fas fa-map-marker-alt"></i> Localidade</th>
+                                <th><i class="fas fa-chart-line"></i> Consumo Total</th>
+                                <th><i class="fas fa-calculator"></i> Média por Ciclo</th>
+                                <th><i class="fas fa-calendar-check"></i> Ciclos</th>
+                                <th><i class="fas fa-signal"></i> Status</th>
+                                <th><i class="fas fa-eye"></i> Detalhes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in filtered_data %}
+                                <tr>
+                                    <td><code>{{ item.service_line }}</code></td>
+                                    <td>{{ item.location }}</td>
+                                    <td><strong>{{ item.total_consumption_gb }} GB</strong></td>
+                                    <td>{{ item.average_monthly_gb }} GB</td>
+                                    <td>{{ item.total_cycles }} ciclos</td>
+                                    <td><span class="status-active">{{ item.status }}</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="toggleDetails('{{ item.service_line|slugify }}')">
+                                            <i class="fas fa-eye"></i> Ver Ciclos
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr id="details-{{ item.service_line|slugify }}" style="display: none;" class="details-row">
+                                    <td colspan="7">
+                                        <div class="monthly-details">
+                                            <h6><i class="fas fa-calendar-alt"></i> Detalhamento por Ciclo - {{ item.service_line }}</h6>
+                                            <div class="row">
+                                                {% for cycle_data in item.monthly_data %}
+                                                    <div class="col-md-4 mb-3">
+                                                        <div class="cycle-card">
+                                                            <div class="cycle-header">
+                                                                <strong>{{ cycle_data.cycle_name }}</strong>
+                                                            </div>
+                                                            <div class="cycle-period">
+                                                                <small><i class="fas fa-calendar"></i> {{ cycle_data.cycle_start }} - {{ cycle_data.cycle_end }}</small>
+                                                            </div>
+                                                            <div class="cycle-data">
+                                                                <div class="row">
+                                                                    <div class="col-6">
+                                                                        <strong>Priority:</strong><br>
+                                                                        <span class="text-warning">{{ cycle_data.priority_gb }} GB</span>
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <strong>Standard:</strong><br>
+                                                                        <span class="text-info">{{ cycle_data.standard_gb }} GB</span>
+                                                                    </div>
+                                                                </div>
+                                                                <hr>
+                                                                <div class="text-center">
+                                                                    <strong>Total:</strong><br>
+                                                                    <span class="text-success"><strong>{{ cycle_data.total_gb }} GB</strong></span><br>
+                                                                    <small class="text-muted">{{ cycle_data.total_mb|floatformat:0 }} MB</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Nenhuma Service Line selecionada. Use os filtros acima para selecionar as unidades desejadas.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Informações Adicionais -->
+        <div class="service-line-card">
+            <h5><i class="fas fa-info-circle"></i> Informações do Relatório</h5>
+            <ul>
+                <li><strong>Período de Faturamento:</strong> Dia 03 de cada mês até dia 02 do mês seguinte</li>
+                <li><strong>Cálculo de Consumo:</strong> Consumo Total = Priority + Standard (ambos em GB)</li>
+                <li><strong>Ciclos Processados:</strong> {{ total_cycles }} ciclos de faturamento</li>
+                <li><strong>Service Lines:</strong> {{ total_service_lines }} unidades selecionadas</li>
+                <li><strong>Consumo Acumulado:</strong> {{ total_consumption_all }} GB no período total</li>
+                <li><strong>Média por Unidade:</strong> {{ average_consumption_all }} GB por Service Line</li>
+                <li>Use os filtros para selecionar unidades específicas</li>
+                <li>Clique em "Ver Ciclos" para ver o detalhamento de Priority + Standard de cada ciclo</li>
+                <li>O botão "Exportar para PDF" gera um documento detalhado com todos os ciclos</li>
+                <li>Os dados são simulados para demonstração (integração com API Starlink usando get_usage_report_data)</li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+{{ block.super }}
+<script src="{% static 'admin-lte/plugins/jquery/jquery.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Selecionar todas as checkboxes
+    $('#selectAll').click(function() {
+        $('input[name="service_lines"]').prop('checked', true);
+    });
+    
+    // Limpar todas as checkboxes
+    $('#clearAll').click(function() {
+        $('input[name="service_lines"]').prop('checked', false);
+    });
+    
+    // Atualizar form de exportação quando filtros mudarem
+    $('input[name="service_lines"]').change(function() {
+        updateExportForm();
+    });
+    
+    function updateExportForm() {
+        var selectedValues = [];
+        $('input[name="service_lines"]:checked').each(function() {
+            selectedValues.push($(this).val());
+        });
+        
+        // Limpar inputs hidden existentes
+        $('#exportForm input[name="service_lines"]').remove();
+        
+        // Adicionar novos inputs hidden
+        selectedValues.forEach(function(value) {
+            $('#exportForm').append('<input type="hidden" name="service_lines" value="' + value + '">');
+        });
+    }
+    
+    // Inicializar form de exportação
+    updateExportForm();
+    
+    // Função para mostrar/esconder detalhes mensais
+    window.toggleDetails = function(serviceLineId) {
+        var detailsRow = document.getElementById('details-' + serviceLineId);
+        if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {
+            detailsRow.style.display = 'table-row';
+        } else {
+            detailsRow.style.display = 'none';
+        }
+    };
+});
+</script>
+{% endblock %}

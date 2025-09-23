@@ -346,6 +346,23 @@
 
         <div class="dashboard-card">
             <div class="card-content">
+                <div class="card-icon" style="color: #17a2b8;">
+                    <i class="fas fa-satellite"></i>
+                </div>
+                <h3 class="card-title">Relatório Completo Service Lines</h3>
+                <p class="card-description">
+                    Relatório completo com dados de consumo, disponibilidade, uptime, downtime e obstruções via telemetria.
+                </p>
+            </div>
+            <a href="{% url 'painel:starlink_availability_selection' %}" 
+               class="card-button" 
+               style="background: #17a2b8;">
+                <i class="fas fa-chart-line"></i> Relatório Completo
+            </a>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-content">
                 <div class="card-icon">
                     <i class="fas fa-bug"></i>
                 </div>

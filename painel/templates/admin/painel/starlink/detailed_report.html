@@ -337,10 +337,6 @@
                     <div class="stat-number">{{ account_id|default:"ACC-2744134-64041-5" }}</div>
                     <div class="stat-label">Account ID</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number">{{ last_update|default:"N/A" }}</div>
-                    <div class="stat-label">Última Atualização</div>
-                </div>
             </div>
         </div>
 
@@ -443,7 +439,7 @@
                         <strong>Total de Service Lines encontrados: {{ total_count }}</strong>
                     </div>
                     <div style="margin-top: 10px; color: #666;">
-                        Relatório gerado em: {{ last_update|default:"N/A" }}
+                        Relatório gerado em: {% now "d/m/Y H:i:s" %}
                     </div>
                 </div>
             </div>

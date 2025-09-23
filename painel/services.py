@@ -2,7 +2,10 @@
 Serviços de notificação para uploads de vídeos
 """
 import smtplib
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 import os
 import zipfile
 import shutil

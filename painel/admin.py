@@ -857,13 +857,13 @@ class ImagePreviewWidget(forms.ClearableFileInput):
 class PortalSemVideoUploadForm(forms.ModelForm):
     class Meta:
         model = EldPortalSemVideo
-        fields = ['nome', 'versao', 'descricao', 'arquivo_zip', 'ativo', 'preview']
+        fields = ['nome', 'versao', 'descricao', 'arquivo_zip', 'ativo']  # Removido 'preview'
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Portal Corporativo'}),
             'versao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 1.0'}),
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'arquivo_zip': forms.FileInput(attrs={'accept': '.zip', 'class': 'form-control'}),
-            'preview': ImagePreviewWidget(attrs={'accept': 'image/*', 'class': 'form-control'}),
+            # 'preview': ImagePreviewWidget(attrs={'accept': 'image/*', 'class': 'form-control'}),  # Comentado temporariamente
             'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
@@ -978,8 +978,8 @@ class EldPortalSemVideoAdmin(admin.ModelAdmin):
         return render(request, template_name, context)
 
     def preview_display(self, obj):
-        if hasattr(obj, 'preview') and obj.preview:
-            return format_html('<img src="{}" style="max-width:120px; max-height:80px;" />', obj.preview.url)
+        # if hasattr(obj, 'preview') and obj.preview:
+        #     return format_html('<img src="{}" style="max-width:120px; max-height:80px;" />', obj.preview.url)
         return '—'
     preview_display.short_description = 'Preview'
 

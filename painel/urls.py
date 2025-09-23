@@ -17,6 +17,12 @@ urlpatterns = [
     path('starlink/usage-report/', views.starlink_usage_report, name='starlink_usage_report'),
     path('starlink/api-status/', views.starlink_api_status, name='starlink_api_status'),
     path('starlink/debug-api/', views.starlink_debug_api, name='starlink_debug_api'),  # Debug temporário
+    path('starlink/service-lines-report/', views.starlink_service_lines_report, name='starlink_service_lines_report'),  # Relatório das Service Lines
+    path('starlink/service-lines-selection/', views.starlink_service_lines_selection, name='starlink_service_lines_selection'),  # Seleção para relatório de consumo
+    path('starlink/availability-selection/', views.starlink_availability_selection, name='starlink_availability_selection'),  # Seleção para relatório de disponibilidade
+    path('starlink/availability-report/', views.starlink_availability_report, name='starlink_availability_report'),  # Relatório de disponibilidade
+    path('starlink/debug-availability/', views.debug_availability_report, name='debug_availability_report'),  # Debug temporário
+    path('starlink/test-pdf/', views.test_pdf_simple, name='test_pdf_simple'),  # Teste simples de PDF
     
     # URLs do ELD
     path('eld/', views.eld_main, name='eld_main'),  # Página principal ELD
