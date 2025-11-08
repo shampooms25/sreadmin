@@ -598,20 +598,26 @@ class EldGerenciarPortal(models.Model):
         """
         Override do save para aplicar validações, substituir vídeo no ZIP e gerenciar ativação automática
         """
-        # Verificar se é uma atualização com mudança de vídeo
+        # Estados anteriores para controlar mudanças
         is_video_change = False
         old_video = None
-        
-        # Verificar se está sendo ativado e precisa desativar portal sem vídeo
-        activating_portal = self.ativo and (not self.pk or not EldGerenciarPortal.objects.filter(pk=self.pk, ativo=True).exists())
+        activating_portal = False
+        deactivating_portal = False
         
         if self.pk:
             try:
                 old_instance = EldGerenciarPortal.objects.get(pk=self.pk)
                 old_video = old_instance.nome_video
                 is_video_change = old_video != self.nome_video
+                previously_active = old_instance.ativo
+                if not previously_active and self.ativo:
+                    activating_portal = True
+                if previously_active and not self.ativo:
+                    deactivating_portal = True
             except EldGerenciarPortal.DoesNotExist:
-                pass
+                activating_portal = self.ativo
+        else:
+            activating_portal = self.ativo
         
         self.clean()
         super().save(*args, **kwargs)
@@ -625,6 +631,20 @@ class EldGerenciarPortal(models.Model):
                     print(f"[AUTO-SWITCH] Portal com vídeo ativado - Portal sem vídeo desativado automaticamente")
             except Exception as e:
                 print(f"[ERRO] Falha ao desativar portal sem vídeo: {e}")
+        elif deactivating_portal:
+            try:
+                portal_para_ativar = self.portal_sem_video
+                if not portal_para_ativar:
+                    portal_para_ativar = EldPortalSemVideo.get_portal_ativo()
+                if not portal_para_ativar:
+                    portal_para_ativar = EldPortalSemVideo.objects.order_by('-data_atualizacao').first()
+
+                if portal_para_ativar and not portal_para_ativar.ativo:
+                    portal_para_ativar.ativo = True
+                    portal_para_ativar.save()
+                    print(f"[AUTO-SWITCH] Portal com vídeo desativado - Portal sem vídeo '{portal_para_ativar.nome}' ativado automaticamente")
+            except Exception as e:
+                print(f"[ERRO] Falha ao ativar portal sem vídeo: {e}")
         
         # Se houve mudança de vídeo e temos um ZIP, substituir o vídeo dentro do ZIP
         if is_video_change and self.captive_portal_zip and self.nome_video:
