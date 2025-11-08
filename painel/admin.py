@@ -885,7 +885,6 @@ class EldPortalSemVideoAdmin(admin.ModelAdmin):
         'descricao',
         'arquivo_zip',
         'tamanho_mb',
-        'preview',
         'data_criacao',
         'data_atualizacao'
     ]
