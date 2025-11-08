@@ -645,6 +645,23 @@ class EldGerenciarPortal(models.Model):
                     print(f"[AUTO-SWITCH] Portal com vídeo desativado - Portal sem vídeo '{portal_para_ativar.nome}' ativado automaticamente")
             except Exception as e:
                 print(f"[ERRO] Falha ao ativar portal sem vídeo: {e}")
+
+        # Invariância: garantir que sempre exista um portal disponível
+        try:
+            if not EldGerenciarPortal.objects.filter(ativo=True).exists():
+                portal_fallback = None
+                if self.portal_sem_video:
+                    portal_fallback = self.portal_sem_video
+                if not portal_fallback:
+                    portal_fallback = EldPortalSemVideo.get_portal_ativo()
+                if not portal_fallback:
+                    portal_fallback = EldPortalSemVideo.objects.order_by('-data_atualizacao').first()
+
+                if portal_fallback and not portal_fallback.ativo:
+                    EldPortalSemVideo.objects.filter(pk=portal_fallback.pk).update(ativo=True)
+                    print(f"[AUTO-GUARD] Nenhum portal com vídeo ativo - ativado portal sem vídeo '{portal_fallback.nome}'")
+        except Exception as e:
+            print(f"[ERRO] Falha ao garantir portal sem vídeo ativo: {e}")
         
         # Se houve mudança de vídeo e temos um ZIP, substituir o vídeo dentro do ZIP
         if is_video_change and self.captive_portal_zip and self.nome_video:
