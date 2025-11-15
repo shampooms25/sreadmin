@@ -527,43 +527,15 @@ def captive_portal_success(request):
         
         # Campos opcionais
         origin = data.get('origin', 'captive_portal').strip()
-        timestamp_str = data.get('timestamp', '').strip()
         
-        # Parsear timestamp se fornecido, senão usar agora
-        if timestamp_str:
-            try:
-                # Tentar vários formatos comuns
-                for fmt in [
-                    '%Y-%m-%d %H:%M:%S',
-                    '%Y-%m-%dT%H:%M:%S',
-                    '%Y-%m-%d %H:%M:%S.%f',
-                    '%Y-%m-%dT%H:%M:%S.%f',
-                ]:
-                    try:
-                        date_view = datetime.strptime(timestamp_str, fmt)
-                        # Tornar timezone-aware se settings.USE_TZ = True
-                        if settings.USE_TZ:
-                            date_view = timezone.make_aware(date_view, timezone.get_current_timezone())
-                        break
-                    except ValueError:
-                        continue
-                else:
-                    # Se nenhum formato funcionar, usar agora
-                    date_view = timezone.now()
-            except Exception:
-                date_view = timezone.now()
-        else:
-            date_view = timezone.now()
-        
-        # Criar registro no banco
+        # Criar registro no banco - timestamp será gerado automaticamente pelo PostgreSQL
         registro = EldRegistroViewVideos.objects.create(
             username=username[:255],  # Truncar se necessário
-            video=video[:255],
-            date_view=date_view
+            video=video[:255]
         )
         
         # Log do registro
-        logger.info(f"Visualização registrada: {username} assistiu {video} em {date_view}")
+        logger.info(f"Visualização registrada: {username} assistiu {video} em {registro.date_view}")
         
         # Preparar resposta de sucesso
         response_data = {
