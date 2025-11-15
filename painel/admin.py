@@ -417,9 +417,10 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
             .values('username', 'video', 'day')
             .annotate(
                 view_count=Count('id'),
-                last_view=Max('date_view')
+                last_view=Max('date_view'),
+                max_id=Max('id')
             )
-            .order_by('-day', 'username', 'video')
+            .order_by('-max_id')
         )
         
         # Estatísticas gerais
