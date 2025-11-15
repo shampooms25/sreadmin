@@ -534,13 +534,10 @@ def captive_portal_success(request):
             video=video[:255]
         )
         
-        # Recarregar para obter o date_view gerado pelo PostgreSQL
-        registro.refresh_from_db()
+        # Log do registro (timestamp será preenchido pelo banco)
+        logger.info(f"Visualização registrada: {username} assistiu {video}")
         
-        # Log do registro
-        logger.info(f"Visualização registrada: {username} assistiu {video} em {registro.date_view}")
-        
-        # Preparar resposta de sucesso
+        # Preparar resposta de sucesso (sem timestamp para evitar problemas)
         response_data = {
             'success': True,
             'message': 'Dados registrados com sucesso',
@@ -548,8 +545,7 @@ def captive_portal_success(request):
                 'id': registro.id,
                 'username': registro.username,
                 'video': registro.video,
-                'origin': origin,
-                'timestamp': registro.date_view.strftime('%Y-%m-%d %H:%M:%S')
+                'origin': origin
             }
         }
         
