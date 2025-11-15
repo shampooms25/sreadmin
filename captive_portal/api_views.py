@@ -534,6 +534,9 @@ def captive_portal_success(request):
             video=video[:255]
         )
         
+        # Recarregar para obter o date_view gerado pelo PostgreSQL
+        registro.refresh_from_db()
+        
         # Log do registro
         logger.info(f"Visualização registrada: {username} assistiu {video} em {registro.date_view}")
         
