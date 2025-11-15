@@ -528,23 +528,28 @@ def captive_portal_success(request):
         # Campos opcionais
         origin = data.get('origin', 'captive_portal').strip()
         
-        # Criar registro no banco - timestamp será gerado automaticamente pelo PostgreSQL
-        registro = EldRegistroViewVideos.objects.create(
-            username=username[:255],  # Truncar se necessário
-            video=video[:255]
-        )
+        # Usar SQL raw para garantir que PostgreSQL use o DEFAULT do date_view
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO eld_registro_view_videos (username, video)
+                VALUES (%s, %s)
+                RETURNING id, username, video, date_view
+            """, [username[:255], video[:255]])
+            row = cursor.fetchone()
+            registro_id = row[0]
         
-        # Log do registro (timestamp será preenchido pelo banco)
-        logger.info(f"Visualização registrada: {username} assistiu {video}")
+        # Log do registro
+        logger.info(f"Visualização registrada: ID {registro_id} - {username} assistiu {video}")
         
-        # Preparar resposta de sucesso (sem timestamp para evitar problemas)
+        # Preparar resposta de sucesso
         response_data = {
             'success': True,
             'message': 'Dados registrados com sucesso',
             'data': {
-                'id': registro.id,
-                'username': registro.username,
-                'video': registro.video,
+                'id': registro_id,
+                'username': username[:255],
+                'video': video[:255],
                 'origin': origin
             }
         }
