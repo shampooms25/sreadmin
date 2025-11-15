@@ -10,12 +10,13 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.conf import settings
 from django.contrib.auth.models import User
-from painel.models import EldGerenciarPortal, EldPortalSemVideo
+from painel.models import EldGerenciarPortal, EldPortalSemVideo, EldRegistroViewVideos
 import os
 import json
 import hashlib
 from datetime import datetime
 import logging
+from django.utils import timezone
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -452,3 +453,143 @@ def _calculate_file_hash(file_path):
     except Exception as e:
         logger.error(f"Erro ao calcular hash do arquivo {file_path}: {str(e)}")
         return "error"
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST", "OPTIONS"])
+def captive_portal_success(request):
+    """
+    Endpoint público para registrar visualizações de vídeos nos portais captive descentralizados.
+    
+    URL: POST/GET /api/captive-portal/success/
+    Sem autenticação (público)
+    Sem CSRF
+    
+    Parâmetros (GET ou POST):
+    - username (string, obrigatório) - Identificação do usuário
+    - video (string, obrigatório) - Nome do vídeo assistido
+    - origin (string, opcional) - Origem da requisição (ex: 'captive_portal', 'beacon', 'unified_page')
+    - timestamp (string, opcional) - Timestamp da requisição
+    
+    Response JSON:
+    {
+        "success": true,
+        "message": "Dados registrados com sucesso",
+        "data": {
+            "username": "101010",
+            "video": "eld01.mp4",
+            "origin": "captive_portal",
+            "timestamp": "2025-11-15 10:35:00"
+        }
+    }
+    """
+    try:
+        # Suportar OPTIONS para CORS
+        if request.method == 'OPTIONS':
+            response = JsonResponse({'status': 'ok'})
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Content-Type'
+            return response
+        
+        # Extrair parâmetros de GET ou POST
+        if request.method == 'POST':
+            try:
+                data = json.loads(request.body.decode('utf-8'))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                data = request.POST.dict()
+        else:
+            data = request.GET.dict()
+        
+        # Validar campos obrigatórios
+        username = data.get('username', '').strip()
+        video = data.get('video', '').strip()
+        
+        if not username:
+            response = JsonResponse({
+                'success': False,
+                'error': 'Campo obrigatório ausente',
+                'message': 'O campo "username" é obrigatório',
+                'timestamp': timezone.now().isoformat()
+            }, status=400)
+            response['Access-Control-Allow-Origin'] = '*'
+            return response
+        
+        if not video:
+            response = JsonResponse({
+                'success': False,
+                'error': 'Campo obrigatório ausente',
+                'message': 'O campo "video" é obrigatório',
+                'timestamp': timezone.now().isoformat()
+            }, status=400)
+            response['Access-Control-Allow-Origin'] = '*'
+            return response
+        
+        # Campos opcionais
+        origin = data.get('origin', 'captive_portal').strip()
+        timestamp_str = data.get('timestamp', '').strip()
+        
+        # Parsear timestamp se fornecido, senão usar agora
+        if timestamp_str:
+            try:
+                # Tentar vários formatos comuns
+                for fmt in [
+                    '%Y-%m-%d %H:%M:%S',
+                    '%Y-%m-%dT%H:%M:%S',
+                    '%Y-%m-%d %H:%M:%S.%f',
+                    '%Y-%m-%dT%H:%M:%S.%f',
+                ]:
+                    try:
+                        date_view = datetime.strptime(timestamp_str, fmt)
+                        # Tornar timezone-aware se settings.USE_TZ = True
+                        if settings.USE_TZ:
+                            date_view = timezone.make_aware(date_view, timezone.get_current_timezone())
+                        break
+                    except ValueError:
+                        continue
+                else:
+                    # Se nenhum formato funcionar, usar agora
+                    date_view = timezone.now()
+            except Exception:
+                date_view = timezone.now()
+        else:
+            date_view = timezone.now()
+        
+        # Criar registro no banco
+        registro = EldRegistroViewVideos.objects.create(
+            username=username[:255],  # Truncar se necessário
+            video=video[:255],
+            date_view=date_view
+        )
+        
+        # Log do registro
+        logger.info(f"Visualização registrada: {username} assistiu {video} em {date_view}")
+        
+        # Preparar resposta de sucesso
+        response_data = {
+            'success': True,
+            'message': 'Dados registrados com sucesso',
+            'data': {
+                'id': registro.id,
+                'username': registro.username,
+                'video': registro.video,
+                'origin': origin,
+                'timestamp': registro.date_view.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }
+        
+        response = JsonResponse(response_data)
+        response['Access-Control-Allow-Origin'] = '*'
+        return response
+        
+    except Exception as e:
+        logger.error(f"Erro em captive_portal_success: {str(e)}")
+        response = JsonResponse({
+            'success': False,
+            'error': 'Erro interno do servidor',
+            'message': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=500)
+        response['Access-Control-Allow-Origin'] = '*'
+        return response
+

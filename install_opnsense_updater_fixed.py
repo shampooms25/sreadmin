@@ -20,6 +20,7 @@ import tempfile
 import pwd
 import grp
 import time
+import argparse
 from datetime import datetime
 import re
 
@@ -693,12 +694,10 @@ class Updater:
         self.api = API()
         self.installer = Installer()
 
-    def run(self):
+    def run(self, force: bool = False):
         try:
             logger.info("=== Verificação de atualização do portal ===")
-            if not self.state.should_check():
-                logger.info("Verificação pulada (intervalo mínimo)")
-                return True
+            skip_due_interval = (not force) and (not self.state.should_check())
             st = self.api.portal_status()
             portal_type = st.get('portal_type')
             server_hash = st.get('portal_hash')
@@ -719,6 +718,10 @@ class Updater:
             
             needs = (local_hash != server_hash) or (self.state.data.get('current_portal_type') != portal_type) or (local_hash is None)
             if not needs:
+                if skip_due_interval:
+                    logger.info("Verificação pulada (intervalo mínimo - sem alterações detectadas)")
+                    self.state.save()
+                    return True
                 self.state.save()
                 logger.info("Sem alterações")
                 return True
@@ -848,8 +851,11 @@ class Updater:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Atualiza o portal captive do OPNsense.")
+    parser.add_argument("--force", action="store_true", help="Ignora o intervalo mínimo entre verificações.")
+    args = parser.parse_args()
     try:
-        ok = Updater().run()
+        ok = Updater().run(force=args.force)
         sys.exit(0 if ok else 1)
     except KeyboardInterrupt:
         sys.exit(1)
