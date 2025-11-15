@@ -388,6 +388,7 @@ class EldRegistroViewVideos(models.Model):
     username = models.CharField(max_length=255)
     video = models.CharField(max_length=255)
     date_view = models.DateTimeField()
+    hostname = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = False

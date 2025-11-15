@@ -363,9 +363,9 @@ class RadcheckAdmin(admin.ModelAdmin):
 # PROXY MODELS MOVIDOS PARA painel/models.py
 
 class EldRegistroViewVideosAdmin(admin.ModelAdmin):
-    list_display = ('username', 'video', 'formatted_date_view')
-    search_fields = ('username', 'video')
-    list_filter = ('date_view',)
+    list_display = ('username', 'video', 'hostname', 'formatted_date_view')
+    search_fields = ('username', 'video', 'hostname')
+    list_filter = ('date_view', 'hostname')
     ordering = ('-date_view',)
 
     def formatted_date_view(self, obj):

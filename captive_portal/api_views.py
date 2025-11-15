@@ -527,20 +527,21 @@ def captive_portal_success(request):
         
         # Campos opcionais
         origin = data.get('origin', 'captive_portal').strip()
+        hostname = data.get('hostname', '').strip()
         
         # Usar SQL raw para garantir que PostgreSQL use o DEFAULT do date_view
         from django.db import connection
         with connection.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO eld_registro_view_videos (username, video)
-                VALUES (%s, %s)
-                RETURNING id, username, video, date_view
-            """, [username[:255], video[:255]])
+                INSERT INTO eld_registro_view_videos (username, video, hostname)
+                VALUES (%s, %s, %s)
+                RETURNING id, username, video, hostname, date_view
+            """, [username[:255], video[:255], hostname[:255] if hostname else None])
             row = cursor.fetchone()
             registro_id = row[0]
         
         # Log do registro
-        logger.info(f"Visualização registrada: ID {registro_id} - {username} assistiu {video}")
+        logger.info(f"Visualização registrada: ID {registro_id} - {username} assistiu {video} em {hostname or 'N/A'}")
         
         # Preparar resposta de sucesso
         response_data = {
@@ -550,6 +551,7 @@ def captive_portal_success(request):
                 'id': registro_id,
                 'username': username[:255],
                 'video': video[:255],
+                'hostname': hostname[:255] if hostname else None,
                 'origin': origin
             }
         }
