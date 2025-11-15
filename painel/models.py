@@ -387,7 +387,7 @@ class Unidades(models.Model):
 class EldRegistroViewVideos(models.Model):
     username = models.CharField(max_length=255)
     video = models.CharField(max_length=255)
-    date_view = models.DateTimeField(auto_now_add=True)
+    date_view = models.DateTimeField()
 
     class Meta:
         managed = False
