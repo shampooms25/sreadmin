@@ -333,7 +333,6 @@
         
         {% if grouped_data %}
         <div class="logs-table-container">
-            {% timezone None %}
             <table class="logs-table">
                 <thead>
                     <tr>
@@ -358,7 +357,6 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% endtimezone %}
         </div>
         {% else %}
         <div class="empty-state">

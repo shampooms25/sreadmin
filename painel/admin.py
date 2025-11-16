@@ -388,45 +388,60 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
         return HttpResponseRedirect(reverse('admin:captive_portal_logsvideosproxy_grouped'))
 
     def grouped_view(self, request):
-        # Lógica para agrupar os dados
-        queryset = EldRegistroViewVideos.objects.all()
+        from django.db import connection
         
         # Filtros opcionais por período
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         
+        # Construir query SQL raw para buscar dados exatamente como estão no banco
+        where_clauses = []
+        params = []
+        
         if date_from:
-            try:
-                from datetime import datetime
-                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-                queryset = queryset.filter(date_view__date__gte=date_from_obj)
-            except ValueError:
-                pass
+            where_clauses.append("date_view::date >= %s")
+            params.append(date_from)
         
         if date_to:
-            try:
-                from datetime import datetime
-                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-                queryset = queryset.filter(date_view__date__lte=date_to_obj)
-            except ValueError:
-                pass
+            where_clauses.append("date_view::date <= %s")
+            params.append(date_to)
         
-        # Agrupamento por usuário, vídeo e dia
-        grouped_data = (
-            queryset.annotate(day=TruncDay('date_view'))
-            .values('username', 'video', 'day')
-            .annotate(
-                view_count=Count('id'),
-                last_view=Max('date_view'),
-                max_id=Max('id')
-            )
-            .order_by('-max_id')
-        )
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
         
-        # Estatísticas gerais
-        total_views = queryset.count()
-        unique_users = queryset.values('username').distinct().count()
-        unique_videos = queryset.values('video').distinct().count()
+        # Query SQL para agrupar dados
+        sql = f"""
+            SELECT 
+                username,
+                video,
+                date_view::date as day,
+                COUNT(id) as view_count,
+                MAX(date_view) as last_view,
+                MAX(id) as max_id
+            FROM eld_registro_view_videos
+            {where_sql}
+            GROUP BY username, video, date_view::date
+            ORDER BY max_id DESC
+        """
+        
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            columns = [col[0] for col in cursor.description]
+            grouped_data = [
+                dict(zip(columns, row))
+                for row in cursor.fetchall()
+            ]
+            
+            # Estatísticas gerais
+            cursor.execute(f"SELECT COUNT(*) FROM eld_registro_view_videos {where_sql}", params)
+            total_views = cursor.fetchone()[0]
+            
+            cursor.execute(f"SELECT COUNT(DISTINCT username) FROM eld_registro_view_videos {where_sql}", params)
+            unique_users = cursor.fetchone()[0]
+            
+            cursor.execute(f"SELECT COUNT(DISTINCT video) FROM eld_registro_view_videos {where_sql}", params)
+            unique_videos = cursor.fetchone()[0]
         
         # Calcular total de visualizações nos dados agrupados
         total_grouped_views = sum(item['view_count'] for item in grouped_data)
