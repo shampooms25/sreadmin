@@ -418,7 +418,7 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
                 video,
                 hostname,
                 date_view,
-                TO_CHAR(date_view, 'DD/MM/YYYY HH24:MI:SS') as formatted_date
+                TO_CHAR(date_view AT TIME ZONE 'America/Campo_Grande', 'DD/MM/YYYY HH24:MI:SS') as formatted_date
             FROM eld_registro_view_videos
             {where_sql}
             ORDER BY id DESC
