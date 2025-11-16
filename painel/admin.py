@@ -394,7 +394,7 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         
-        # Construir query SQL raw para buscar dados exatamente como estão no banco
+        # Construir query SQL raw - LISTAGEM SIMPLES SEM AGRUPAMENTO
         where_clauses = []
         params = []
         
@@ -410,19 +410,17 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
         if where_clauses:
             where_sql = "WHERE " + " AND ".join(where_clauses)
         
-        # Query SQL para agrupar dados
+        # Query SQL simples - SEM agrupamento, apenas listagem
         sql = f"""
             SELECT 
+                id,
                 username,
                 video,
-                date_view::date as day,
-                COUNT(id) as view_count,
-                MAX(date_view) as last_view,
-                MAX(id) as max_id
+                hostname,
+                date_view
             FROM eld_registro_view_videos
             {where_sql}
-            GROUP BY username, video, date_view::date
-            ORDER BY max_id DESC
+            ORDER BY id DESC
         """
         
         with connection.cursor() as cursor:
@@ -443,8 +441,8 @@ class EldRegistroViewVideosAdmin(admin.ModelAdmin):
             cursor.execute(f"SELECT COUNT(DISTINCT video) FROM eld_registro_view_videos {where_sql}", params)
             unique_videos = cursor.fetchone()[0]
         
-        # Calcular total de visualizações nos dados agrupados
-        total_grouped_views = sum(item['view_count'] for item in grouped_data)
+        # Total = total_views (sem agrupamento)
+        total_grouped_views = total_views
         
         context = dict(
            self.admin_site.each_context(request),

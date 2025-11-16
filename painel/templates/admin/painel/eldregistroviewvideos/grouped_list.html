@@ -336,23 +336,21 @@
             <table class="logs-table">
                 <thead>
                     <tr>
+                        <th>🆔 ID</th>
                         <th>👤 Usuário</th>
                         <th>🎥 Vídeo</th>
-                        <th>📅 Dia</th>
-                        <th>📊 Visualizações</th>
-                        <th>🕒 Última Visualização</th>
+                        <th>🖥️ Hostname</th>
+                        <th>🕒 Data/Hora</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in grouped_data %}
                     <tr>
+                        <td class="username-cell">{{ item.id }}</td>
                         <td class="username-cell">{{ item.username }}</td>
                         <td class="video-cell" title="{{ item.video }}">{{ item.video }}</td>
-                        <td class="date-cell">{{ item.day|date:"d/m/Y" }}</td>
-                        <td class="count-cell">
-                            <span class="count-badge">{{ item.view_count }}</span>
-                        </td>
-                        <td class="time-cell">{{ item.last_view|date:"d/m/Y H:i:s" }}</td>
+                        <td class="username-cell">{{ item.hostname|default:"N/A" }}</td>
+                        <td class="time-cell">{{ item.date_view|date:"d/m/Y H:i:s" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
