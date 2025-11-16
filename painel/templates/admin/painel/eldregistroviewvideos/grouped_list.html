@@ -350,7 +350,7 @@
                         <td class="username-cell">{{ item.username }}</td>
                         <td class="video-cell" title="{{ item.video }}">{{ item.video }}</td>
                         <td class="username-cell">{{ item.hostname|default:"N/A" }}</td>
-                        <td class="time-cell">{{ item.date_view|date:"d/m/Y H:i:s" }}</td>
+                        <td class="time-cell">{{ item.formatted_date }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
