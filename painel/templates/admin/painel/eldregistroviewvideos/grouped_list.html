@@ -352,7 +352,7 @@
                         <td class="count-cell">
                             <span class="count-badge">{{ item.view_count }}</span>
                         </td>
-                        <td class="time-cell">{{ item.last_view|localtime|date:"d/m/Y H:i:s" }}</td>
+                        <td class="time-cell">{{ item.last_view|date:"d/m/Y H:i:s" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
