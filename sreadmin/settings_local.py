@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'painel', # Certifique-se de que seu app 'painel' está aqui!
     'captive_portal',  # App virtual para organizar menus Captive Portal
+    'starlink_allowlist',
     # Outros apps...
 ]
 

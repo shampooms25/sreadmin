@@ -16,6 +16,7 @@ urlpatterns = [
     path('starlink/', include('painel.urls')),  # URLs do painel Starlink
     # API para integração com Appliances POPPFIRE
     path('api/', include('captive_portal.urls')),
+    path('api/starlink/', include('starlink_allowlist.urls')),
     path('api/boxes/', include('boxes.api_urls')),
     # path('adminlte/', include('adminlte4.urls')), # REMOVA ou COMENTE esta linha
 ]
