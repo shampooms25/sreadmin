@@ -98,3 +98,27 @@ def classify_is_americas(rir: str, country: str) -> bool:
         return True
 
     return False
+
+
+def classify_region(rir: str, country: str) -> str:
+    """Classifica região em alto nível (coarse) para fins de auditoria.
+
+    Como o objetivo é dar visibilidade e controle operacional, usamos o RIR
+    quando disponível (mais estável do que uma tabela completa de países).
+
+    Retornos: 'americas' | 'europe' | 'apac' | 'africa' | 'unknown'
+    """
+    rir = (rir or '').strip().lower()
+    if rir in {'arin', 'lacnic', 'nicbr'}:
+        return 'americas'
+    if rir == 'ripe':
+        return 'europe'
+    if rir == 'apnic':
+        return 'apac'
+    if rir == 'afrinic':
+        return 'africa'
+
+    # fallback leve: se conseguimos identificar Américas por país
+    if classify_is_americas(rir='', country=country):
+        return 'americas'
+    return 'unknown'

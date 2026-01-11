@@ -11,9 +11,20 @@ from pathlib import Path
 import requests
 
 
-def fetch_starlink_prefixes(api_url: str, token: str) -> list[str]:
+def fetch_starlink_prefixes(
+    api_url: str,
+    token: str,
+    *,
+    include_custom: bool = False,
+    include_non_americas: bool = False,
+) -> list[str]:
+    url = api_url.rstrip('/') + '/prefixes/?format=text'
+    if include_non_americas:
+        url += '&include_non_americas=1'
+    if include_custom:
+        url += '&include_custom=1'
     resp = requests.get(
-        api_url.rstrip('/') + '/prefixes/?format=text',
+        url,
         headers={'Authorization': f'Bearer {token}'},
         timeout=30,
     )
@@ -49,6 +60,20 @@ def render_clients_conf(cidrs: list[str], secret: str) -> str:
     return '\n'.join(lines)
 
 
+def file_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return ''
+
+
+def backup_file(path: Path, keep_suffix: str = '.bak') -> None:
+    if not path.exists():
+        return
+    bak = path.with_suffix(path.suffix + keep_suffix)
+    bak.write_bytes(path.read_bytes())
+
+
 def atomic_write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile('w', delete=False, dir=str(path.parent), encoding='utf-8') as tmp:
@@ -69,13 +94,21 @@ def main() -> int:
     ap.add_argument('--api-token', required=True, help='Bearer token (ApplianceToken)')
     ap.add_argument('--secret', required=True, help='Shared secret para os clients Starlink')
     ap.add_argument('--output-file', default='/etc/freeradius/3.0/clients_starlink.conf')
+    ap.add_argument('--include-custom', action='store_true', help='Inclui prefixes cadastrados manualmente no painel (include_custom=1)')
+    ap.add_argument('--include-non-americas', action='store_true', help='Inclui prefixes fora das Américas (include_non_americas=1)')
+    ap.add_argument('--backup', action='store_true', help='Cria backup do arquivo de saída antes de sobrescrever')
     ap.add_argument('--validate-cmd', default='', help='Ex: freeradius -XC')
     ap.add_argument('--reload-cmd', default='', help='Ex: systemctl reload freeradius')
     ap.add_argument('--dry-run', action='store_true')
 
     args = ap.parse_args()
 
-    cidrs = fetch_starlink_prefixes(args.api_url, args.api_token)
+    cidrs = fetch_starlink_prefixes(
+        args.api_url,
+        args.api_token,
+        include_custom=args.include_custom,
+        include_non_americas=args.include_non_americas,
+    )
     content = render_clients_conf(cidrs, args.secret)
 
     out_path = Path(args.output_file)
@@ -83,6 +116,14 @@ def main() -> int:
     if args.dry_run:
         print(f'dry-run: cidrs={len(cidrs)} output={out_path}')
         return 0
+
+    previous = file_text(out_path)
+    if previous == content:
+        print(f'OK: no changes ({out_path})')
+        return 0
+
+    if args.backup:
+        backup_file(out_path)
 
     atomic_write(out_path, content)
 

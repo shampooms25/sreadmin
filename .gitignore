@@ -1,3 +1,6 @@
+# Local/ops artifacts
+starlink_export.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

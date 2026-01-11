@@ -38,6 +38,11 @@ class StarlinkPrefix(models.Model):
 
     rir = models.CharField(max_length=20, blank=True, help_text='Ex: arin, lacnic, ripe, apnic, afrinic, nicbr')
     country = models.CharField(max_length=2, blank=True, help_text='ISO-3166 alpha-2 quando disponível')
+    region = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Região (coarse): americas|europe|apac|africa|unknown",
+    )
     is_americas = models.BooleanField(default=True)
 
     first_seen_at = models.DateTimeField(default=timezone.now)
@@ -82,3 +87,36 @@ class StarlinkUpdateRun(models.Model):
 
     def __str__(self) -> str:
         return f'{self.started_at:%Y-%m-%d %H:%M} ({self.status})'
+
+
+class CustomPrefix(models.Model):
+    """Prefixos (CIDRs) cadastrados manualmente (não-Starlink).
+
+    Esses prefixes são pensados para serem exportados tanto para o FreeRADIUS
+    (clients) quanto para o AdGuard Home (allowed_clients), junto com os
+    prefixes Starlink.
+    """
+
+    IPV4 = 4
+    IPV6 = 6
+    IP_VERSION_CHOICES = (
+        (IPV4, 'IPv4'),
+        (IPV6, 'IPv6'),
+    )
+
+    cidr = models.CharField(max_length=43, unique=True)
+    ip_version = models.PositiveSmallIntegerField(choices=IP_VERSION_CHOICES)
+    name = models.CharField(max_length=200, blank=True)
+    country = models.CharField(max_length=2, blank=True, help_text='ISO-3166 alpha-2 (opcional)')
+    region = models.CharField(max_length=20, blank=True, help_text='Região (coarse), ex: americas')
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Custom Prefix'
+        verbose_name_plural = 'Custom Prefixes'
+        ordering = ['ip_version', 'cidr']
+
+    def __str__(self) -> str:
+        return self.cidr + (f' ({self.name})' if self.name else '')
