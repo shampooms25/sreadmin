@@ -16,7 +16,7 @@ from starlink_allowlist.services import classify_is_americas, classify_region, r
 
 
 class Command(BaseCommand):
-    help = 'Atualiza prefixes Starlink a partir de ASNs habilitados (BGPView) e classifica Américas via RDAP.'
+    help = 'Atualiza prefixes Starlink a partir de ASNs habilitados (BGPView/RIPEstat) e classifica Américas via RDAP.'
 
     def add_arguments(self, parser):
         parser.add_argument('--dry-run', action='store_true', help='Não grava alterações no banco')
@@ -125,6 +125,36 @@ class Command(BaseCommand):
         fetched += [(cidr, 6) for cidr in v6]
         return fetched
 
+    def _fetch_from_ripestat(self, asn_number: int) -> list[tuple[str, int]]:
+        # https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS14593
+        url = f'https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS{asn_number}'
+        resp = requests.get(url, timeout=20, headers={'User-Agent': 'sreadmin-starlink-allowlist/1.0'})
+        resp.raise_for_status()
+        raw = resp.json() or {}
+        data = (raw.get('data') or {}) if isinstance(raw, dict) else {}
+        prefixes = data.get('prefixes') or []
+
+        fetched: list[tuple[str, int]] = []
+        for item in prefixes:
+            if isinstance(item, dict):
+                cidr = item.get('prefix')
+            else:
+                cidr = item
+            if not cidr:
+                continue
+            # versão será normalizada em _normalize_fetched; aqui setamos 0 para "desconhecida"
+            fetched.append((str(cidr), 0))
+        return fetched
+
+    def _fetch_prefixes_auto(self, asn_number: int) -> list[tuple[str, int]]:
+        try:
+            return self._fetch_from_bgpview(asn_number)
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(
+                f'BGPView indisponível para AS{asn_number} ({e}). Tentando RIPEstat...'
+            ))
+            return self._fetch_from_ripestat(asn_number)
+
     def handle(self, *args, **options):
         dry_run: bool = options['dry_run']
         no_rdap: bool = options['no_rdap']
@@ -189,7 +219,7 @@ class Command(BaseCommand):
                     fetched = offline_map.get(asn.number) or []
                 else:
                     self.stdout.write(f'Buscando prefixes do AS{asn.number}...')
-                    fetched = self._fetch_from_bgpview(asn.number)
+                    fetched = self._fetch_prefixes_auto(asn.number)
 
                 normalized, invalid = self._normalize_fetched(fetched)
 
