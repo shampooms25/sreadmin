@@ -16,3 +16,17 @@ except ModuleNotFoundError as exc:
         "Arquivo de configuração ausente: crie 'sreadmin/settings_local.py' (copie de "
         "'sreadmin/settings_local.py.template')"
     ) from exc
+
+# Alguns ambientes antigos podem ter um settings_local.py incompleto.
+# Como estes apps são parte do projeto, garantimos que existam em INSTALLED_APPS.
+_required_apps = [
+    'painel',
+    'captive_portal',
+    'boxes',
+    'starlink_allowlist',
+]
+
+if 'INSTALLED_APPS' in globals():
+    for _app in _required_apps:
+        if _app not in INSTALLED_APPS:
+            INSTALLED_APPS.append(_app)
