@@ -15,6 +15,17 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+
+    # Mensagem mais clara quando settings_local.py não existe.
+    try:
+        __import__(os.environ['DJANGO_SETTINGS_MODULE'])
+    except ModuleNotFoundError as exc:
+        if str(exc).endswith("settings_local'") or "settings_local" in str(exc):
+            raise ModuleNotFoundError(
+                "Configuração local ausente. Crie 'sreadmin/settings_local.py' (copie de "
+                "'sreadmin/settings_local.py.template')."
+            ) from exc
+        raise
     execute_from_command_line(sys.argv)
 
 

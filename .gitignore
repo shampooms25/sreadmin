@@ -1,6 +1,10 @@
 # Local/ops artifacts
 starlink_export.json
 
+# Sensitive local token exports (do not commit)
+appliance_tokens.json
+appliance_tokens.*.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -61,9 +65,9 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# IMPORTANTE: Arquivo de configuração local de produção
-# Não deve ser commitado para evitar conflitos
-sreadmin/settings.py
+# IMPORTANTE: Arquivo de configuração local por ambiente
+# Deve existir no servidor (copie de sreadmin/settings_local.py.template), mas NÃO deve ser commitado.
+sreadmin/settings_local.py
 
 # Flask stuff:
 instance/
