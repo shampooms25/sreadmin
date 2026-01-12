@@ -64,6 +64,40 @@ python manage.py update_starlink_prefixes --no-rdap
 python manage.py update_starlink_prefixes --backfill-missing
 ```
 
+### Crontab (recomendado) sem vazar segredos
+
+Para evitar expor tokens/senhas no `crontab -l`, use um arquivo `env` root-only e scripts wrapper.
+
+No repo existem exemplos em:
+- `scripts_starlink/poppfire_starlink_sync.env.example`
+- `scripts_starlink/run_update_starlink_prefixes.sh`
+- `scripts_starlink/run_sync_freeradius_starlink.sh`
+
+Fluxo sugerido no servidor:
+
+1) Criar o arquivo de ambiente (ajuste os valores):
+
+```bash
+sudo mkdir -p /etc/poppfire
+sudo cp /var/www/sreadmin/scripts_starlink/poppfire_starlink_sync.env.example /etc/poppfire/starlink_sync.env
+sudo chmod 600 /etc/poppfire/starlink_sync.env
+sudo nano /etc/poppfire/starlink_sync.env
+```
+
+2) Tornar wrappers executáveis:
+
+```bash
+sudo chmod +x /var/www/sreadmin/scripts_starlink/run_update_starlink_prefixes.sh
+sudo chmod +x /var/www/sreadmin/scripts_starlink/run_sync_freeradius_starlink.sh
+```
+
+3) Agendar (exemplo: atualiza 03:00, sincroniza 03:10):
+
+```cron
+0 3 * * * /var/www/sreadmin/scripts_starlink/run_update_starlink_prefixes.sh
+10 3 * * * /var/www/sreadmin/scripts_starlink/run_sync_freeradius_starlink.sh
+```
+
 Dry-run:
 
 ```bash
