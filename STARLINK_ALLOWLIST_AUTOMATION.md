@@ -182,6 +182,27 @@ No seu `clients.conf`, você inclui uma vez:
 $INCLUDE /etc/freeradius/clients_starlink.conf
 ```
 
+### BlastRADIUS / Message-Authenticator
+
+Em versões recentes, o FreeRADIUS pode logar avisos do tipo:
+
+- `BlastRADIUS check: Received packet without Message-Authenticator.`
+
+Isso significa que o NAS/cliente que está enviando RADIUS para o servidor não está incluindo o atributo `Message-Authenticator`.
+
+- Correção ideal: **atualizar o NAS/firmware/software** para enviar `Message-Authenticator`.
+- Mitigação (compatibilidade): definir `require_message_authenticator = false` nos clients afetados.
+
+Como o include é gerado automaticamente (muitos clients), o wrapper suporta configurar essas diretivas via `/etc/poppfire/starlink_sync.env`:
+
+```bash
+# unset | true | false
+REQUIRE_MESSAGE_AUTHENTICATOR=false
+LIMIT_PROXY_STATE=true
+```
+
+Depois rode o wrapper e recarregue/reinicie o serviço.
+
 ## Admin UI
 
 Tudo fica no Django Admin:

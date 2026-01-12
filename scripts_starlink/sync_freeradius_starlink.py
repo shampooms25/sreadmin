@@ -49,6 +49,13 @@ def client_name_for_cidr(cidr: str) -> str:
 
 
 def render_clients_conf(cidrs: list[str], secret: str) -> str:
+def render_clients_conf(
+    cidrs: list[str],
+    secret: str,
+    *,
+    require_message_authenticator: bool | None = None,
+    limit_proxy_state: bool | None = None,
+) -> str:
     lines = []
     lines.append('# Managed by POPPFIRE (starlink_allowlist). DO NOT EDIT.')
     seen_names: set[str] = set()
@@ -62,6 +69,12 @@ def render_clients_conf(cidrs: list[str], secret: str) -> str:
         lines.append(f'client {name} {{')
         lines.append(f'        ipaddr = {cidr}')
         lines.append(f'        secret = {secret}')
+        if require_message_authenticator is not None:
+            val = 'true' if require_message_authenticator else 'false'
+            lines.append(f'        require_message_authenticator = {val}')
+        if limit_proxy_state is not None:
+            val = 'true' if limit_proxy_state else 'false'
+            lines.append(f'        limit_proxy_state = {val}')
         lines.append('}')
     lines.append('')
     return '\n'.join(lines)
@@ -132,6 +145,25 @@ def main() -> int:
     ap.add_argument('--include-custom', action='store_true', help='Inclui prefixes cadastrados manualmente no painel (include_custom=1)')
     ap.add_argument('--include-non-americas', action='store_true', help='Inclui prefixes fora das Américas (include_non_americas=1)')
     ap.add_argument('--backup', action='store_true', help='Cria backup do arquivo de saída antes de sobrescrever')
+    ap.add_argument(
+        '--require-message-authenticator',
+        choices=('true', 'false', 'unset'),
+        default='unset',
+        help=(
+            'Configura require_message_authenticator dentro de cada client gerado. '
+            'Use false para compatibilidade com clientes legados (mitiga alertas BlastRADIUS). '
+            'Default: unset (não escreve a diretiva).'
+        ),
+    )
+    ap.add_argument(
+        '--limit-proxy-state',
+        choices=('true', 'false', 'unset'),
+        default='unset',
+        help=(
+            'Configura limit_proxy_state dentro de cada client gerado. '
+            'Default: unset (não escreve a diretiva).'
+        ),
+    )
     ap.add_argument('--validate-cmd', default='', help='Ex: freeradius -XC')
     ap.add_argument('--reload-cmd', default='', help='Ex: systemctl reload freeradius')
     ap.add_argument('--dry-run', action='store_true')
@@ -144,7 +176,25 @@ def main() -> int:
         include_custom=args.include_custom,
         include_non_americas=args.include_non_americas,
     )
-    content = render_clients_conf(cidrs, args.secret)
+
+    require_message_authenticator: bool | None
+    if args.require_message_authenticator == 'unset':
+        require_message_authenticator = None
+    else:
+        require_message_authenticator = args.require_message_authenticator == 'true'
+
+    limit_proxy_state: bool | None
+    if args.limit_proxy_state == 'unset':
+        limit_proxy_state = None
+    else:
+        limit_proxy_state = args.limit_proxy_state == 'true'
+
+    content = render_clients_conf(
+        cidrs,
+        args.secret,
+        require_message_authenticator=require_message_authenticator,
+        limit_proxy_state=limit_proxy_state,
+    )
 
     out_path = Path(args.output_file)
 

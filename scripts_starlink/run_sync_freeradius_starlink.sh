@@ -29,6 +29,9 @@ fi
 
 RADIUS_OUTPUT_FILE="${RADIUS_OUTPUT_FILE:-/etc/freeradius/clients_starlink.conf}"
 
+REQUIRE_MESSAGE_AUTHENTICATOR="${REQUIRE_MESSAGE_AUTHENTICATOR:-unset}"
+LIMIT_PROXY_STATE="${LIMIT_PROXY_STATE:-unset}"
+
 INCLUDE_CUSTOM_FLAG=()
 if [[ "${INCLUDE_CUSTOM:-0}" == "1" ]]; then
   INCLUDE_CUSTOM_FLAG=(--include-custom)
@@ -52,6 +55,8 @@ fi
   --secret "$RADIUS_SECRET" \
   --output-file "$RADIUS_OUTPUT_FILE" \
   --backup \
+  --require-message-authenticator "$REQUIRE_MESSAGE_AUTHENTICATOR" \
+  --limit-proxy-state "$LIMIT_PROXY_STATE" \
   "${INCLUDE_CUSTOM_FLAG[@]}" \
   "${INCLUDE_NON_AMERICAS_FLAG[@]}" \
   --validate-cmd "freeradius -XC" \
