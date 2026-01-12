@@ -91,6 +91,34 @@ def atomic_write(path: Path, content: str) -> None:
     tmp_path.replace(path)
 
 
+def ensure_readable_by_freeradius(path: Path) -> None:
+    """Make sure the generated include is readable by the FreeRADIUS daemon.
+
+    On Debian, FreeRADIUS commonly runs as user/group `freerad`. If this file is
+    created with mode 0600 (common with NamedTemporaryFile), `systemctl reload`
+    will fail with Permission denied.
+    """
+
+    if os.name != 'posix':
+        return
+
+    try:
+        os.chmod(path, 0o640)
+    except Exception:
+        # Best-effort; permissions might be managed externally.
+        return
+
+    # Best-effort group ownership to freerad.
+    try:
+        import grp
+
+        gid = grp.getgrnam('freerad').gr_gid
+        st = path.stat()
+        os.chown(path, st.st_uid, gid)
+    except Exception:
+        return
+
+
 def run_cmd(cmd: str) -> None:
     subprocess.run(cmd, shell=True, check=True)
 
@@ -133,6 +161,7 @@ def main() -> int:
         backup_file(out_path)
 
     atomic_write(out_path, content)
+    ensure_readable_by_freeradius(out_path)
 
     if args.validate_cmd:
         run_cmd(args.validate_cmd)
