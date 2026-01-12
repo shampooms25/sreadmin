@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from dataclasses import dataclass
 from ipaddress import ip_network
 from pathlib import Path
@@ -145,7 +146,9 @@ class Command(BaseCommand):
         if input_path:
             text = Path(input_path).read_text(encoding='utf-8')
         else:
-            text = self.stdin.read()
+            if sys.stdin is None or sys.stdin.closed or sys.stdin.isatty():
+                raise SystemExit('Nenhum --input informado e nenhum stdin detectado. Use --input ou pipe (ex: cat arquivo | ...).')
+            text = sys.stdin.read()
 
         raw_items = _iter_input_lines(text)
         if not raw_items:
