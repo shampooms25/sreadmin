@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -50,8 +51,13 @@ def client_name_for_cidr(cidr: str) -> str:
 def render_clients_conf(cidrs: list[str], secret: str) -> str:
     lines = []
     lines.append('# Managed by POPPFIRE (starlink_allowlist). DO NOT EDIT.')
+    seen_names: set[str] = set()
     for cidr in cidrs:
         name = client_name_for_cidr(cidr)
+        if name in seen_names:
+            print(f'warning: duplicate client name ignored: {name} (cidr={cidr})', file=sys.stderr)
+            continue
+        seen_names.add(name)
         lines.append('')
         lines.append(f'client {name} {{')
         lines.append(f'        ipaddr = {cidr}')
