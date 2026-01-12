@@ -16,10 +16,13 @@ def fetch_starlink_prefixes(
     api_url: str,
     token: str,
     *,
+    ip_version: str | None = None,
     include_custom: bool = False,
     include_non_americas: bool = False,
 ) -> list[str]:
     url = api_url.rstrip('/') + '/prefixes/?format=text'
+    if ip_version in ('4', '6'):
+        url += f'&ip_version={ip_version}'
     if include_non_americas:
         url += '&include_non_americas=1'
     if include_custom:
@@ -140,6 +143,12 @@ def main() -> int:
     ap.add_argument('--api-token', required=True, help='Bearer token (ApplianceToken)')
     ap.add_argument('--secret', required=True, help='Shared secret para os clients Starlink')
     ap.add_argument('--output-file', default='/etc/freeradius/3.0/clients_starlink.conf')
+    ap.add_argument(
+        '--ip-version',
+        choices=('4', '6', 'both'),
+        default='both',
+        help='Filtra prefixes por IP version via API (ip_version=4|6). Default: both.',
+    )
     ap.add_argument('--include-custom', action='store_true', help='Inclui prefixes cadastrados manualmente no painel (include_custom=1)')
     ap.add_argument('--include-non-americas', action='store_true', help='Inclui prefixes fora das Américas (include_non_americas=1)')
     ap.add_argument('--backup', action='store_true', help='Cria backup do arquivo de saída antes de sobrescrever')
@@ -168,9 +177,14 @@ def main() -> int:
 
     args = ap.parse_args()
 
+    ip_version: str | None = None
+    if args.ip_version in ('4', '6'):
+        ip_version = args.ip_version
+
     cidrs = fetch_starlink_prefixes(
         args.api_url,
         args.api_token,
+        ip_version=ip_version,
         include_custom=args.include_custom,
         include_non_americas=args.include_non_americas,
     )

@@ -29,6 +29,8 @@ fi
 
 RADIUS_OUTPUT_FILE="${RADIUS_OUTPUT_FILE:-/etc/freeradius/clients_starlink.conf}"
 
+IP_VERSION="${IP_VERSION:-both}"
+
 REQUIRE_MESSAGE_AUTHENTICATOR="${REQUIRE_MESSAGE_AUTHENTICATOR:-unset}"
 LIMIT_PROXY_STATE="${LIMIT_PROXY_STATE:-unset}"
 
@@ -55,6 +57,7 @@ fi
   --secret "$RADIUS_SECRET" \
   --output-file "$RADIUS_OUTPUT_FILE" \
   --backup \
+  --ip-version "$IP_VERSION" \
   --require-message-authenticator "$REQUIRE_MESSAGE_AUTHENTICATOR" \
   --limit-proxy-state "$LIMIT_PROXY_STATE" \
   "${INCLUDE_CUSTOM_FLAG[@]}" \
