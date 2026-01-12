@@ -42,7 +42,8 @@ def fetch_starlink_prefixes(
 
 
 def client_name_for_cidr(cidr: str) -> str:
-    h = hashlib.sha1(cidr.encode('utf-8')).hexdigest()[:10]
+    # Use full SHA1 to avoid name collisions with thousands of CIDRs.
+    h = hashlib.sha1(cidr.encode('utf-8')).hexdigest()
     return f'starlink_{h}'
 
 

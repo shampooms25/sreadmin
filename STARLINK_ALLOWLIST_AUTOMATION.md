@@ -2,8 +2,9 @@
 
 ## Visão geral
 
-- O Django mantém uma lista de ASNs Starlink (ex.: `AS14593`) e os *prefixes* aprendidos via BGP (fonte: BGPView).
-- A cada atualização, o sistema classifica cada prefix como **Américas** usando RDAP (`rdap.org`) e a heurística:
+- O Django mantém uma lista de ASNs Starlink (ex.: `AS14593`) e os *prefixes* aprendidos via BGP.
+- O comando tenta buscar prefixes via **BGPView** e, se falhar (DNS/bloqueio), faz fallback para **RIPEstat**.
+- A cada atualização, o sistema pode classificar cada prefix como **Américas** usando RDAP (`rdap.org`) e a heurística:
   - `rir` em `arin|lacnic|nicbr` => Américas
   - fallback por `country` (ISO-3166) se `rir` não estiver disponível
 - A API publica **apenas os prefixes classificados como Américas** por padrão.
@@ -20,8 +21,17 @@
   - Filtros:
     - `ip_version=4|6`
     - `include_non_americas=1`
+    - `include_custom=1` (inclui prefixes cadastrados manualmente no painel)
 
 **Autenticação:** `Authorization: Bearer <token>` (reusa o padrão do app `captive_portal`).
+
+**Observação (Apache/mod_wsgi):** se a API retornar 401 mesmo com token correto, habilite o repasse do header:
+
+```apache
+WSGIPassAuthorization On
+```
+
+e recarregue o Apache.
 
 ## Banco de dados
 
@@ -40,6 +50,20 @@ Rodar manual:
 python manage.py update_starlink_prefixes
 ```
 
+### Modo recomendado para produção (2 fases)
+
+1) Atualiza a lista rapidamente (sem RDAP):
+
+```bash
+python manage.py update_starlink_prefixes --no-rdap
+```
+
+2) Em horário de baixa, completa metadados (somente os que estão faltando):
+
+```bash
+python manage.py update_starlink_prefixes --backfill-missing
+```
+
 Dry-run:
 
 ```bash
@@ -49,10 +73,39 @@ python manage.py update_starlink_prefixes --dry-run
 Sugestão cron (1/1h):
 
 ```cron
-0 * * * * /usr/bin/python3 /caminho/do/app/manage.py update_starlink_prefixes >> /var/log/starlink_prefixes.log 2>&1
+# Sugestão: atualização “rápida” diária (ajuste o horário)
+0 3 * * * /usr/bin/python3 /caminho/do/app/manage.py update_starlink_prefixes --no-rdap >> /var/log/starlink_prefixes.log 2>&1
+
+# Sugestão: backfill RDAP semanal (pode demorar)
+0 4 * * 0 /usr/bin/python3 /caminho/do/app/manage.py update_starlink_prefixes --backfill-missing >> /var/log/starlink_prefixes_backfill.log 2>&1
 ```
 
 ## Script: AdGuard Home
+
+### Opção A (recomendada): allowlist com backup
+
+Arquivo: `scripts_starlink/sync_adguard_allowlist.py`
+
+- Faz backup do `/control/access/list` antes de aplicar.
+- Pode preservar entradas existentes (modo seguro para o primeiro deploy).
+
+Exemplo (primeira execução, mais segura):
+
+```bash
+python3 sync_adguard_allowlist.py \
+  --django-api-url "https://SEU-DJANGO/api/starlink" \
+  --django-token "SEU_TOKEN" \
+  --include-custom \
+  --adguard-url "http://127.0.0.1:3000" \
+  --adguard-user "admin" \
+  --adguard-pass "SENHA" \
+  --preserve-existing \
+  --backup-file "/var/lib/poppfire/adguard_access_list_backup.json"
+```
+
+Depois que estiver validado, você pode remover `--preserve-existing` para deixar o `allowed_clients` apenas com o que vem do painel (mais “limpo”).
+
+### Opção B (legado): estado + preserva manual automaticamente
 
 Arquivo: `scripts_starlink/sync_adguard_starlink.py`
 
@@ -84,7 +137,7 @@ python3 sync_freeradius_starlink.py \
   --api-url "https://SEU-DJANGO/api/starlink" \
   --api-token "SEU_TOKEN" \
   --secret "poppnet@vpn@radius" \
-  --output-file "/etc/freeradius/3.0/clients_starlink.conf" \
+  --output-file "/etc/freeradius/clients_starlink.conf" \
   --validate-cmd "freeradius -XC" \
   --reload-cmd "systemctl reload freeradius"
 ```
@@ -92,7 +145,7 @@ python3 sync_freeradius_starlink.py \
 No seu `clients.conf`, você inclui uma vez:
 
 ```conf
-$INCLUDE /etc/freeradius/3.0/clients_starlink.conf
+$INCLUDE /etc/freeradius/clients_starlink.conf
 ```
 
 ## Admin UI

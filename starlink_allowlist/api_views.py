@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 
 from captive_portal.api_views import appliance_auth_required
 
-from .models import CustomPrefix, StarlinkASN, StarlinkPrefix
+from .models import CustomPrefix, StarlinkASN, StarlinkPrefix, StarlinkUpdateRun
 
 
 @csrf_exempt
@@ -136,4 +136,32 @@ def prefixes_grouped(request):
 @require_http_methods(["GET"])
 @appliance_auth_required
 def health(request):
-    return JsonResponse({'status': 'ok'})
+    last_run = StarlinkUpdateRun.objects.order_by('-started_at').first()
+
+    def dt(v):
+        return v.isoformat() if v else None
+
+    data = {
+        'status': 'ok',
+        'counts': {
+            'starlink_prefixes_active_total': StarlinkPrefix.objects.filter(active=True).count(),
+            'starlink_prefixes_active_americas': StarlinkPrefix.objects.filter(active=True, is_americas=True).count(),
+            'custom_prefixes_enabled': CustomPrefix.objects.filter(enabled=True).count(),
+        },
+        'last_update_run': None,
+    }
+
+    if last_run:
+        data['last_update_run'] = {
+            'started_at': dt(last_run.started_at),
+            'finished_at': dt(last_run.finished_at),
+            'status': last_run.status,
+            'source': last_run.source,
+            'asns': last_run.asns,
+            'total_prefixes': last_run.total_prefixes,
+            'added_prefixes': last_run.added_prefixes,
+            'removed_prefixes': last_run.removed_prefixes,
+            'error': (last_run.error or '').strip() or None,
+        }
+
+    return JsonResponse(data)
