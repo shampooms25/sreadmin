@@ -47,8 +47,6 @@ def client_name_for_cidr(cidr: str) -> str:
     h = hashlib.sha1(cidr.encode('utf-8')).hexdigest()
     return f'starlink_{h}'
 
-
-def render_clients_conf(cidrs: list[str], secret: str) -> str:
 def render_clients_conf(
     cidrs: list[str],
     secret: str,
