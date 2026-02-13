@@ -421,6 +421,65 @@ configure_captive_portal() {
 }
 
 # =============================================================================
+# FUNÇÃO: Liberar acesso WebGUI (porta 5555) no Captive Portal
+# =============================================================================
+add_captive_portal_allowed_webgui() {
+    echo "### Liberando acesso WebGUI no Captive Portal (porta 5555)"
+
+    # Verificar se já existe regra para porta 5555
+    EXISTING=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/searchAllowedAddresses" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"WebGUI"}' 2>/dev/null)
+    if echo "$EXISTING" | grep -q "5555"; then
+        echo "⚠️  Regra de acesso WebGUI já existe. Pulando."
+        return 0
+    fi
+
+    # Detectar IP da interface LAN via API
+    echo "Detectando IP da interface LAN..."
+    LAN_IP=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/diagnostics/interface/getInterfaceConfig" 2>/dev/null | python3 -c "
+import json,sys
+try:
+    data = json.loads(sys.stdin.read())
+    for name, info in data.items():
+        desc = info.get('description','').lower()
+        if desc == 'lan' or name.lower() == 'lan':
+            for addr in info.get('ipv4', []):
+                ip = addr.get('ipaddr','')
+                if ip:
+                    print(ip)
+                    sys.exit(0)
+except:
+    pass
+" 2>/dev/null)
+
+    if [ -z "$LAN_IP" ]; then
+        echo "⚠️  Não foi possível detectar o IP da LAN automaticamente."
+        echo "   Adicione manualmente em: Services → Captive Portal → Allowed Addresses"
+        echo "   IP: <IP_DA_LAN>/32  Proto: TCP  Porta: 5555"
+        return 1
+    fi
+
+    echo "   IP da LAN detectado: $LAN_IP"
+
+    # Adicionar regra: permitir tráfego TCP para o IP da LAN na porta 5555 (WebGUI)
+    echo "Adicionando regra de acesso WebGUI..."
+    ADD_RESULT=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/addAllowedAddress" -X POST -H "Content-Type: application/json" -d "{\"address\":{\"ip\":\"$LAN_IP/32\",\"proto\":\"tcp\",\"port\":\"5555\",\"description\":\"Acesso WebGUI OPNsense (porta 5555)\"}}" 2>/dev/null)
+
+    if echo "$ADD_RESULT" | grep -q '"uuid"'; then
+        echo "✅ Regra de acesso WebGUI adicionada com sucesso!"
+        echo "   → $LAN_IP:5555 liberado no Captive Portal"
+
+        # Aplicar configuração
+        curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/service/reconfigure" -X POST >/dev/null 2>&1
+        return 0
+    else
+        echo "⚠️  Falha ao adicionar regra via API."
+        echo "   Adicione manualmente em: Services → Captive Portal → Allowed Addresses"
+        echo "   IP: $LAN_IP/32  Proto: TCP  Porta: 5555"
+        return 1
+    fi
+}
+
+# =============================================================================
 # FUNÇÃO: Criar Cron Job do Guard (verificação a cada 1 minuto)
 # =============================================================================
 create_guard_cron_job() {
@@ -874,6 +933,9 @@ create_cron_job
 
 # Configurar Captive Portal via API
 configure_captive_portal
+
+# Liberar acesso WebGUI no Captive Portal
+add_captive_portal_allowed_webgui
 
 # Instalar POPPFIRE Portal Guard
 install_portal_guard
