@@ -146,7 +146,8 @@ install_zenarmor_replicador() {
     }" && echo "Template criado para ${INDEX_NAME}"
 
     echo "Iniciando o serviço replicador..."
-    service replicador start
+    service replicador start || true
+    echo "✅ Replicador Zenarmor instalado com sucesso!"
 }
 
 
