@@ -68,16 +68,18 @@ install_zenarmor_replicador() {
     echo "### 10. Instalando replicador Zenarmor"
 
     if ! command -v /usr/local/bin/python3 >/dev/null 2>&1; then
-        echo "ERRO: Python 3 não encontrado em /usr/local/bin/python3"
-        echo "Instale o pacote 'os-python' via interface web."
-        exit 1
+        echo "AVISO: Python 3 não encontrado em /usr/local/bin/python3"
+        echo "   Instale o pacote 'os-python' via interface web."
+        echo "   Replicador Zenarmor não será instalado."
+        return 1
     fi
 
     echo "Verificando dependência Python: requests..."
     if ! /usr/local/bin/python3 -c "import requests" >/dev/null 2>&1; then
-        echo "ERRO: Módulo Python 'requests' não encontrado."
-        echo "Instale com: /usr/local/bin/python3 -m pip install requests"
-        exit 1
+        echo "AVISO: Módulo Python 'requests' não encontrado."
+        echo "   Instale com: /usr/local/bin/python3 -m pip install requests"
+        echo "   Replicador Zenarmor não será instalado."
+        return 1
     fi
 
     mkdir -p "$ZENARMOR_DIR"
@@ -85,15 +87,16 @@ install_zenarmor_replicador() {
     echo "Baixando pacote do replicador..."
     curl -sS -L -o "$ZENARMOR_DIR/$ZENARMOR_REPLICADOR_ZIP" -H "Authorization: token $PAT" "$ZENARMOR_REPLICADOR_URL"
     if [ $? -ne 0 ]; then
-        echo "ERRO: Falha ao baixar $ZENARMOR_REPLICADOR_ZIP"
-        exit 1
+        echo "AVISO: Falha ao baixar $ZENARMOR_REPLICADOR_ZIP (sem conexão de rede)"
+        echo "   Execute novamente com --reinstall quando houver conectividade."
+        return 1
     fi
 
     echo "Extraindo pacote..."
     unzip -o "$ZENARMOR_DIR/$ZENARMOR_REPLICADOR_ZIP" -d "$ZENARMOR_DIR" >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-        echo "ERRO: Falha ao extrair $ZENARMOR_REPLICADOR_ZIP"
-        exit 1
+        echo "AVISO: Falha ao extrair $ZENARMOR_REPLICADOR_ZIP"
+        return 1
     fi
 
     echo "Instalando script em /usr/local/etc/zenarmor/"
@@ -882,6 +885,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Atualizar credenciais da API local no updater (cada box tem suas próprias)
+echo "   Atualizando credenciais da API local no updater..."
+sed -i '' "s|LOCAL_API_KEY = \"[^\"]*\"|LOCAL_API_KEY = \"$API_KEY\"|" "$PORTAL_DIR/$MAIN_SCRIPT"
+sed -i '' "s|LOCAL_API_SECRET = \"[^\"]*\"|LOCAL_API_SECRET = \"$API_SECRET\"|" "$PORTAL_DIR/$MAIN_SCRIPT"
+echo "   ✅ Credenciais da API local atualizadas no updater"
+
 echo "### 3. Criando o Ambiente Virtual (venv)"
 if ! command -v python3 >/dev/null 2>&1; then
     echo "ERRO: Python 3 não encontrado. Instale o pacote 'os-python' via interface web."
@@ -956,6 +965,10 @@ fi
 
 # Instalar replicador do Zenarmor
 install_zenarmor_replicador
+if [ $? -ne 0 ]; then
+    echo "⚠️  Replicador Zenarmor não instalado (verifique rede/dependências)."
+    echo "   Para instalar depois: sh poppfire_setup.sh --reinstall --pat \$PAT --api-key \$API_KEY --api-secret \$API_SECRET"
+fi
 
 # Configurar Zabbix Agent (serviços monitorados)
 configure_zabbix_agent_services
