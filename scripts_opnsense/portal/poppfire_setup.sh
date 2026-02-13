@@ -17,7 +17,8 @@ ensure_self_executable() {
 # --- VARIÁVEIS DE CONFIGURAÇÃO ---
 GITHUB_USER="shampooms25"
 GITHUB_REPO="poppfire"
-PAT="${POPPFIRE_PAT:-}" 
+# PAT: aceita via env (setenv PAT xxx) ou argumento --pat
+PAT="${PAT:-${POPPFIRE_PAT:-}}"
 PORTAL_DIR="/root/portal"
 VENV_DIR="$PORTAL_DIR/venv"
 ACTIONS_DIR="/usr/local/opnsense/service/conf/actions.d"
@@ -38,8 +39,6 @@ ZENARMOR_REPLICADOR_ZIP="zenarmor_replicador.zip"
 ZENARMOR_REPLICADOR_URL="https://raw.githubusercontent.com/$GITHUB_USER/$GITHUB_REPO/main/portal/$ZENARMOR_REPLICADOR_ZIP"
 ES_HOST="http://172.18.25.252:9200"
 # ---------------------------------
-
-export PAT="$PAT"
 
 # =============================================================================
 # FUNÇÃO: Exibir banner
@@ -734,6 +733,10 @@ while [ $# -gt 0 ]; do
             NON_INTERACTIVE=1
             shift 2
             ;;
+        --pat)
+            PAT="$2"
+            shift 2
+            ;;
         --non-interactive|-ni)
             NON_INTERACTIVE=1
             shift
@@ -742,6 +745,7 @@ while [ $# -gt 0 ]; do
             echo "Uso: sh poppfire_setup.sh [OPÇÕES]"
             echo ""
             echo "Opções:"
+            echo "  --pat TOKEN          GitHub Personal Access Token"
             echo "  --api-key KEY        API Key do OPNsense (não-interativo)"
             echo "  --api-secret SECRET  API Secret do OPNsense (não-interativo)"
             echo "  --reinstall, -r      Limpar e reinstalar tudo"
@@ -770,6 +774,20 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
+
+# Validar PAT (necessário para downloads do GitHub)
+if [ -z "$PAT" ]; then
+    echo "❌ ERRO: Token de acesso (PAT) não definido."
+    echo ""
+    echo "   Defina antes de executar:"
+    echo "     setenv PAT ghp_xxxxx           (csh/tcsh - FreeBSD)"
+    echo "     export PAT=ghp_xxxxx           (sh/bash)"
+    echo "   Ou passe como argumento:"
+    echo "     sh poppfire_setup.sh --pat ghp_xxxxx"
+    exit 1
+fi
+
+export PAT="$PAT"
 
 show_banner
 
