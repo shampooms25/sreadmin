@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Portal de Acesso</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/signin.css" rel="stylesheet" />
+    <script src="js/config.js"></script>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: block;
+            background-image: url('images/bg_eucalipto.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-attachment: fixed;
+            padding: 0;
+            margin: 0;
+        }
+        
+        body.video-active {
+            background-image: none;
+            background-color: #2c3e50;
+        }
+
+        .panel {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            margin: 50px auto;
+        }
+
+        .panel-heading {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            background-color: rgba(92, 184, 92, 0.8);
+            padding: 10px;
+        }
+
+        .panel-body {
+            padding: 25px;
+        }
+
+        .input-group .form-control {
+            font-size: 14px;
+            padding: 6px 10px;
+            height: 34px;
+        }
+        
+        .btn-success {
+            background-color: #2d5016 !important;
+            border-color: #2d5016 !important;
+            border-radius: 4px !important;
+        }
+        
+        .btn-success:hover {
+            background-color: #234012 !important;
+            border-color: #234012 !important;
+        }
+
+        #videoContainer {
+            display: block;
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+
+        #loginContainer {
+            display: none !important;
+            visibility: hidden;
+        }
+
+        #loginContainer.show {
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        video {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        .video-message {
+            background-color: rgba(255, 243, 205, 0.95);
+            border: none;
+            border-radius: 0;
+            padding: 15px 20px;
+            margin: 0;
+            width: 100%;
+            color: #856404;
+            font-weight: bold;
+            text-align: center;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .video-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 600px;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        var SERVER_URL = (window.CONFIG && CONFIG.getBaseServerUrl) ? CONFIG.getBaseServerUrl() : 'https://paineleld.poppnet.com.br/api/captive-portal/success/';
+        var VIDEO_FILENAME = (window.CONFIG && CONFIG.video && CONFIG.video.filename) ? CONFIG.video.filename : 'eld01.mp4';
+        var FINAL_REDIRECT_URL = (window.CONFIG && CONFIG.getFinalRedirectUrl) ? CONFIG.getFinalRedirectUrl() : 'https://www.eldoradobrasil.com.br/pb/';
+
+        (function() {
+            try {
+                var stored = localStorage.getItem('pendingAuthData');
+                if (stored) {
+                    var data = JSON.parse(stored);
+                    if (data && data.status === 'pending') {
+                        window.location.href = 'success_local.html';
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('Erro ao verificar dados pendentes:', e);
+            }
+        })();
+    </script>
+    <div class="video-message" id="videoMessage">
+        ⚠️ Para prosseguir, assista ao vídeo completo. Não avance ou feche esta página.
+    </div>
+    
+    <div id="videoContainer">
+        <video id="authVideo"
+               preload="auto"
+               controls
+               playsinline
+               webkit-playsinline
+               poster="assets/videos/eld01.jpg">
+            <source src="assets/videos/eld01.mp4" type="video/mp4">
+            Seu navegador não suporta o elemento de vídeo.
+        </video>
+    </div>
+
+    <!-- Formulário de Login (inicialmente oculto) -->
+    <div id="loginContainer" class="panel panel-info" style="display: none !important; visibility: hidden;">
+        <div class="panel-heading text-center">
+            <div class="panel-title">
+                <img src="images/logo-eldorado.png" alt="Eldorado" height="48" />
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <div style="display:none" id="alertContainer" class="alert alert-danger col-sm-12"></div>
+
+            <form id="loginForm" class="form-horizontal" role="form">
+                <div style="margin-bottom: 15px" class="input-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                    <input id="username" type="text" class="form-control" name="username"
+                        placeholder="Digite sua identificação" autocomplete="off" />
+                </div>
+
+                <input id="password" type="hidden" name="password" value="123" />
+
+                <div class="form-group">
+                    <div class="col-sm-12 controls">
+                        <button id="loginBtn" type="submit" class="btn btn-success btn-block">Conectar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Log imediato para confirmar que o script carregou
+        console.log('🚀 SCRIPT INICIADO - Timestamp:', new Date().toISOString());
+        console.log('🔍 Verificando elementos ANTES do DOMContentLoaded:');
+        console.log('  - document.readyState:', document.readyState);
+        console.log('  - authVideo existe?', !!document.getElementById('authVideo'));
+        console.log('  - videoContainer existe?', !!document.getElementById('videoContainer'));
+        console.log('  - loginContainer existe?', !!document.getElementById('loginContainer'));
+    </script>
+
+    <script>
+        var CAPTIVE_PARAM_KEYS = ['zoneid', 'zone', 'clientmac', 'clientmacaddress', 'clientip', 'clientipaddress', 'redirurl', 'sessionid', 'session', 'id', 'token'];
+        
+        // Sistema de autenticação com vídeo obrigatório NA MESMA PÁGINA
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM carregado - iniciando sistema unificado');
+            
+            // Adicionar classe ao body para background neutro enquanto vídeo está visível
+            document.body.classList.add('video-active');
+            
+            var urlParams = new URLSearchParams(window.location.search);
+            var video = document.getElementById('authVideo');
+            var videoContainer = document.getElementById('videoContainer');
+            var videoMessage = document.getElementById('videoMessage');
+            var loginContainer = document.getElementById('loginContainer');
+            var loginForm = document.getElementById('loginForm');
+            var loginBtn = document.getElementById('loginBtn');
+            var usernameInput = document.getElementById('username');
+            var alertContainer = document.getElementById('alertContainer');
+            var videoName = VIDEO_FILENAME;
+            
+            // Verificar se elementos existem
+            if (!video || !loginContainer || !loginForm) {
+                console.error('ERRO: Elementos essenciais não encontrados');
+                document.body.innerHTML += '<div class="error-message">❌ Erro: Página não carregada corretamente.</div>';
+                return;
+            }
+            
+            console.log('✅ Todos os elementos encontrados');
+            console.log('Estado inicial:');
+            console.log('  - Video display:', window.getComputedStyle(videoContainer).display);
+            console.log('  - Login display:', window.getComputedStyle(loginContainer).display);
+            
+            let videoEnded = false;
+            
+            function showAlert(message, type) {
+                type = type || 'info';
+                var alertClass = type === 'success' ? 'alert-success' : type === 'warning' ? 'alert-warning' : 'alert-info';
+                alertContainer.className = 'alert col-sm-12 ' + alertClass;
+                alertContainer.innerHTML = '<strong>' + (type === 'success' ? 'Sucesso!' : type === 'warning' ? 'Atenção!' : 'Info:') + '</strong> ' + message;
+                alertContainer.style.display = 'block';
+            }
+            
+            // Função para mostrar formulário de login
+            function showLoginForm() {
+                console.log('🔄 Chamando showLoginForm()');
+                console.log('  videoEnded antes:', videoEnded);
+                videoEnded = true;
+                console.log('  videoEnded depois:', videoEnded);
+                
+                try {
+                    localStorage.setItem('videoCompleted', JSON.stringify({
+                        video: videoName,
+                        completedAt: new Date().toISOString()
+                    }));
+                    console.log('💾 Registro de vídeo salvo no localStorage');
+                } catch (e) {
+                    console.log('⚠️ Falha ao salvar no localStorage:', e.message);
+                }
+                
+                // Ocultar vídeo e mostrar formulário
+                console.log('  Ocultando vídeo...');
+                videoContainer.style.display = 'none';
+                videoContainer.style.setProperty('display', 'none', 'important');
+                videoMessage.style.display = 'none';
+                videoMessage.style.setProperty('display', 'none', 'important');
+                
+                // Remover classe video-active para voltar background de eucalipto
+                document.body.classList.remove('video-active');
+                
+                console.log('  Mostrando formulário...');
+                // Remover atributos que escondem
+                loginContainer.removeAttribute('style');
+                // Forçar exibição
+                loginContainer.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+                loginContainer.classList.add('show');
+                
+                // Aguardar um frame para garantir que o CSS foi aplicado
+                requestAnimationFrame(function() {
+                    console.log('Estado após mudança (frame seguinte):');
+                    console.log('  - Video display:', window.getComputedStyle(videoContainer).display);
+                    console.log('  - Login display:', window.getComputedStyle(loginContainer).display);
+                    console.log('  - Login visibility:', window.getComputedStyle(loginContainer).visibility);
+                    console.log('  - Login opacity:', window.getComputedStyle(loginContainer).opacity);
+                    console.log('  - Login classList:', loginContainer.classList.toString());
+                    console.log('  - Login offsetHeight:', loginContainer.offsetHeight);
+                    console.log('  - Login offsetWidth:', loginContainer.offsetWidth);
+                    
+                    if (loginContainer.offsetHeight === 0) {
+                        console.error('❌❌❌ FORMULÁRIO TEM ALTURA ZERO! Algo está forçando display:none');
+                    } else {
+                        console.log('✅✅✅ Formulário tem dimensões visíveis!');
+                    }
+                });
+                
+                console.log('✅ Comando de exibição do formulário executado');
+                
+                // Focar no campo de username
+                setTimeout(function() {
+                    usernameInput.focus();
+                }, 100);
+            }
+            
+            // Event listener para quando o vídeo terminar
+            video.addEventListener('ended', function() {
+                console.log('🎥 Evento "ended" disparado!');
+                showLoginForm();
+            });
+            
+            // Função para autenticar no captive portal
+            function performCaptiveAuth(username, password) {
+                var endpoint = '/api/captiveportal/access/logon/';
+                var params = new URLSearchParams();
+                params.append('user', username);
+                params.append('password', password);
+                
+                CAPTIVE_PARAM_KEYS.forEach(function(key) {
+                    if (urlParams.has(key)) {
+                        params.append(key, urlParams.get(key));
+                    }
+                });
+                
+                console.log('🔐 Autenticando no portal:', username);
+                
+                if (!window.fetch) {
+                    return new Promise(function(resolve, reject) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('POST', endpoint, true);
+                        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                        xhr.timeout = 5000;
+                        xhr.onreadystatechange = function() {
+                            if (xhr.readyState === 4) {
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                    try {
+                                        var json = JSON.parse(xhr.responseText || '{}');
+                                        resolve(json);
+                                    } catch (e) {
+                                        reject({ stage: 'parse', error: e });
+                                    }
+                                } else {
+                                    reject({ stage: 'http', status: xhr.status });
+                                }
+                            }
+                        };
+                        xhr.onerror = function() { reject({ stage: 'network' }); };
+                        xhr.ontimeout = function() { reject({ stage: 'timeout' }); };
+                        xhr.send(params.toString());
+                    });
+                }
+                
+                return fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString()
+                })
+                .then(function(response) {
+                    return response.text().then(function(text) {
+                        if (!response.ok) {
+                            throw { stage: 'http', status: response.status, body: text };
+                        }
+                        return JSON.parse(text || '{}');
+                    });
+                });
+            }
+            
+            function isAuthorizedResponse(data) {
+                if (!data) return false;
+                if (data.clientState && String(data.clientState).toUpperCase() === 'AUTHORIZED') return true;
+                if (data.result && String(data.result).toLowerCase() === 'ok') return true;
+                if (data.status && /already/i.test(String(data.status))) return true;
+                if (data.message && /already/i.test(String(data.message))) return true;
+                return false;
+            }
+            
+            // Event listener para o formulário de login
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (!videoEnded) {
+                    showAlert('Por favor, assista ao vídeo completo antes de prosseguir.', 'warning');
+                    return;
+                }
+                
+                var username = usernameInput.value.trim();
+                var password = document.getElementById('password').value;
+                
+                if (!username) {
+                    username = 'user_' + new Date().getTime().toString().slice(-6);
+                    console.log('👤 Username gerado:', username);
+                }
+                
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Conectando...';
+                showAlert('Conectando ao portal, aguarde...', 'info');
+                
+                performCaptiveAuth(username, password)
+                    .then(function(authData) {
+                        console.log('📡 Resposta do portal:', JSON.stringify(authData));
+                        
+                        if (isAuthorizedResponse(authData)) {
+                            showAlert('Autenticação aceita! Registrando acesso...', 'success');
+                            loginBtn.textContent = 'Registrando...';
+                            
+                            console.log('✅ Autenticação bem-sucedida, enviando dados ao Django...');
+                            console.log('📡 SERVER_URL:', SERVER_URL);
+                            
+                            // Capturar hostname do navegador
+                            var hostname = window.location.hostname || 'unknown';
+                            console.log('🖥️ Hostname:', hostname);
+                            
+                            // Enviar dados via fetch (POST) para o Django
+                            var formData = new URLSearchParams();
+                            formData.append('username', username);
+                            formData.append('video', videoName);
+                            formData.append('hostname', hostname);
+                            formData.append('origin', 'captive_portal');
+                            formData.append('timestamp', Date.now());
+                            
+                            fetch(SERVER_URL, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: formData.toString()
+                            })
+                            .then(function(response) {
+                                return response.json();
+                            })
+                            .then(function(result) {
+                                console.log('✅ Resposta do Django:', result);
+                                if (result.success) {
+                                    console.log('✅ Dados registrados com sucesso! ID:', result.data.id);
+                                    loginBtn.textContent = '✅ Conectado';
+                                    showAlert('Acesso registrado! Redirecionando...', 'success');
+                                } else {
+                                    console.log('⚠️ Django retornou erro:', result.error);
+                                    loginBtn.textContent = '✅ Conectado (sem registro)';
+                                    showAlert('Autenticado! Redirecionando...', 'success');
+                                }
+                                
+                                // Redirecionar após 1.5 segundos
+                                setTimeout(function() {
+                                    var finalDest = FINAL_REDIRECT_URL;
+                                    console.log('🔄 Redirecionando para:', finalDest);
+                                    window.location.href = finalDest;
+                                }, 1500);
+                            })
+                            .catch(function(err) {
+                                console.log('⚠️ Erro ao enviar para Django:', err);
+                                // Mesmo com erro, redirecionar (autenticação foi bem-sucedida)
+                                loginBtn.textContent = '✅ Conectado';
+                                showAlert('Conectado! Redirecionando...', 'success');
+                                
+                                setTimeout(function() {
+                                    window.location.href = FINAL_REDIRECT_URL;
+                                }, 1500);
+                            });
+                        } else {
+                            var message = 'Portal não autorizou o acesso.';
+                            if (authData && (authData.error || authData.message)) {
+                                message += ' ' + String(authData.error || authData.message);
+                            }
+                            console.log('⚠️ Autenticação negada:', message);
+                            showAlert(message, 'warning');
+                            loginBtn.disabled = false;
+                            loginBtn.textContent = 'Conectar';
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error('❌ Falha na autenticação:', err);
+                        showAlert('Erro ao comunicar com o portal. Verifique a conexão e tente novamente.', 'warning');
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Conectar';
+                    });
+            });
+            
+            // Informações do vídeo quando carregar
+            video.addEventListener('loadedmetadata', function() {
+                console.log('📹 Vídeo carregado - Duração:', Math.floor(video.duration) + 's');
+            });
+            
+            video.addEventListener('canplay', function() {
+                console.log('▶️ Vídeo pronto para reprodução');
+            });
+            
+            // Adicionar listener para timeupdate (monitorar progresso)
+            video.addEventListener('timeupdate', function() {
+                var progress = (video.currentTime / video.duration) * 100;
+                if (progress > 95 && !videoEnded) {
+                    console.log('⏰ Vídeo está em ' + progress.toFixed(1) + '%');
+                }
+            });
+            
+            // Fallback: se o vídeo chegar em 99% e não disparar 'ended', forçar
+            video.addEventListener('timeupdate', function() {
+                if (video.currentTime > 0 && video.duration > 0) {
+                    var percentComplete = (video.currentTime / video.duration) * 100;
+                    if (percentComplete >= 99 && !videoEnded) {
+                        console.log('🎬 Vídeo chegou ao fim (99%+), forçando exibição do formulário');
+                        showLoginForm();
+                    }
+                }
+            });
+            
+            video.addEventListener('error', function(e) {
+                console.error('❌ Erro no vídeo:', e);
+                console.error('Detalhes do erro:', {
+                    code: video.error ? video.error.code : 'N/A',
+                    message: video.error ? video.error.message : 'N/A'
+                });
+                document.body.innerHTML += '<div class="error-message">❌ Erro ao carregar o vídeo. Verifique se o arquivo ' + videoName + ' existe.</div>';
+            });
+            
+            console.log('✅ Sistema inicializado com sucesso');
+        });
+        
+        // Log de erro global
+        window.addEventListener('error', function(e) {
+            console.error('❌ Erro JavaScript:', e.error);
+            console.error('Arquivo:', e.filename);
+            console.error('Linha:', e.lineno);
+        });
+    </script>
+</body>
+</html>

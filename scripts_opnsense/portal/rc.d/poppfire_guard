@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# PROVIDE: poppfire_guard
+# REQUIRE: NETWORKING wireguard
+# BEFORE: captiveportal
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="poppfire_guard"
+rcvar="${name}_enable"
+
+# Caminho do script guard
+guard_script="/root/portal/poppfire_portal_guard.sh"
+
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+status_cmd="${name}_status"
+
+poppfire_guard_start()
+{
+    if [ ! -f "$guard_script" ]; then
+        echo "ERRO: $guard_script não encontrado"
+        return 1
+    fi
+    echo "Iniciando POPPFIRE Portal Guard (boot mode)..."
+    /bin/sh "$guard_script" boot &
+}
+
+poppfire_guard_stop()
+{
+    echo "Parando POPPFIRE Portal Guard..."
+    rm -f /var/run/poppfire_guard.lock
+}
+
+poppfire_guard_status()
+{
+    if [ -f "$guard_script" ]; then
+        /bin/sh "$guard_script" status
+    else
+        echo "Script guard não encontrado em $guard_script"
+    fi
+}
+
+load_rc_config $name
+: ${poppfire_guard_enable:="NO"}
+run_rc_command "$1"

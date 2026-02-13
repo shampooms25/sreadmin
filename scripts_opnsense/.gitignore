@@ -1,0 +1,16 @@
+# Backups locais
+backups/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ambientes virtuais
+venv/
+.venv/
+
+# Arquivos temporários
+*.tmp
+*.swp
+*.bak

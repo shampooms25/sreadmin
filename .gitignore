@@ -182,8 +182,8 @@ logs/
 logs
 dev-debug.log
 
-# Scripts locais do OPNsense
-scripts_opnsense/
+# Scripts locais do OPNsense (rastreados no git)
+# scripts_opnsense/
 # Dependency directories
 # Environment variables
 # Editor directories and files
