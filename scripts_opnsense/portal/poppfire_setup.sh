@@ -192,9 +192,10 @@ install_zenarmor_etl() {
     # Instalar ação configd para o cron
     echo "   Instalando ação configd..."
     cat > "$ACTIONS_DIR/$ZENARMOR_ETL_ACTIONS" << 'ETLEOF'
-[run_zenarmor_etl]
+[run]
 command:/usr/local/bin/python3 /root/zenarmor-etl/zenarmor_graylog.py --once
 type:script
+message:Enviando dados Zenarmor para Graylog
 description:Enviar dados Zenarmor para Graylog
 ETLEOF
     echo "   ✅ Ação configd criada em $ACTIONS_DIR/$ZENARMOR_ETL_ACTIONS"
@@ -208,16 +209,16 @@ ETLEOF
     _ensure_single_cron_job \
         "zenarmor_etl" \
         "zenarmor_etl" \
-        '{"job":{"enabled":"1","minutes":"*/5","hours":"*","days":"*","months":"*","weekdays":"*","command":"run_zenarmor_etl","parameters":"","description":"Zenarmor ETL - Enviar dados para Graylog"}}' \
+        '{"job":{"enabled":"1","minutes":"*/5","hours":"*","days":"*","months":"*","weekdays":"*","command":"zenarmor_etl run","parameters":"","description":"Zenarmor ETL - Enviar dados para Graylog"}}' \
         "Cron Zenarmor ETL"
 
     # Testar info do firewall
     echo "   Testando detecção do firewall..."
-    python3 "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" --info 2>/dev/null
+    python3 "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" --info
 
     # Executar primeiro envio
     echo "   Executando primeiro envio para Graylog..."
-    python3 "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" --once 2>/dev/null
+    python3 "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" --once
     if [ $? -eq 0 ]; then
         echo "   ✅ Zenarmor ETL instalado e primeiro envio realizado!"
     else
