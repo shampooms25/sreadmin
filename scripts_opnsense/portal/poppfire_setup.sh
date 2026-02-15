@@ -159,11 +159,36 @@ configure_zabbix_agent_services() {
 
     SERVICOS="replicador nginx sshd"
 
-    # Diretório para scripts do Zabbix Agent 7
-    mkdir -p /usr/local/etc/zabbix7/scripts
+    # Detectar diretório de configuração do Zabbix Agent
+    # OPNsense com plugin Zabbix 7: /usr/local/etc/zabbix7/
+    # Instalação manual/legada:      /usr/local/etc/
+    ZABBIX_CONF=""
+    ZABBIX_CONF_DIR=""
+    ZABBIX_INCLUDE_DIR=""
+
+    if [ -f /usr/local/etc/zabbix7/zabbix_agentd.conf ]; then
+        ZABBIX_CONF="/usr/local/etc/zabbix7/zabbix_agentd.conf"
+        ZABBIX_CONF_DIR="/usr/local/etc/zabbix7"
+        ZABBIX_INCLUDE_DIR="/usr/local/etc/zabbix7/zabbix_agentd.conf.d"
+        echo "   Detectado: Zabbix Agent 7 (OPNsense plugin)"
+    elif [ -f /usr/local/etc/zabbix_agentd.conf ]; then
+        ZABBIX_CONF="/usr/local/etc/zabbix_agentd.conf"
+        ZABBIX_CONF_DIR="/usr/local/etc"
+        ZABBIX_INCLUDE_DIR="/usr/local/etc/zabbix_agentd.conf.d"
+        echo "   Detectado: Zabbix Agent (instalação manual)"
+    else
+        echo "⚠️  Zabbix Agent não encontrado. Pulando configuração."
+        echo "   Instale via: System → Firmware → Plugins → os-zabbix-agent"
+        return 1
+    fi
+
+    echo "   Config: $ZABBIX_CONF"
+
+    # Diretório para scripts customizados
+    mkdir -p "$ZABBIX_CONF_DIR/scripts"
 
     # Script de status dos serviços
-    cat << 'EOF' > /usr/local/etc/zabbix7/scripts/service_status.sh
+    cat << 'EOF' > "$ZABBIX_CONF_DIR/scripts/service_status.sh"
 #!/bin/sh
 sudo /usr/sbin/service "$1" status >/dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -172,26 +197,78 @@ else
   echo 0
 fi
 EOF
+    chmod +x "$ZABBIX_CONF_DIR/scripts/service_status.sh"
 
-    chmod +x /usr/local/etc/zabbix7/scripts/service_status.sh
+    # Usar Include dir para que o UserParameter sobreviva regenerações do OPNsense
+    mkdir -p "$ZABBIX_INCLUDE_DIR"
 
-    # UserParameter no zabbix_agentd.conf (caso ainda não exista)
-    if [ -f /usr/local/etc/zabbix_agentd.conf ]; then
-        grep -q 'service.status\[\*\]' /usr/local/etc/zabbix_agentd.conf || \
-        echo 'UserParameter=service.status[*],/usr/local/etc/zabbix7/scripts/service_status.sh $1' >> /usr/local/etc/zabbix_agentd.conf
+    # Garantir que o Include dir está configurado no zabbix_agentd.conf
+    if ! grep -q "^Include=$ZABBIX_INCLUDE_DIR" "$ZABBIX_CONF" 2>/dev/null; then
+        # Verificar se já existe algum Include para o dir (com ou sem trailing /)
+        if ! grep -q "Include=.*zabbix.*conf\.d" "$ZABBIX_CONF" 2>/dev/null; then
+            echo "Include=$ZABBIX_INCLUDE_DIR/" >> "$ZABBIX_CONF"
+            echo "   Include dir adicionado ao config"
+        fi
     fi
 
-    # Permissões no sudoers para cada serviço
-    for SVC in $SERVICOS; do
-        echo "zabbix ALL=(ALL) NOPASSWD: /usr/sbin/service $SVC status" >> /usr/local/etc/sudoers.d/zabbix_$SVC
-        chmod 0440 /usr/local/etc/sudoers.d/zabbix_$SVC
-        chown root:wheel /usr/local/etc/sudoers.d/zabbix_$SVC
-    done
+    # Criar arquivo de UserParameter dedicado (sobrescreve para idempotência)
+    cat << UPEOF > "$ZABBIX_INCLUDE_DIR/poppfire_services.conf"
+# POPPFIRE - Monitoramento de serviços via Zabbix
+# Gerado automaticamente por poppfire_setup.sh
+UserParameter=service.status[*],$ZABBIX_CONF_DIR/scripts/service_status.sh \$1
+UPEOF
+    echo "   ✅ UserParameter criado em $ZABBIX_INCLUDE_DIR/poppfire_services.conf"
 
-    # Reiniciar o agente Zabbix
-    pkill -f zabbix_agentd
+    # Permissões no sudoers para cada serviço (idempotente: sobrescreve em vez de append)
+    for SVC in $SERVICOS; do
+        SUDOERS_FILE="/usr/local/etc/sudoers.d/zabbix_$SVC"
+        echo "zabbix ALL=(ALL) NOPASSWD: /usr/sbin/service $SVC status" > "$SUDOERS_FILE"
+        chmod 0440 "$SUDOERS_FILE"
+        chown root:wheel "$SUDOERS_FILE"
+    done
+    echo "   ✅ Sudoers configurado para: $SERVICOS"
+
+    # Validar sintaxe dos sudoers antes de reiniciar
+    if command -v visudo >/dev/null 2>&1; then
+        for SVC in $SERVICOS; do
+            if ! visudo -cf "/usr/local/etc/sudoers.d/zabbix_$SVC" >/dev/null 2>&1; then
+                echo "   ⚠️  Erro de sintaxe em sudoers para $SVC — corrigindo..."
+                echo "zabbix ALL=(ALL) NOPASSWD: /usr/sbin/service $SVC status" > "/usr/local/etc/sudoers.d/zabbix_$SVC"
+                chmod 0440 "/usr/local/etc/sudoers.d/zabbix_$SVC"
+                chown root:wheel "/usr/local/etc/sudoers.d/zabbix_$SVC"
+            fi
+        done
+    fi
+
+    # Reiniciar o agente Zabbix via service (integrado ao OPNsense)
+    echo "   Reiniciando Zabbix Agent..."
+    if service zabbix_agentd restart >/dev/null 2>&1; then
+        echo "   ✅ Zabbix Agent reiniciado via service"
+    elif service zabbix7_agentd restart >/dev/null 2>&1; then
+        echo "   ✅ Zabbix Agent 7 reiniciado via service"
+    else
+        # Fallback: restart manual
+        pkill -f zabbix_agentd 2>/dev/null
+        sleep 2
+        if [ -x /usr/local/sbin/zabbix_agentd ]; then
+            /usr/local/sbin/zabbix_agentd -c "$ZABBIX_CONF"
+            echo "   ✅ Zabbix Agent reiniciado (modo manual)"
+        else
+            echo "   ⚠️  Não foi possível reiniciar o Zabbix Agent"
+        fi
+    fi
+
+    # Verificar se o UserParameter está ativo
     sleep 2
-    /usr/local/sbin/zabbix_agentd -c /usr/local/etc/zabbix_agentd.conf
+    if command -v zabbix_agentd >/dev/null 2>&1; then
+        TEST_RESULT=$(zabbix_agentd -c "$ZABBIX_CONF" -t "service.status[replicador]" 2>/dev/null)
+        if [ -n "$TEST_RESULT" ]; then
+            echo "   ✅ Teste: service.status[replicador] = $TEST_RESULT"
+        else
+            echo "   ⚠️  Teste do UserParameter não retornou resultado"
+            echo "   Verifique: zabbix_agentd -c $ZABBIX_CONF -t 'service.status[replicador]'"
+        fi
+    fi
 }
 
 # =============================================================================
@@ -714,13 +791,26 @@ except Exception:
     fi
 
     # Remover configurações do Zabbix Agent criadas pelo script
-    if [ -f /usr/local/etc/zabbix7/scripts/service_status.sh ]; then
-        rm -f /usr/local/etc/zabbix7/scripts/service_status.sh
-        echo "Removido: /usr/local/etc/zabbix7/scripts/service_status.sh"
-    fi
-    if [ -f /usr/local/etc/zabbix_agentd.conf ]; then
-        sed -i '' '/service.status\[\*\]/d' /usr/local/etc/zabbix_agentd.conf 2>/dev/null || true
-    fi
+    # Limpar ambos os caminhos possíveis (Zabbix 7 plugin e instalação manual)
+    for ZDIR in /usr/local/etc/zabbix7 /usr/local/etc; do
+        if [ -f "$ZDIR/scripts/service_status.sh" ]; then
+            rm -f "$ZDIR/scripts/service_status.sh"
+            echo "Removido: $ZDIR/scripts/service_status.sh"
+        fi
+    done
+    # Remover arquivo de UserParameter include
+    for ZINCDIR in /usr/local/etc/zabbix7/zabbix_agentd.conf.d /usr/local/etc/zabbix_agentd.conf.d; do
+        if [ -f "$ZINCDIR/poppfire_services.conf" ]; then
+            rm -f "$ZINCDIR/poppfire_services.conf"
+            echo "Removido: $ZINCDIR/poppfire_services.conf"
+        fi
+    done
+    # Limpar UserParameter legado do config principal (versões anteriores)
+    for ZCONF in /usr/local/etc/zabbix7/zabbix_agentd.conf /usr/local/etc/zabbix_agentd.conf; do
+        if [ -f "$ZCONF" ]; then
+            sed -i '' '/service.status\[\*\]/d' "$ZCONF" 2>/dev/null || true
+        fi
+    done
     for SVC in $SERVICOS_REINSTALL; do
         if [ -f "/usr/local/etc/sudoers.d/zabbix_$SVC" ]; then
             rm -f "/usr/local/etc/sudoers.d/zabbix_$SVC"
