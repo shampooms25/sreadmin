@@ -430,37 +430,81 @@ validate_api_credentials() {
 }
 
 # =============================================================================
-# FUNÇÃO: Criar Cron Job via API
+# FUNÇÃO AUXILIAR: Garantir exatamente 1 cron job por tipo
+# Uso: _ensure_single_cron_job "SEARCH_TERM" "MATCH_FIELD" 'JSON_DO_JOB' "DESCRIÇÃO"
+#
+# Lógica:
+#   1. Busca TODOS os cron jobs que contenham SEARCH_TERM
+#   2. Filtra pelo campo MATCH_FIELD (command ou description)
+#   3. Se encontrar duplicatas: deleta todas, recria 1
+#   4. Se encontrar exatamente 1: mantém
+#   5. Se não encontrar: cria 1
+# =============================================================================
+_ensure_single_cron_job() {
+    _SEARCH="$1"
+    _MATCH="$2"
+    _JOB_JSON="$3"
+    _LABEL="$4"
+
+    # Buscar TODOS os jobs (sem limite de página)
+    _RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d "{\"searchPhrase\":\"$_SEARCH\",\"rowCount\":-1}" 2>/dev/null)
+
+    # Extrair UUIDs que correspondem ao campo match
+    _UUIDS=""
+    _COUNT=0
+    if [ -n "$_RESPONSE" ] && command -v python3 >/dev/null 2>&1; then
+        _UUIDS=$(printf '%s' "$_RESPONSE" | python3 -c "
+import json,sys
+try:
+    data=json.loads(sys.stdin.read())
+    rows=data.get('rows',[])
+    uuids=[r.get('uuid') for r in rows if r.get('uuid') and '$_MATCH' in (r.get('command','') + ' ' + r.get('description',''))]
+    print(' '.join(uuids))
+except:
+    print('')
+" 2>/dev/null)
+        # Contar
+        for _U in $_UUIDS; do
+            _COUNT=$((_COUNT + 1))
+        done
+    fi
+
+    if [ "$_COUNT" -eq 1 ]; then
+        echo "   ✅ $_LABEL já existe (1 entrada). OK."
+        return 0
+    elif [ "$_COUNT" -gt 1 ]; then
+        echo "   ⚠️  $_LABEL: encontradas $_COUNT entradas duplicadas. Removendo todas..."
+        for _U in $_UUIDS; do
+            curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/delJob/$_U" -X POST >/dev/null 2>&1
+            echo "      Removido: $_U"
+        done
+        echo "   Recriando entrada única..."
+    else
+        echo "   Criando $_LABEL..."
+    fi
+
+    # Criar exatamente 1 entrada
+    _CREATE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/addJob" -X POST -H "Content-Type: application/json" -d "$_JOB_JSON" 2>/dev/null)
+    if echo "$_CREATE" | grep -q '"uuid"'; then
+        echo "   ✅ $_LABEL criado com sucesso!"
+        curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/service/reconfigure" -X POST >/dev/null 2>&1
+        return 0
+    else
+        echo "   ⚠️  Falha ao criar $_LABEL via API."
+        return 1
+    fi
+}
+
+# =============================================================================
+# FUNÇÃO: Criar Cron Job via API (idempotente — sempre 1 entrada)
 # =============================================================================
 create_cron_job() {
     echo "### 7. Configurando agendamento automático (Cron Job)"
-    
-    echo "Verificando se o agendamento já existe..."
-    
-    SEARCH_RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"atualiza_portal"}' 2>/dev/null)
-    
-    if echo "$SEARCH_RESPONSE" | grep -q "atualiza_portal"; then
-        echo "⚠️  Agendamento já existe. Pulando criação."
-        return 0
-    fi
-    
-    echo "Criando agendamento para execução a cada 1 minuto..."
-    
-    CREATE_RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/addJob" -X POST -H "Content-Type: application/json" -d '{"job":{"enabled":"1","minutes":"*/1","hours":"*","days":"*","months":"*","weekdays":"*","command":"atualiza_portal run","parameters":"","description":"Executar Atualizacao do Portal POPPFIRE"}}' 2>/dev/null)
-    
-    if echo "$CREATE_RESPONSE" | grep -q '"uuid"'; then
-        echo "✅ Agendamento criado com sucesso!"
-        
-        echo "Aplicando configurações do cron..."
-        curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/service/reconfigure" -X POST >/dev/null 2>&1
-        
-        return 0
-    else
-        echo "⚠️  Não foi possível criar o agendamento via API."
-        echo ""
-        echo "Crie manualmente em: System → Settings → Cron"
-        return 1
-    fi
+    _ensure_single_cron_job \
+        "atualiza_portal" \
+        "atualiza_portal" \
+        '{"job":{"enabled":"1","minutes":"*/1","hours":"*","days":"*","months":"*","weekdays":"*","command":"atualiza_portal run","parameters":"","description":"Executar Atualizacao do Portal POPPFIRE"}}' \
+        "Cron Atualizacao Portal"
 }
 
 # =============================================================================
@@ -640,30 +684,15 @@ except:
 }
 
 # =============================================================================
-# FUNÇÃO: Criar Cron Job do Guard (verificação a cada 1 minuto)
+# FUNÇÃO: Criar Cron Job do Guard (idempotente — sempre 1 entrada)
 # =============================================================================
 create_guard_cron_job() {
     echo "### Configurando agendamento do Portal Guard (Cron Job)"
-    
-    SEARCH_RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"poppfire_guard"}' 2>/dev/null)
-    
-    if echo "$SEARCH_RESPONSE" | grep -q "poppfire_guard"; then
-        echo "⚠️  Agendamento do Guard já existe. Pulando criação."
-        return 0
-    fi
-    
-    echo "Criando agendamento do Guard para execução a cada 1 minuto..."
-    
-    CREATE_RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/addJob" -X POST -H "Content-Type: application/json" -d '{"job":{"enabled":"1","minutes":"*/1","hours":"*","days":"*","months":"*","weekdays":"*","command":"poppfire_guard check","parameters":"","description":"POPPFIRE Guard - Verificacao tunnel e portal"}}' 2>/dev/null)
-    
-    if echo "$CREATE_RESPONSE" | grep -q '"uuid"'; then
-        echo "✅ Agendamento do Guard criado!"
-        curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/service/reconfigure" -X POST >/dev/null 2>&1
-        return 0
-    else
-        echo "⚠️  Não foi possível criar o agendamento do Guard via API."
-        return 1
-    fi
+    _ensure_single_cron_job \
+        "poppfire_guard" \
+        "poppfire_guard" \
+        '{"job":{"enabled":"1","minutes":"*/1","hours":"*","days":"*","months":"*","weekdays":"*","command":"poppfire_guard check","parameters":"","description":"POPPFIRE Guard - Verificacao tunnel e portal"}}' \
+        "Cron Guard Portal"
 }
 
 # =============================================================================
