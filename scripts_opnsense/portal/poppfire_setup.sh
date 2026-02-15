@@ -199,16 +199,24 @@ fi
 EOF
     chmod +x "$ZABBIX_CONF_DIR/scripts/service_status.sh"
 
-    # Usar Include dir para que o UserParameter sobreviva regenerações do OPNsense
-    mkdir -p "$ZABBIX_INCLUDE_DIR"
+    # Detectar Include dir já configurado pelo plugin OPNsense
+    # (o plugin gera a linha Include= automaticamente — precisamos usar esse diretório)
+    EXISTING_INCLUDE=$(grep "^Include=" "$ZABBIX_CONF" 2>/dev/null | head -1 | cut -d= -f2 | sed 's|/$||')
 
-    # Garantir que o Include dir está configurado no zabbix_agentd.conf
-    if ! grep -q "^Include=$ZABBIX_INCLUDE_DIR" "$ZABBIX_CONF" 2>/dev/null; then
-        # Verificar se já existe algum Include para o dir (com ou sem trailing /)
-        if ! grep -q "Include=.*zabbix.*conf\.d" "$ZABBIX_CONF" 2>/dev/null; then
-            echo "Include=$ZABBIX_INCLUDE_DIR/" >> "$ZABBIX_CONF"
-            echo "   Include dir adicionado ao config"
-        fi
+    if [ -n "$EXISTING_INCLUDE" ] && [ -d "$EXISTING_INCLUDE" ] 2>/dev/null; then
+        ZABBIX_INCLUDE_DIR="$EXISTING_INCLUDE"
+        echo "   Include dir existente: $ZABBIX_INCLUDE_DIR"
+    elif [ -n "$EXISTING_INCLUDE" ]; then
+        # Include configurado mas dir não existe — criar
+        ZABBIX_INCLUDE_DIR="$EXISTING_INCLUDE"
+        mkdir -p "$ZABBIX_INCLUDE_DIR"
+        echo "   Include dir criado: $ZABBIX_INCLUDE_DIR"
+    else
+        # Sem Include — adicionar ao config e usar restart direto (evitar regen)
+        ZABBIX_INCLUDE_DIR="$ZABBIX_CONF_DIR/zabbix_agentd.conf.d"
+        mkdir -p "$ZABBIX_INCLUDE_DIR"
+        echo "Include=$ZABBIX_INCLUDE_DIR/" >> "$ZABBIX_CONF"
+        echo "   Include dir adicionado: $ZABBIX_INCLUDE_DIR"
     fi
 
     # Criar arquivo de UserParameter dedicado (sobrescreve para idempotência)
@@ -240,33 +248,48 @@ UPEOF
         done
     fi
 
-    # Reiniciar o agente Zabbix via service (integrado ao OPNsense)
+    # Reiniciar o agente Zabbix — usar restart direto do processo para
+    # evitar que o OPNsense regenere o config e apague o Include
     echo "   Reiniciando Zabbix Agent..."
-    if service zabbix_agentd restart >/dev/null 2>&1; then
-        echo "   ✅ Zabbix Agent reiniciado via service"
-    elif service zabbix7_agentd restart >/dev/null 2>&1; then
-        echo "   ✅ Zabbix Agent 7 reiniciado via service"
-    else
-        # Fallback: restart manual
-        pkill -f zabbix_agentd 2>/dev/null
-        sleep 2
-        if [ -x /usr/local/sbin/zabbix_agentd ]; then
-            /usr/local/sbin/zabbix_agentd -c "$ZABBIX_CONF"
-            echo "   ✅ Zabbix Agent reiniciado (modo manual)"
-        else
-            echo "   ⚠️  Não foi possível reiniciar o Zabbix Agent"
+    pkill -f zabbix_agentd 2>/dev/null
+    sleep 2
+
+    # Localizar binário do zabbix_agentd
+    ZABBIX_BIN=""
+    for ZBIN in /usr/local/sbin/zabbix_agentd /usr/local/sbin/zabbix_agentd2; do
+        if [ -x "$ZBIN" ]; then
+            ZABBIX_BIN="$ZBIN"
+            break
         fi
+    done
+
+    if [ -n "$ZABBIX_BIN" ]; then
+        "$ZABBIX_BIN" -c "$ZABBIX_CONF"
+        echo "   ✅ Zabbix Agent reiniciado ($ZABBIX_BIN)"
+    else
+        echo "   ⚠️  Binário do Zabbix Agent não encontrado"
+        echo "   Reinicie manualmente: service zabbix_agentd restart"
     fi
 
     # Verificar se o UserParameter está ativo
     sleep 2
-    if command -v zabbix_agentd >/dev/null 2>&1; then
-        TEST_RESULT=$(zabbix_agentd -c "$ZABBIX_CONF" -t "service.status[replicador]" 2>/dev/null)
-        if [ -n "$TEST_RESULT" ]; then
-            echo "   ✅ Teste: service.status[replicador] = $TEST_RESULT"
+    if [ -n "$ZABBIX_BIN" ]; then
+        TEST_RESULT=$("$ZABBIX_BIN" -c "$ZABBIX_CONF" -t "service.status[replicador]" 2>&1)
+        if echo "$TEST_RESULT" | grep -q '\[t|1\]'; then
+            echo "   ✅ Teste: service.status[replicador] = 1 (rodando)"
+        elif echo "$TEST_RESULT" | grep -q '\[t|0\]'; then
+            echo "   ✅ Teste: service.status[replicador] = 0 (parado)"
+        elif echo "$TEST_RESULT" | grep -q 'NOTSUPPORTED'; then
+            echo "   ❌ UserParameter não reconhecido pelo Zabbix Agent"
+            echo "   Verificando config carregado..."
+            echo "   Include dir: $ZABBIX_INCLUDE_DIR"
+            ls -la "$ZABBIX_INCLUDE_DIR/" 2>/dev/null
+            echo "   Conteúdo do UserParameter:"
+            cat "$ZABBIX_INCLUDE_DIR/poppfire_services.conf" 2>/dev/null
+            echo "   Linhas Include no config:"
+            grep "^Include" "$ZABBIX_CONF" 2>/dev/null
         else
-            echo "   ⚠️  Teste do UserParameter não retornou resultado"
-            echo "   Verifique: zabbix_agentd -c $ZABBIX_CONF -t 'service.status[replicador]'"
+            echo "   Resultado do teste: $TEST_RESULT"
         fi
     fi
 }
