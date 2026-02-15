@@ -446,10 +446,11 @@ _ensure_single_cron_job() {
     _JOB_JSON="$3"
     _LABEL="$4"
 
-    # Buscar TODOS os jobs (sem limite de página)
-    _RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d "{\"searchPhrase\":\"$_SEARCH\",\"rowCount\":-1}" 2>/dev/null)
+    # Buscar TODOS os cron jobs — NÃO confiar no searchPhrase da API
+    # Usar rowCount grande e searchPhrase vazio para pegar tudo
+    _RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"","rowCount":9999}' 2>/dev/null)
 
-    # Extrair UUIDs que correspondem ao campo match
+    # Filtrar localmente no Python pelo campo command/description
     _UUIDS=""
     _COUNT=0
     if [ -n "$_RESPONSE" ] && command -v python3 >/dev/null 2>&1; then
@@ -458,22 +459,31 @@ import json,sys
 try:
     data=json.loads(sys.stdin.read())
     rows=data.get('rows',[])
-    uuids=[r.get('uuid') for r in rows if r.get('uuid') and '$_MATCH' in (r.get('command','') + ' ' + r.get('description',''))]
+    match='$_MATCH'
+    uuids=[]
+    for r in rows:
+        uuid=r.get('uuid','')
+        cmd=r.get('command','')
+        desc=r.get('description','')
+        if uuid and (match in cmd or match in desc):
+            uuids.append(uuid)
     print(' '.join(uuids))
 except:
     print('')
 " 2>/dev/null)
-        # Contar
+        # Contar resultados
         for _U in $_UUIDS; do
             _COUNT=$((_COUNT + 1))
         done
     fi
 
+    echo "   Encontradas $_COUNT entradas para '$_MATCH'"
+
     if [ "$_COUNT" -eq 1 ]; then
         echo "   ✅ $_LABEL já existe (1 entrada). OK."
         return 0
     elif [ "$_COUNT" -gt 1 ]; then
-        echo "   ⚠️  $_LABEL: encontradas $_COUNT entradas duplicadas. Removendo todas..."
+        echo "   ⚠️  $_LABEL: $_COUNT duplicatas encontradas. Removendo todas..."
         for _U in $_UUIDS; do
             curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/delJob/$_U" -X POST >/dev/null 2>&1
             echo "      Removido: $_U"
@@ -865,23 +875,34 @@ cleanup_previous_install() {
     fi
     sed -i '' '/poppfire_guard_enable/d' /etc/rc.conf 2>/dev/null || true
 
-    # Remover cron do guard
-    GUARD_SEARCH=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"poppfire_guard"}' 2>/dev/null)
-    if [ -n "$GUARD_SEARCH" ] && command -v python3 >/dev/null 2>&1; then
-        GUARD_UUIDS=$(printf '%s' "$GUARD_SEARCH" | python3 -c "
+    # Remover TODOS os cron jobs do POPPFIRE (guard + portal)
+    # Buscar TODOS os jobs sem filtro para garantir que nenhum escape
+    echo "Removendo cron jobs duplicados..."
+    ALL_JOBS=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"","rowCount":9999}' 2>/dev/null)
+    if [ -n "$ALL_JOBS" ] && command -v python3 >/dev/null 2>&1; then
+        POPPFIRE_UUIDS=$(printf '%s' "$ALL_JOBS" | python3 -c "
 import json,sys
 try:
     data=json.loads(sys.stdin.read())
     rows=data.get('rows',[])
-    uuids=[r.get('uuid') for r in rows if 'poppfire_guard' in r.get('command','') or 'poppfire_guard' in r.get('description','')]
-    print(' '.join([u for u in uuids if u]))
-except Exception:
+    uuids=[]
+    for r in rows:
+        uuid=r.get('uuid','')
+        cmd=r.get('command','')
+        desc=r.get('description','')
+        txt=cmd+' '+desc
+        if uuid and ('atualiza_portal' in txt or 'poppfire_guard' in txt or 'POPPFIRE' in txt):
+            uuids.append(uuid)
+    print(' '.join(uuids))
+except:
     print('')
-")
-        for UUID in $GUARD_UUIDS; do
+" 2>/dev/null)
+        _DEL_COUNT=0
+        for UUID in $POPPFIRE_UUIDS; do
             curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/delJob/$UUID" -X POST >/dev/null 2>&1
-            echo "Removido cron guard: $UUID"
+            _DEL_COUNT=$((_DEL_COUNT + 1))
         done
+        echo "Removidos $_DEL_COUNT cron jobs do POPPFIRE"
     fi
 
     # Remover replicador do Zenarmor instalado anteriormente
@@ -926,32 +947,8 @@ except Exception:
         fi
     done
 
-    # Remover cron job se existir
-    SEARCH_RESPONSE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/searchJobs" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"atualiza_portal"}' 2>/dev/null)
-
-    if [ -n "$SEARCH_RESPONSE" ]; then
-        if command -v python3 >/dev/null 2>&1; then
-            # Extrair UUIDs via Python para evitar dependência do jq
-            CRON_UUIDS=$(printf '%s' "$SEARCH_RESPONSE" | python3 - << 'PY'
-import json,sys
-try:
-    data=json.loads(sys.stdin.read())
-    rows=data.get('rows',[])
-    uuids=[r.get('uuid') for r in rows if r.get('description','').find('Atualizacao do Portal POPPFIRE')!=-1 or r.get('command','').find('atualiza_portal')!=-1]
-    print(" ".join([u for u in uuids if u]))
-except Exception:
-    print("")
-PY
-            )
-
-            for UUID in $CRON_UUIDS; do
-                curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/settings/delJob/$UUID" -X POST >/dev/null 2>&1
-                echo "Removido cron job: $UUID"
-            done
-        else
-            echo "AVISO: python3 não encontrado, não foi possível remover cron job automaticamente."
-        fi
-    fi
+    # Aplicar remoções dos cron jobs
+    curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/cron/service/reconfigure" -X POST >/dev/null 2>&1
 
     # Recarregar configd para refletir remoções
     service configd restart
