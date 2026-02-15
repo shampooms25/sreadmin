@@ -39,6 +39,11 @@ ZENARMOR_REPLICADOR_ZIP="zenarmor_replicador.zip"
 ZENARMOR_REPLICADOR_URL="https://raw.githubusercontent.com/$GITHUB_USER/$GITHUB_REPO/main/portal/$ZENARMOR_REPLICADOR_ZIP"
 ES_HOST="http://172.18.25.252:9200"
 ZABBIX_SERVER="172.18.25.252"
+# Zenarmor ETL (Graylog)
+ZENARMOR_ETL_DIR="/root/zenarmor-etl"
+ZENARMOR_ETL_SCRIPT="zenarmor_graylog.py"
+ZENARMOR_ETL_ACTIONS="actions_zenarmor_etl.conf"
+ZENARMOR_ETL_BASE_URL="https://raw.githubusercontent.com/$GITHUB_USER/$GITHUB_REPO/main/zenarmor-etl"
 # ---------------------------------
 
 # =============================================================================
@@ -151,6 +156,76 @@ install_zenarmor_replicador() {
     echo "✅ Replicador Zenarmor instalado com sucesso!"
 }
 
+
+# =============================================================================
+# FUNÇÃO: Instalar Zenarmor ETL (envio de dados para Graylog via Syslog)
+# =============================================================================
+install_zenarmor_etl() {
+    echo "### 12. Instalando Zenarmor ETL (Graylog)"
+
+    # Verificar se Zenarmor está presente
+    if [ ! -d /usr/local/datastore/sqlite ]; then
+        echo "⚠️  Zenarmor não encontrado (/usr/local/datastore/sqlite)."
+        echo "   ETL para Graylog não será instalado."
+        return 1
+    fi
+
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "⚠️  Python3 não encontrado. ETL não será instalado."
+        return 1
+    fi
+
+    mkdir -p "$ZENARMOR_ETL_DIR"
+
+    # Baixar script principal
+    echo "   Baixando $ZENARMOR_ETL_SCRIPT..."
+    curl -sS -L -o "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" \
+        -H "Authorization: token $PAT" \
+        "$ZENARMOR_ETL_BASE_URL/$ZENARMOR_ETL_SCRIPT"
+    if [ $? -ne 0 ] || [ ! -s "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" ]; then
+        echo "⚠️  Falha ao baixar $ZENARMOR_ETL_SCRIPT."
+        return 1
+    fi
+    chmod +x "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT"
+    echo "   ✅ Script instalado em $ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT"
+
+    # Instalar ação configd para o cron
+    echo "   Instalando ação configd..."
+    cat > "$ACTIONS_DIR/$ZENARMOR_ETL_ACTIONS" << 'ETLEOF'
+[run_zenarmor_etl]
+command:/usr/local/bin/python3 /root/zenarmor-etl/zenarmor_graylog.py --once
+type:script
+description:Enviar dados Zenarmor para Graylog
+ETLEOF
+    echo "   ✅ Ação configd criada em $ACTIONS_DIR/$ZENARMOR_ETL_ACTIONS"
+
+    # Recarregar configd para reconhecer nova ação
+    service configd restart >/dev/null 2>&1
+    sleep 2
+
+    # Criar cron job (a cada 5 minutos) — idempotente
+    echo "   Configurando cron job (a cada 5 minutos)..."
+    _ensure_single_cron_job \
+        "zenarmor_etl" \
+        "zenarmor_etl" \
+        '{"job":{"enabled":"1","minutes":"*/5","hours":"*","days":"*","months":"*","weekdays":"*","command":"run_zenarmor_etl","parameters":"","description":"Zenarmor ETL - Enviar dados para Graylog"}}' \
+        "Cron Zenarmor ETL"
+
+    # Testar info do firewall
+    echo "   Testando detecção do firewall..."
+    python3 "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" --info 2>/dev/null
+
+    # Executar primeiro envio
+    echo "   Executando primeiro envio para Graylog..."
+    python3 "$ZENARMOR_ETL_DIR/$ZENARMOR_ETL_SCRIPT" --once 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "   ✅ Zenarmor ETL instalado e primeiro envio realizado!"
+    else
+        echo "   ⚠️  Primeiro envio falhou. O cron tentará a cada 5 minutos."
+    fi
+
+    return 0
+}
 
 # =============================================================================
 # FUNÇÃO: Configurar Zabbix Agent (monitoramento de serviços)
@@ -891,7 +966,7 @@ try:
         cmd=r.get('command','')
         desc=r.get('description','')
         txt=cmd+' '+desc
-        if uuid and ('atualiza_portal' in txt or 'poppfire_guard' in txt or 'POPPFIRE' in txt):
+        if uuid and ('atualiza_portal' in txt or 'poppfire_guard' in txt or 'POPPFIRE' in txt or 'zenarmor_etl' in txt or 'Zenarmor ETL' in txt):
             uuids.append(uuid)
     print(' '.join(uuids))
 except:
@@ -917,6 +992,16 @@ except:
     if [ -d "$ZENARMOR_DIR" ]; then
         rm -rf "$ZENARMOR_DIR"
         echo "Removido: $ZENARMOR_DIR"
+    fi
+
+    # Remover Zenarmor ETL (Graylog) instalado anteriormente
+    if [ -d "$ZENARMOR_ETL_DIR" ]; then
+        rm -rf "$ZENARMOR_ETL_DIR"
+        echo "Removido: $ZENARMOR_ETL_DIR"
+    fi
+    if [ -f "$ACTIONS_DIR/$ZENARMOR_ETL_ACTIONS" ]; then
+        rm -f "$ACTIONS_DIR/$ZENARMOR_ETL_ACTIONS"
+        echo "Removido: $ACTIONS_DIR/$ZENARMOR_ETL_ACTIONS"
     fi
 
     # Remover configurações do Zabbix Agent criadas pelo script
@@ -1159,11 +1244,17 @@ else
     echo "   O cron tentará novamente em até 1 minuto."
 fi
 
-# Instalar replicador do Zenarmor
+# Instalar replicador do Zenarmor (Elasticsearch)
 install_zenarmor_replicador
 if [ $? -ne 0 ]; then
     echo "⚠️  Replicador Zenarmor não instalado (verifique rede/dependências)."
     echo "   Para instalar depois: sh poppfire_setup.sh --reinstall --pat \$PAT --api-key \$API_KEY --api-secret \$API_SECRET"
+fi
+
+# Instalar Zenarmor ETL (Graylog)
+install_zenarmor_etl
+if [ $? -ne 0 ]; then
+    echo "⚠️  Zenarmor ETL não instalado (Zenarmor não detectado ou sem rede)."
 fi
 
 # Configurar Zabbix Agent (serviços monitorados)
