@@ -510,8 +510,9 @@ configure_captive_portal() {
     echo "   Description: $PORTAL_DESCRIPTION"
     echo "   Auth Server: Freeradius"
     echo "   Always send accounting: Enabled"
+    echo "   Concurrent Logins: Ilimitado (evitar re-auth em reconex\u00e3o)"
     
-    CREATE_ZONE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/add_zone" -X POST -H "Content-Type: application/json" -d "{\"zone\":{\"enabled\":\"1\",\"interfaces\":\"lan\",\"authservers\":\"Freeradius\",\"alwaysSendAccountingReqs\":\"1\",\"idletimeout\":\"0\",\"hardtimeout\":\"480\",\"concurrentlogins\":\"1\",\"servername\":\"$PORTAL_HOSTNAME\",\"description\":\"$PORTAL_DESCRIPTION\"}}" 2>/dev/null)
+    CREATE_ZONE=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/add_zone" -X POST -H "Content-Type: application/json" -d "{\"zone\":{\"enabled\":\"1\",\"interfaces\":\"lan\",\"authservers\":\"Freeradius\",\"alwaysSendAccountingReqs\":\"1\",\"idletimeout\":\"0\",\"hardtimeout\":\"480\",\"concurrentlogins\":\"0\",\"servername\":\"$PORTAL_HOSTNAME\",\"description\":\"$PORTAL_DESCRIPTION\"}}" 2>/dev/null)
     
     if echo "$CREATE_ZONE" | grep -q '"uuid"'; then
         ZONE_UUID=$(echo "$CREATE_ZONE" | grep -o '"uuid":"[^"]*"' | cut -d'"' -f4)
@@ -530,6 +531,11 @@ configure_captive_portal() {
             fi
         fi
         
+        # Configurar URL de redirecionamento HTTPS transparente
+        # Evita problemas de cert mismatch que causam loops de re-auth
+        echo "Configurando redirecionamento HTTPS..."
+        curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/set_zone/$ZONE_UUID" -X POST -H "Content-Type: application/json" -d "{\"zone\":{\"transparentHTTPSURL\":\"https://$PORTAL_HOSTNAME/\"}}" 2>/dev/null | grep -q '"result":"saved"' && echo "✅ transparentHTTPSURL configurada" || echo "⚠️  transparentHTTPSURL não suportada (versão antiga)"
+
         # Aplicar configuração
         echo "Aplicando configuração do Captive Portal..."
         curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/service/reconfigure" -X POST >/dev/null 2>&1
@@ -557,20 +563,16 @@ configure_captive_portal() {
 }
 
 # =============================================================================
-# FUNÇÃO: Liberar acesso WebGUI (porta 5555) no Captive Portal
+# FUNÇÃO: Adicionar Allowed Addresses essenciais no Captive Portal
+# - WebGUI (porta 5555)
+# - DNS (porta 53 TCP/UDP)
+# - DHCP (portas 67-68 UDP) — via 0.0.0.0/0 pois é broadcast
 # =============================================================================
-add_captive_portal_allowed_webgui() {
-    echo "### Liberando acesso WebGUI no Captive Portal (porta 5555)"
-
-    # Verificar se já existe regra para porta 5555
-    EXISTING=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/searchAllowedAddresses" -X POST -H "Content-Type: application/json" -d '{"searchPhrase":"WebGUI"}' 2>/dev/null)
-    if echo "$EXISTING" | grep -q "5555"; then
-        echo "⚠️  Regra de acesso WebGUI já existe. Pulando."
-        return 0
-    fi
+add_captive_portal_allowed_addresses() {
+    echo "### Configurando Allowed Addresses no Captive Portal"
 
     # Detectar IP da interface LAN via API
-    echo "Detectando IP da interface LAN..."
+    echo "   Detectando IP da interface LAN..."
     LAN_IP=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/diagnostics/interface/getInterfaceConfig" 2>/dev/null | python3 -c "
 import json,sys
 try:
@@ -589,30 +591,52 @@ except:
 
     if [ -z "$LAN_IP" ]; then
         echo "⚠️  Não foi possível detectar o IP da LAN automaticamente."
-        echo "   Adicione manualmente em: Services → Captive Portal → Allowed Addresses"
-        echo "   IP: <IP_DA_LAN>/32  Proto: TCP  Porta: 5555"
+        echo "   Adicione manualmente: WebGUI, DNS, DHCP"
         return 1
     fi
 
     echo "   IP da LAN detectado: $LAN_IP"
 
-    # Adicionar regra: permitir tráfego TCP para o IP da LAN na porta 5555 (WebGUI)
-    echo "Adicionando regra de acesso WebGUI..."
-    ADD_RESULT=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/addAllowedAddress" -X POST -H "Content-Type: application/json" -d "{\"address\":{\"ip\":\"$LAN_IP/32\",\"proto\":\"tcp\",\"port\":\"5555\",\"description\":\"Acesso WebGUI OPNsense (porta 5555)\"}}" 2>/dev/null)
+    # Função auxiliar para adicionar regra se não existir
+    _add_allowed() {
+        _SEARCH_KEY="$1"
+        _IP="$2"
+        _PROTO="$3"
+        _PORT="$4"
+        _DESC="$5"
 
-    if echo "$ADD_RESULT" | grep -q '"uuid"'; then
-        echo "✅ Regra de acesso WebGUI adicionada com sucesso!"
-        echo "   → $LAN_IP:5555 liberado no Captive Portal"
+        # Verificar se já existe
+        _EXISTING=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/searchAllowedAddresses" -X POST -H "Content-Type: application/json" -d "{\"searchPhrase\":\"$_DESC\"}" 2>/dev/null)
+        if echo "$_EXISTING" | grep -q "\"$_PORT\""; then
+            echo "   ⚠️  $_DESC já existe. Pulando."
+            return 0
+        fi
 
-        # Aplicar configuração
-        curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/service/reconfigure" -X POST >/dev/null 2>&1
-        return 0
-    else
-        echo "⚠️  Falha ao adicionar regra via API."
-        echo "   Adicione manualmente em: Services → Captive Portal → Allowed Addresses"
-        echo "   IP: $LAN_IP/32  Proto: TCP  Porta: 5555"
-        return 1
-    fi
+        _RESULT=$(curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/settings/addAllowedAddress" -X POST -H "Content-Type: application/json" -d "{\"address\":{\"ip\":\"$_IP\",\"proto\":\"$_PROTO\",\"port\":\"$_PORT\",\"description\":\"$_DESC\"}}" 2>/dev/null)
+        if echo "$_RESULT" | grep -q '"uuid"'; then
+            echo "   ✅ $_DESC"
+        else
+            echo "   ⚠️  Falha: $_DESC"
+        fi
+    }
+
+    # 1. WebGUI (porta 5555)
+    _add_allowed "WebGUI" "$LAN_IP/32" "tcp" "5555" "WebGUI OPNsense (TCP 5555)"
+
+    # 2. DNS TCP (porta 53) — para o gateway/LAN IP
+    _add_allowed "DNS TCP" "$LAN_IP/32" "tcp" "53" "DNS TCP (porta 53)"
+
+    # 3. DNS UDP (porta 53) — essencial para resolução de nomes
+    _add_allowed "DNS UDP" "$LAN_IP/32" "udp" "53" "DNS UDP (porta 53)"
+
+    # 4. DHCP (portas 67-68 UDP) — broadcast, usar 0.0.0.0/0
+    _add_allowed "DHCP" "0.0.0.0/0" "udp" "67" "DHCP Server (UDP 67)"
+    _add_allowed "DHCP Client" "0.0.0.0/0" "udp" "68" "DHCP Client (UDP 68)"
+
+    # Aplicar configuração
+    echo "   Aplicando configurações..."
+    curl -sk -u "$API_KEY:$API_SECRET" "$API_URL/captiveportal/service/reconfigure" -X POST >/dev/null 2>&1
+    echo "   ✅ Allowed Addresses configuradas"
 }
 
 # =============================================================================
@@ -1089,8 +1113,8 @@ create_cron_job
 # Configurar Captive Portal via API
 configure_captive_portal
 
-# Liberar acesso WebGUI no Captive Portal
-add_captive_portal_allowed_webgui
+# Configurar Allowed Addresses no Captive Portal (WebGUI, DNS, DHCP)
+add_captive_portal_allowed_addresses
 
 # Instalar POPPFIRE Portal Guard
 install_portal_guard
