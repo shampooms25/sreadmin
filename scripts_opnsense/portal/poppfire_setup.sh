@@ -38,6 +38,7 @@ ZENARMOR_DIR="/root/zenarmor"
 ZENARMOR_REPLICADOR_ZIP="zenarmor_replicador.zip"
 ZENARMOR_REPLICADOR_URL="https://raw.githubusercontent.com/$GITHUB_USER/$GITHUB_REPO/main/portal/$ZENARMOR_REPLICADOR_ZIP"
 ES_HOST="http://172.18.25.252:9200"
+ZABBIX_SERVER="172.18.25.252"
 # ---------------------------------
 
 # =============================================================================
@@ -226,6 +227,37 @@ EOF
 UserParameter=service.status[*],$ZABBIX_CONF_DIR/scripts/service_status.sh \$1
 UPEOF
     echo "   ✅ UserParameter criado em $ZABBIX_INCLUDE_DIR/poppfire_services.conf"
+
+    # Garantir que o Zabbix Server pode conectar ao agent
+    echo "   Verificando Server= no config..."
+    CURRENT_SERVER=$(grep "^Server=" "$ZABBIX_CONF" 2>/dev/null | head -1 | cut -d= -f2)
+    if [ -n "$CURRENT_SERVER" ]; then
+        if ! echo "$CURRENT_SERVER" | grep -q "$ZABBIX_SERVER"; then
+            # Adicionar IP do servidor Zabbix à lista existente
+            NEW_SERVER="${CURRENT_SERVER},${ZABBIX_SERVER}"
+            sed -i '' "s|^Server=.*|Server=$NEW_SERVER|" "$ZABBIX_CONF"
+            echo "   ✅ Server= atualizado: $NEW_SERVER"
+        else
+            echo "   Server= já contém $ZABBIX_SERVER"
+        fi
+    else
+        # Sem Server= — adicionar
+        echo "Server=127.0.0.1,$ZABBIX_SERVER" >> "$ZABBIX_CONF"
+        echo "   ✅ Server= adicionado: 127.0.0.1,$ZABBIX_SERVER"
+    fi
+
+    # ServerActive (para checks ativos)
+    CURRENT_ACTIVE=$(grep "^ServerActive=" "$ZABBIX_CONF" 2>/dev/null | head -1 | cut -d= -f2)
+    if [ -n "$CURRENT_ACTIVE" ]; then
+        if ! echo "$CURRENT_ACTIVE" | grep -q "$ZABBIX_SERVER"; then
+            NEW_ACTIVE="${CURRENT_ACTIVE},${ZABBIX_SERVER}"
+            sed -i '' "s|^ServerActive=.*|ServerActive=$NEW_ACTIVE|" "$ZABBIX_CONF"
+            echo "   ✅ ServerActive= atualizado: $NEW_ACTIVE"
+        fi
+    else
+        echo "ServerActive=$ZABBIX_SERVER" >> "$ZABBIX_CONF"
+        echo "   ✅ ServerActive= adicionado: $ZABBIX_SERVER"
+    fi
 
     # Permissões no sudoers para cada serviço (idempotente: sobrescreve em vez de append)
     for SVC in $SERVICOS; do
