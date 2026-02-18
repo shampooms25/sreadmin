@@ -236,23 +236,31 @@ configure_zabbix_agent_services() {
 
     SERVICOS="replicador nginx sshd"
 
-    # Detectar diretório de configuração do Zabbix Agent
-    # OPNsense com plugin Zabbix 7: /usr/local/etc/zabbix7/
-    # Instalação manual/legada:      /usr/local/etc/
+    # ── Detectar config do Zabbix Agent ──────────────────────────────
+    # Estratégia: verificar qual config o agente EM EXECUÇÃO usa (ps aux),
+    # pois o OPNsense pode ter tanto /usr/local/etc/zabbix7/ (plugin)
+    # quanto /usr/local/etc/zabbix_agentd.conf (legado), e o agente
+    # pode estar rodando com qualquer um deles.
     ZABBIX_CONF=""
     ZABBIX_CONF_DIR=""
     ZABBIX_INCLUDE_DIR=""
+    ZABBIX_SCRIPT_DIR=""
 
-    if [ -f /usr/local/etc/zabbix7/zabbix_agentd.conf ]; then
+    # 1) Tentar detectar a partir do processo em execução
+    RUNNING_CONF=$(ps aux | grep '[z]abbix_agentd' | grep -o '\-c [^ ]*' | head -1 | awk '{print $2}')
+    if [ -n "$RUNNING_CONF" ] && [ -f "$RUNNING_CONF" ]; then
+        ZABBIX_CONF="$RUNNING_CONF"
+        ZABBIX_CONF_DIR=$(dirname "$ZABBIX_CONF")
+        echo "   Detectado config do agente em execução: $ZABBIX_CONF"
+    # 2) Fallback: verificar arquivos no disco
+    elif [ -f /usr/local/etc/zabbix7/zabbix_agentd.conf ]; then
         ZABBIX_CONF="/usr/local/etc/zabbix7/zabbix_agentd.conf"
         ZABBIX_CONF_DIR="/usr/local/etc/zabbix7"
-        ZABBIX_INCLUDE_DIR="/usr/local/etc/zabbix7/zabbix_agentd.conf.d"
         echo "   Detectado: Zabbix Agent 7 (OPNsense plugin)"
     elif [ -f /usr/local/etc/zabbix_agentd.conf ]; then
         ZABBIX_CONF="/usr/local/etc/zabbix_agentd.conf"
         ZABBIX_CONF_DIR="/usr/local/etc"
-        ZABBIX_INCLUDE_DIR="/usr/local/etc/zabbix_agentd.conf.d"
-        echo "   Detectado: Zabbix Agent (instalação manual)"
+        echo "   Detectado: Zabbix Agent (instalação manual/legada)"
     else
         echo "⚠️  Zabbix Agent não encontrado. Pulando configuração."
         echo "   Instale via: System → Firmware → Plugins → os-zabbix-agent"
@@ -261,11 +269,21 @@ configure_zabbix_agent_services() {
 
     echo "   Config: $ZABBIX_CONF"
 
-    # Diretório para scripts customizados
-    mkdir -p "$ZABBIX_CONF_DIR/scripts"
+    # ── Limpar UserParameters inline quebrados do config principal ────
+    # Versões anteriores inseriam UserParameter direto no config, causando
+    # duplicação e linhas corrompidas. Remover — deve ficar apenas no Include.
+    if grep -q "^UserParameter=service\.status" "$ZABBIX_CONF" 2>/dev/null; then
+        sed -i '' '/^UserParameter=service\.status/d' "$ZABBIX_CONF"
+        echo "   🧹 Removido UserParameter inline do config principal (deve ficar no Include)"
+    fi
 
-    # Script de status dos serviços
-    cat << 'EOF' > "$ZABBIX_CONF_DIR/scripts/service_status.sh"
+    # ── Script de status dos serviços ────────────────────────────────
+    # Colocar em /usr/local/etc/zabbix7/scripts/ (caminho fixo e previsível)
+    # independente de qual config o agente usa.
+    ZABBIX_SCRIPT_DIR="/usr/local/etc/zabbix7/scripts"
+    mkdir -p "$ZABBIX_SCRIPT_DIR"
+
+    cat << 'EOF' > "$ZABBIX_SCRIPT_DIR/service_status.sh"
 #!/bin/sh
 sudo /usr/sbin/service "$1" status >/dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -274,66 +292,97 @@ else
   echo 0
 fi
 EOF
-    chmod +x "$ZABBIX_CONF_DIR/scripts/service_status.sh"
+    chmod +x "$ZABBIX_SCRIPT_DIR/service_status.sh"
 
-    # Detectar Include dir já configurado pelo plugin OPNsense
-    # (o plugin gera a linha Include= automaticamente — precisamos usar esse diretório)
+    # ── Detectar/configurar Include dir ──────────────────────────────
     EXISTING_INCLUDE=$(grep "^Include=" "$ZABBIX_CONF" 2>/dev/null | head -1 | cut -d= -f2 | sed 's|/$||')
 
     if [ -n "$EXISTING_INCLUDE" ] && [ -d "$EXISTING_INCLUDE" ] 2>/dev/null; then
         ZABBIX_INCLUDE_DIR="$EXISTING_INCLUDE"
         echo "   Include dir existente: $ZABBIX_INCLUDE_DIR"
     elif [ -n "$EXISTING_INCLUDE" ]; then
-        # Include configurado mas dir não existe — criar
         ZABBIX_INCLUDE_DIR="$EXISTING_INCLUDE"
         mkdir -p "$ZABBIX_INCLUDE_DIR"
         echo "   Include dir criado: $ZABBIX_INCLUDE_DIR"
     else
-        # Sem Include — adicionar ao config e usar restart direto (evitar regen)
         ZABBIX_INCLUDE_DIR="$ZABBIX_CONF_DIR/zabbix_agentd.conf.d"
         mkdir -p "$ZABBIX_INCLUDE_DIR"
         echo "Include=$ZABBIX_INCLUDE_DIR/" >> "$ZABBIX_CONF"
         echo "   Include dir adicionado: $ZABBIX_INCLUDE_DIR"
     fi
 
-    # Criar arquivo de UserParameter dedicado (sobrescreve para idempotência)
-    cat << UPEOF > "$ZABBIX_INCLUDE_DIR/poppfire_services.conf"
+    # ── Criar UserParameter no Include dir ───────────────────────────
+    # Usa caminho absoluto fixo para o script (independe de ZABBIX_CONF_DIR)
+    cat << 'UPEOF' > "$ZABBIX_INCLUDE_DIR/poppfire_services.conf"
 # POPPFIRE - Monitoramento de serviços via Zabbix
 # Gerado automaticamente por poppfire_setup.sh
-UserParameter=service.status[*],$ZABBIX_CONF_DIR/scripts/service_status.sh \$1
+UserParameter=service.status[*],/usr/local/etc/zabbix7/scripts/service_status.sh $1
 UPEOF
     echo "   ✅ UserParameter criado em $ZABBIX_INCLUDE_DIR/poppfire_services.conf"
 
-    # Garantir que o Zabbix Server pode conectar ao agent
-    echo "   Verificando Server= no config..."
-    CURRENT_SERVER=$(grep "^Server=" "$ZABBIX_CONF" 2>/dev/null | head -1 | cut -d= -f2)
-    if [ -n "$CURRENT_SERVER" ]; then
-        if ! echo "$CURRENT_SERVER" | grep -q "$ZABBIX_SERVER"; then
-            # Adicionar IP do servidor Zabbix à lista existente
-            NEW_SERVER="${CURRENT_SERVER},${ZABBIX_SERVER}"
-            sed -i '' "s|^Server=.*|Server=$NEW_SERVER|" "$ZABBIX_CONF"
-            echo "   ✅ Server= atualizado: $NEW_SERVER"
-        else
-            echo "   Server= já contém $ZABBIX_SERVER"
-        fi
-    else
-        # Sem Server= — adicionar
-        echo "Server=127.0.0.1,$ZABBIX_SERVER" >> "$ZABBIX_CONF"
-        echo "   ✅ Server= adicionado: 127.0.0.1,$ZABBIX_SERVER"
+    # ── Se existe OUTRO config, instalar lá também ──────────────────
+    # OPNsense pode ter ambos os configs; ao reiniciar via service pode usar
+    # o outro. Garantir que ambos têm o Include e o UserParameter correto.
+    ZABBIX_OTHER_CONF=""
+    if [ "$ZABBIX_CONF" = "/usr/local/etc/zabbix_agentd.conf" ] && \
+       [ -f /usr/local/etc/zabbix7/zabbix_agentd.conf ]; then
+        ZABBIX_OTHER_CONF="/usr/local/etc/zabbix7/zabbix_agentd.conf"
+    elif [ "$ZABBIX_CONF" != "/usr/local/etc/zabbix_agentd.conf" ] && \
+         [ -f /usr/local/etc/zabbix_agentd.conf ]; then
+        ZABBIX_OTHER_CONF="/usr/local/etc/zabbix_agentd.conf"
     fi
 
-    # ServerActive (para checks ativos)
-    CURRENT_ACTIVE=$(grep "^ServerActive=" "$ZABBIX_CONF" 2>/dev/null | head -1 | cut -d= -f2)
-    if [ -n "$CURRENT_ACTIVE" ]; then
-        if ! echo "$CURRENT_ACTIVE" | grep -q "$ZABBIX_SERVER"; then
-            NEW_ACTIVE="${CURRENT_ACTIVE},${ZABBIX_SERVER}"
-            sed -i '' "s|^ServerActive=.*|ServerActive=$NEW_ACTIVE|" "$ZABBIX_CONF"
-            echo "   ✅ ServerActive= atualizado: $NEW_ACTIVE"
+    if [ -n "$ZABBIX_OTHER_CONF" ]; then
+        echo "   Configurando também: $ZABBIX_OTHER_CONF"
+
+        # Limpar UserParameter inline do outro config
+        sed -i '' '/^UserParameter=service\.status/d' "$ZABBIX_OTHER_CONF" 2>/dev/null
+
+        OTHER_INCLUDE=$(grep "^Include=" "$ZABBIX_OTHER_CONF" 2>/dev/null | head -1 | cut -d= -f2 | sed 's|/$||')
+        if [ -n "$OTHER_INCLUDE" ]; then
+            mkdir -p "$OTHER_INCLUDE"
+            cat << 'UPEOF2' > "$OTHER_INCLUDE/poppfire_services.conf"
+# POPPFIRE - Monitoramento de serviços via Zabbix
+# Gerado automaticamente por poppfire_setup.sh
+UserParameter=service.status[*],/usr/local/etc/zabbix7/scripts/service_status.sh $1
+UPEOF2
+            echo "   ✅ UserParameter replicado em $OTHER_INCLUDE/poppfire_services.conf"
         fi
-    else
-        echo "ServerActive=$ZABBIX_SERVER" >> "$ZABBIX_CONF"
-        echo "   ✅ ServerActive= adicionado: $ZABBIX_SERVER"
     fi
+
+    # ── Garantir Server= e ServerActive= em TODOS os configs ─────────
+    # Aplicar tanto no config principal quanto no outro (se existir),
+    # para que independente de qual config o agente use, ele aceite
+    # conexões do servidor Zabbix.
+    for ZCONF in "$ZABBIX_CONF" "$ZABBIX_OTHER_CONF"; do
+        [ -z "$ZCONF" ] && continue
+        [ ! -f "$ZCONF" ] && continue
+
+        echo "   Verificando Server= em $ZCONF..."
+        CURRENT_SERVER=$(grep "^Server=" "$ZCONF" 2>/dev/null | head -1 | cut -d= -f2)
+        if [ -n "$CURRENT_SERVER" ]; then
+            if ! echo "$CURRENT_SERVER" | grep -q "$ZABBIX_SERVER"; then
+                NEW_SERVER="${CURRENT_SERVER},${ZABBIX_SERVER}"
+                sed -i '' "s|^Server=.*|Server=$NEW_SERVER|" "$ZCONF"
+                echo "   ✅ Server= atualizado em $ZCONF"
+            fi
+        else
+            echo "Server=127.0.0.1,$ZABBIX_SERVER" >> "$ZCONF"
+            echo "   ✅ Server= adicionado em $ZCONF"
+        fi
+
+        CURRENT_ACTIVE=$(grep "^ServerActive=" "$ZCONF" 2>/dev/null | head -1 | cut -d= -f2)
+        if [ -n "$CURRENT_ACTIVE" ]; then
+            if ! echo "$CURRENT_ACTIVE" | grep -q "$ZABBIX_SERVER"; then
+                NEW_ACTIVE="${CURRENT_ACTIVE},${ZABBIX_SERVER}"
+                sed -i '' "s|^ServerActive=.*|ServerActive=$NEW_ACTIVE|" "$ZCONF"
+                echo "   ✅ ServerActive= atualizado em $ZCONF"
+            fi
+        else
+            echo "ServerActive=$ZABBIX_SERVER" >> "$ZCONF"
+            echo "   ✅ ServerActive= adicionado em $ZCONF"
+        fi
+    done
 
     # Permissões no sudoers para cada serviço (idempotente: sobrescreve em vez de append)
     for SVC in $SERVICOS; do
