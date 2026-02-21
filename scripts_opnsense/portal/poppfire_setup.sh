@@ -16,7 +16,7 @@ ensure_self_executable() {
 
 # --- VARIÁVEIS DE CONFIGURAÇÃO ---
 GITHUB_USER="shampooms25"
-GITHUB_REPO="poppfire"
+GITHUB_REPO="sreadmin"
 # PAT: aceita via env (setenv PAT xxx) ou argumento --pat
 PAT="${PAT:-${POPPFIRE_PAT:-}}"
 PORTAL_DIR="/root/portal"
