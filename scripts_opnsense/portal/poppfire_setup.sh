@@ -32,7 +32,7 @@ GUARD_ACTIONS_FILE="$ACTIONS_DIR/actions_poppfire_guard.conf"
 REQUIREMENTS_FILE="requirements.txt"
 REQUIREMENTS_URL="https://raw.githubusercontent.com/$GITHUB_USER/poppfire/main/portal/$REQUIREMENTS_FILE"
 SCRIPT_URL="https://raw.githubusercontent.com/$GITHUB_USER/poppfire/main/portal/$MAIN_SCRIPT"
-API_URL="https://127.0.0.1:5555/api"
+API_URL="http://127.0.0.1/api"
 # Zenarmor
 ZENARMOR_DIR="/root/zenarmor"
 ZENARMOR_REPLICADOR_ZIP="zenarmor_replicador.zip"
