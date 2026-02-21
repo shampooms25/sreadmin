@@ -295,21 +295,20 @@ EOF
     chmod +x "$ZABBIX_SCRIPT_DIR/service_status.sh"
 
     # ── Detectar/configurar Include dir ──────────────────────────────
+    EXPECTED_INCLUDE_DIR="$ZABBIX_CONF_DIR/zabbix_agentd.conf.d"
     EXISTING_INCLUDE=$(grep "^Include=" "$ZABBIX_CONF" 2>/dev/null | head -1 | cut -d= -f2 | sed 's|/$||')
 
-    if [ -n "$EXISTING_INCLUDE" ] && [ -d "$EXISTING_INCLUDE" ] 2>/dev/null; then
-        ZABBIX_INCLUDE_DIR="$EXISTING_INCLUDE"
-        echo "   Include dir existente: $ZABBIX_INCLUDE_DIR"
-    elif [ -n "$EXISTING_INCLUDE" ]; then
-        ZABBIX_INCLUDE_DIR="$EXISTING_INCLUDE"
-        mkdir -p "$ZABBIX_INCLUDE_DIR"
-        echo "   Include dir criado: $ZABBIX_INCLUDE_DIR"
-    else
-        ZABBIX_INCLUDE_DIR="$ZABBIX_CONF_DIR/zabbix_agentd.conf.d"
-        mkdir -p "$ZABBIX_INCLUDE_DIR"
-        echo "Include=$ZABBIX_INCLUDE_DIR/" >> "$ZABBIX_CONF"
-        echo "   Include dir adicionado: $ZABBIX_INCLUDE_DIR"
+    if [ "$EXISTING_INCLUDE" != "$EXPECTED_INCLUDE_DIR" ]; then
+        # Corrigir Include se estiver errado ou inexistente
+        sed -i '' "s|^Include=.*|Include=$EXPECTED_INCLUDE_DIR/|" "$ZABBIX_CONF"
+        if ! grep -q "^Include=$EXPECTED_INCLUDE_DIR/" "$ZABBIX_CONF"; then
+            echo "Include=$EXPECTED_INCLUDE_DIR/" >> "$ZABBIX_CONF"
+        fi
+        echo "   Include corrigido/adicionado: $EXPECTED_INCLUDE_DIR/"
     fi
+
+    ZABBIX_INCLUDE_DIR="$EXPECTED_INCLUDE_DIR"
+    mkdir -p "$ZABBIX_INCLUDE_DIR"
 
     # ── Criar UserParameter no Include dir ───────────────────────────
     # Usa caminho absoluto fixo para o script (independe de ZABBIX_CONF_DIR)
