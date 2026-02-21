@@ -75,7 +75,7 @@ curl -s -X PUT "${ES_HOST}/_index_template/${TEMPLATE_NAME}" \
       \"number_of_replicas\": 0
     }
   },
-  \"priority\": 100
+  \"priority\": 101
 }" && echo "✅ Template criado para ${INDEX_NAME} com sucesso!"
 
 # 🚀 Iniciar serviço
