@@ -269,6 +269,11 @@ configure_zabbix_agent_services() {
 
     echo "   Config: $ZABBIX_CONF"
 
+    # Parar o agente temporariamente para evitar conflitos durante configuração
+    echo "   Parando Zabbix Agent temporariamente..."
+    pkill -f zabbix_agentd 2>/dev/null
+    sleep 1
+
     # ── Limpar UserParameters inline quebrados do config principal ────
     # Versões anteriores inseriam UserParameter direto no config, causando
     # duplicação e linhas corrompidas. Remover — deve ficar apenas no Include.
