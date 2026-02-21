@@ -50,7 +50,7 @@ class Config:
     # Credenciais API Local (OPNsense) para gerenciamento de sessões
     LOCAL_API_KEY = "nyDvq1X0zWd4DC0YCJm43Hrwi1C3640acDDZ0r40ITrf6FvfDqsAEZhpGc40oMWNFo5zwvfTNyfM1GfX"
     LOCAL_API_SECRET = "36SfXGuYDwqhR37LdagJPZ/9K3gowro2dJHVDkSPhe/8+QjdqHojdJh41SqjQBGgd9Nmij0CYwhUAABl"
-    LOCAL_API_URL = "https://127.0.0.1:5555/api"
+    LOCAL_API_URL = "http://127.0.0.1/api"
 
 
 # Evitar linhas duplicadas: log apenas em stdout; o wrapper redireciona para arquivo
